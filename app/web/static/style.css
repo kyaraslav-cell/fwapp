@@ -527,8 +527,8 @@ table.weather tbody tr:last-child td { border-bottom: none; }
   flex: 1;
   height: 10px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #2c7bb6, #00a6ca, #00ccbc, #90eb9d,
-                                     #ffff8c, #f9d057, #f29e2e, #e76818, #d7191c);
+  background: linear-gradient(90deg, #c73e2d, #de6a3a, #ed9844, #f6c359,
+                                     #f3e378, #cee07a, #9cd07a, #6abc7c, #3aa06a);
 }
 
 .phase-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }

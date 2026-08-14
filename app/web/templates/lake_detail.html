@@ -68,9 +68,9 @@
 </div>
 
 <div class="heat-legend">
-  <span id="legend-low">Least preferred</span>
+  <span id="legend-low">Poor</span>
   <span class="heat-bar"></span>
-  <span id="legend-high">Most preferred</span>
+  <span id="legend-high">Best</span>
 </div>
 
 <p class="provenance-note">
@@ -112,10 +112,11 @@ const bounds = [
   [GRID.origin_lat + GRID.n_rows * dLat, GRID.origin_lon + GRID.n_cols * dLon]
 ];
 
-// Same ramp as the legend bar: blue (least) -> red (most preferred).
+// Traffic-light semantics: red = poor water, green = best. Matches the day
+// score bands, and matches what an angler expects at a glance.
 const RAMP = [
-  [44, 123, 182], [0, 166, 202], [0, 204, 188], [144, 235, 157],
-  [255, 255, 140], [249, 208, 87], [242, 158, 46], [231, 104, 24], [215, 25, 28]
+  [199, 62, 45], [222, 106, 58], [237, 152, 68], [246, 195, 89],
+  [243, 227, 120], [206, 224, 122], [156, 208, 122], [106, 188, 124], [58, 160, 106]
 ];
 
 function rampColor(t) {

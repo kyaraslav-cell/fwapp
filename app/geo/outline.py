@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any
 
 import httpx
@@ -20,11 +21,14 @@ def fetch_osm_outline(lat: float, lon: float, radius_m: int = 500) -> dict[str, 
     Returns a GeoJSON Polygon dict, or None if nothing usable came back.
     Never raises on network failure - the caller falls back to an approximation.
     """
+    # Rivers are excluded explicitly: the Wkra runs past Pomocnia and its
+    # polygon is far larger than the lake, so any "biggest wins" heuristic
+    # picks the river instead of the target water.
     query = f"""
     [out:json][timeout:25];
     (
-      way(around:{radius_m},{lat},{lon})["natural"="water"];
-      relation(around:{radius_m},{lat},{lon})["natural"="water"];
+      way(around:{radius_m},{lat},{lon})["natural"="water"]["water"!~"river|stream|canal|ditch"];
+      relation(around:{radius_m},{lat},{lon})["natural"="water"]["water"!~"river|stream|canal|ditch"];
     );
     out geom;
     """
@@ -37,9 +41,7 @@ def fetch_osm_outline(lat: float, lon: float, radius_m: int = 500) -> dict[str, 
         logger.warning("Overpass fetch failed (%s: %s)", type(exc).__name__, exc)
         return None
 
-    best: list[list[float]] | None = None
-    best_area = 0.0
-
+    candidates: list[tuple[list[list[float]], float]] = []
     for element in data.get("elements", []):
         geometry = element.get("geometry")
         if not geometry:
@@ -49,16 +51,42 @@ def fetch_osm_outline(lat: float, lon: float, radius_m: int = 500) -> dict[str, 
             continue
         if ring[0] != ring[-1]:
             ring.append(ring[0])
-        area = _ring_area_deg(ring)
-        if area > best_area:
-            best_area = area
-            best = ring
+        candidates.append((ring, _ring_area_deg(ring)))
 
-    if best is None:
+    if not candidates:
         logger.warning("Overpass returned no usable water polygon near %s,%s", lat, lon)
         return None
 
-    return {"type": "Polygon", "coordinates": [best]}
+    # Containment first. Picking the biggest polygon is wrong near a river:
+    # the water we want is the one the lake's own coordinates fall inside.
+    containing = [(ring, area) for ring, area in candidates if _point_in_ring(lon, lat, ring)]
+    if containing:
+        ring, _ = max(containing, key=lambda c: c[1])
+        return {"type": "Polygon", "coordinates": [ring]}
+
+    # Nothing contains the point (coordinates slightly off, or a crude
+    # outline): fall back to whichever polygon comes nearest to it, NOT the
+    # largest one.
+    ring = min(candidates, key=lambda c: _min_distance_deg(lon, lat, c[0]))[0]
+    logger.warning("no OSM polygon contained %s,%s - using the nearest instead", lat, lon)
+    return {"type": "Polygon", "coordinates": [ring]}
+
+
+def _point_in_ring(x: float, y: float, ring: list[list[float]]) -> bool:
+    """Standard ray-casting point-in-polygon, in degrees."""
+    inside = False
+    for i in range(len(ring) - 1):
+        x1, y1 = ring[i]
+        x2, y2 = ring[i + 1]
+        if (y1 > y) != (y2 > y):
+            x_cross = x1 + (y - y1) / (y2 - y1) * (x2 - x1)
+            if x < x_cross:
+                inside = not inside
+    return inside
+
+
+def _min_distance_deg(x: float, y: float, ring: list[list[float]]) -> float:
+    return min(math.hypot(px - x, py - y) for px, py in ring)
 
 
 def _ring_area_deg(ring: list[list[float]]) -> float:
