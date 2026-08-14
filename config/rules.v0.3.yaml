@@ -1,0 +1,143 @@
+version: v0.3
+features_version: f0
+parent: v0.2
+
+note: >
+  Ruleset v0.3 = v0.2 plus a lee-shore term and percentile display
+  normalisation, because v0.2 rendered almost the whole lake one colour and
+  therefore told the angler nothing.
+
+  PROVENANCE UNCHANGED: the zone_score block is AI-authored at the owner's
+  explicit request, reasoning from docs/02-DOMAIN.md. It is NOT the pending
+  FORMULA_WIND_ZONE, which remains unfilled and supersedes this outright on
+  arrival. See docs/adr/0002-provisional-zone-score.md.
+
+# ---------------------------------------------------------------------------
+# Lake-level day scoring, unchanged from v0.
+# ---------------------------------------------------------------------------
+pressure_regimes:
+  falling_fast:  "dp_6h <= -3.0"
+  falling_slow:  "dp_6h < -0.7 and dp_6h > -3.0"
+  stable:        "abs(dp_6h) <= 0.7 and pressure_stability_48h < 2.0"
+  rising_slow:   "dp_6h > 0.7 and dp_6h < 3.0"
+  rising_fast:   "dp_6h >= 3.0"
+
+rules:
+  - id: pressure_trend
+    scope: lake
+    weight: 0.6
+    regime_scores:
+      falling_slow:  1.0
+      stable:        0.6
+      falling_fast:  0.3
+      rising_slow:   0.4
+      rising_fast:  -0.5
+    reason_template: "pressure {regime} ({dp_6h} hPa / 6h)"
+
+  - id: light_window
+    scope: lake
+    weight: 0.4
+    dawn_dusk_window_hours: 2.0
+    score_in_window: 1.0
+    score_outside_window: 0.3
+    reason_template: "{label} light window ({start}–{end})"
+
+aggregation:
+  day_score: { normalise: [0, 10] }
+  go_threshold: 5.5
+  day_score_bands:
+    - { color: red,    label: "Poor",     max: 3.5 }
+    - { color: orange, label: "Marginal", max: 5.5 }
+    - { color: yellow, label: "Fair",     max: 7.5 }
+    - { color: green,  label: "Great" }
+
+# ---------------------------------------------------------------------------
+# Season hint. TEMPORARY STAND-IN, and the UI must say so.
+#
+# ADR 0001 §5 is explicit: thermal phase is a state derived from modelled
+# water temperature and its trend, NEVER from the calendar, because a cold May
+# and a warm April swap places regularly. The water-temperature model
+# (docs/02-DOMAIN.md Layer 2) is not built yet, so this month lookup stands in
+# for it purely so the map has a weight set to use. It is a guess about the
+# calendar, not a measurement of the water, and must be labelled as such
+# wherever it is shown. Delete this block the day the model lands.
+# ---------------------------------------------------------------------------
+season_hint:
+  status: calendar_stand_in
+  derived_from: month
+  months:
+    3:  spring_warming
+    4:  spring_warming
+    5:  spring_warming
+    6:  summer_stagnation
+    7:  summer_stagnation
+    8:  summer_stagnation
+    9:  autumn_cooling
+    10: autumn_cooling
+    11: autumn_cooling
+  default: summer_stagnation
+
+# ---------------------------------------------------------------------------
+# PROVISIONAL per-cell zone score. AI-authored - see provenance note above.
+#
+# Geometry inputs, per grid cell (app/geo/grid.py):
+#   fetch_norm  0..1  upwind open water / max possible fetch
+#   shore_prox  0..1  1 at the bank, 0 at margin_band_m offshore
+#   shelter     0..1  1 - fetch_norm
+#   lee_shore   0..1  fetch_norm * shore_prox   <-- NEW in v0.3
+#
+# lee_shore is the term that actually separates the map. Fetch alone is
+# highest in open water, which is useless to a bank angler: it lit up the
+# whole middle of the lake. What matters is the bank the wind has crossed open
+# water to reach - "wind in your face, fish in your place" - which is exactly
+# high fetch AND close to shore at once. That product is narrow and spatially
+# specific, so it produces a visible band rather than a uniform wash.
+# ---------------------------------------------------------------------------
+zone_score:
+  provenance: ai_authored_provisional
+  status: hypothesis
+  supersede_with: FORMULA_WIND_ZONE
+
+  expression: >
+    w_fetch * fetch_norm + w_margin * shore_prox
+    + w_shelter * shelter + w_lee * lee_shore
+
+  margin_band_m: 25.0
+  max_possible_fetch_m: 400.0
+
+  phase_weights:
+    spring_warming:
+      # Wind mixes away the warm margin that is the whole point in April/May.
+      w_fetch:   -0.50
+      w_margin:   1.00
+      w_shelter:  0.70
+      w_lee:      0.10
+    summer_stagnation:
+      # Mixing is oxygen; still weedy corners are where the dawn sag happens.
+      w_fetch:    0.30
+      w_margin:   0.25
+      w_shelter: -0.35
+      w_lee:      1.00
+    autumn_cooling:
+      # Fish follow food, which the wind stacks against the far bank.
+      w_fetch:    0.25
+      w_margin:   0.45
+      w_shelter:  0.05
+      w_lee:      0.80
+
+  default_phase: summer_stagnation
+
+  display:
+    # Percentile ranking, NOT a rescaling of the score. Raw scores cluster
+    # tightly - most of a small round lake genuinely is much the same - so
+    # min-max normalisation left almost every cell in one colour band. Ranking
+    # spreads cells evenly across the ramp so relative preference is legible.
+    #
+    # This is a DISPLAY transform and nothing else. It guarantees some cells
+    # look red and some look green even on a day when every spot is equally
+    # mediocre, so colour here means "better than other spots on this lake
+    # today", never "good fishing". Calibration must read raw scores.
+    normalisation: percentile
+    colormap: [red, orange, yellow, green]
+    low_label: "Poor"
+    high_label: "Best"

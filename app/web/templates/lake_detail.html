@@ -6,6 +6,13 @@
 {% endblock %}
 
 {% block content %}
+{% if live_session %}
+<a href="/session/active" class="session-banner">
+  <span><strong>Session in progress</strong> — started {{ live_session.started_at[11:16] }} UTC</span>
+  <span>Back to logging →</span>
+</a>
+{% endif %}
+
 <div class="section-label">{{ lake.name }} · {{ now_local }}</div>
 
 <div class="section-label">Recent conditions — tap a day to see it on the map</div>
@@ -38,12 +45,9 @@
 
 <div class="section-label" style="margin-top: 20px;">Where to fish</div>
 
-<div class="phase-row" id="phase-row">
-  {% for p in phases %}
-  <button class="phase-btn {{ 'active' if p == default_phase }}" data-phase="{{ p }}">
-    {{ p.replace('_', ' ') }}
-  </button>
-  {% endfor %}
+<div class="season-line">
+  Assuming <strong>{{ season.label }}</strong>
+  <span class="season-caveat" title="{{ season.caveat }}">— {{ season.caveat }}</span>
 </div>
 
 <div class="pin-dock">
@@ -100,7 +104,7 @@ const DAYS = {{ days_json | safe }};
 const OUTLINE = {{ outline_json | safe }};
 const GRID = {{ grid_meta | safe }};
 const DEFAULT_WIND = {{ default_wind }};
-let currentPhase = "{{ default_phase }}";
+const PHASE = "{{ season.phase }}";
 let currentWind = DEFAULT_WIND !== null ? DEFAULT_WIND : 270;
 
 const M_PER_DEG_LAT = 111320;
@@ -185,7 +189,7 @@ function renderHeat(cells) {
 }
 
 function loadGrid() {
-  fetch(`/lake/${LAKE.slug}/grid?wind_dir=${currentWind}&phase=${currentPhase}`)
+  fetch(`/lake/${LAKE.slug}/grid?wind_dir=${currentWind}&phase=${PHASE}`)
     .then(r => r.json())
     .then(data => renderHeat(data.cells))
     .catch(() => {});
@@ -236,15 +240,6 @@ document.querySelectorAll('#weather-table tbody tr').forEach(tr => {
     document.querySelectorAll('#weather-table tbody tr').forEach(r => r.classList.remove('selected'));
     tr.classList.add('selected');
     currentWind = parseFloat(wind);
-    loadGrid();
-  });
-});
-
-document.querySelectorAll('.phase-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentPhase = btn.dataset.phase;
     loadGrid();
   });
 });

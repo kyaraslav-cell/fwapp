@@ -77,6 +77,7 @@ def active(request: Request, q: str = "", db: Session = Depends(get_db)):
             "favourites": favourite_species(db),
             "search_results": list_species(db, q) if q.strip() else [],
             "q": q,
+            "lake_slug": lake.slug,
             "active_nav": "",
         },
     )

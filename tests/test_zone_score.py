@@ -18,6 +18,23 @@ zone_score:
 """
 )
 
+PERCENTILE_RULESET = yaml.safe_load(
+    """
+zone_score:
+  provenance: ai_authored_provisional
+  expression: >
+    w_fetch * fetch_norm + w_margin * shore_prox
+    + w_shelter * shelter + w_lee * lee_shore
+  margin_band_m: 25.0
+  max_possible_fetch_m: 400.0
+  phase_weights:
+    summer_stagnation: { w_fetch: 0.30, w_margin: 0.25, w_shelter: -0.35, w_lee: 1.00 }
+  default_phase: summer_stagnation
+  display:
+    normalisation: percentile
+"""
+)
+
 # (row, col, fetch_m, shore_m)
 CELLS = [
     (0, 0, 400.0, 60.0),  # fully windward, open water
@@ -46,6 +63,35 @@ def test_wind_sign_flips_between_phases():
     windward, sheltered = (0, 0), (0, 1)
     assert summer_by_cell[windward] > summer_by_cell[sheltered]
     assert spring_by_cell[sheltered] > spring_by_cell[windward]
+
+
+def test_percentile_normalisation_spreads_clustered_scores():
+    """The map showed almost one colour because raw scores cluster tightly.
+    Percentile ranking must use the whole ramp even then."""
+    clustered = [(0, i, 100.0 + i * 0.001, 10.0) for i in range(40)]
+    scored, _ = score_cells(PERCENTILE_RULESET, "summer_stagnation", clustered)
+    values = sorted(v for _, _, v in scored)
+
+    assert values[0] == 0.0
+    assert values[-1] == 1.0
+    # Evenly spread: roughly a quarter of cells in each quartile of the ramp.
+    for lo, hi in [(0.0, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1.0)]:
+        in_band = [v for v in values if lo <= v <= hi]
+        assert len(in_band) >= 8, f"band {lo}-{hi} nearly empty: {len(in_band)}"
+
+
+def test_lee_shore_term_prefers_the_windward_bank_over_open_water():
+    """Fetch alone peaks in open water, which is useless to a bank angler.
+    lee_shore should rank the far bank above the middle of the lake."""
+    cells = [
+        (0, 0, 400.0, 2.0),  # long fetch AND against the bank - the lee shore
+        (0, 1, 400.0, 200.0),  # long fetch, open water
+        (0, 2, 5.0, 2.0),  # sheltered bank
+    ]
+    scored, _ = score_cells(PERCENTILE_RULESET, "summer_stagnation", cells)
+    by_cell = {(r, c): v for r, c, v in scored}
+    assert by_cell[(0, 0)] > by_cell[(0, 1)]
+    assert by_cell[(0, 0)] > by_cell[(0, 2)]
 
 
 def test_unknown_phase_falls_back_to_default():

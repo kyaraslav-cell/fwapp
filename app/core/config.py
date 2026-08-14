@@ -27,7 +27,7 @@ def get_settings() -> Settings:
     return Settings(
         db_path=db_path,
         media_dir=media_dir,
-        ruleset_path=CONFIG_DIR / "rules.v0.2.yaml",
+        ruleset_path=CONFIG_DIR / "rules.v0.3.yaml",
         lake_config_path=CONFIG_DIR / "lakes" / "pomocnia.yaml",
         host=os.environ.get("FISHLOG_HOST", "0.0.0.0"),
         port=int(os.environ.get("FISHLOG_PORT", "8000")),

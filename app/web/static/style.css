@@ -533,21 +533,50 @@ table.weather tbody tr:last-child td { border-bottom: none; }
                                      #f3e378, #cee07a, #9cd07a, #6abc7c, #3aa06a);
 }
 
-.phase-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-
-.phase-btn {
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
+.season-line {
+  font-size: 0.88rem;
+  color: var(--text);
+  margin-bottom: 12px;
 }
 
-.phase-btn.active { background: var(--primary-strong); color: #fff; border-color: var(--primary-strong); }
+.season-caveat { color: var(--muted); font-size: 0.8rem; }
+
+.session-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #e3f7ee;
+  color: var(--accent-green-text);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 0.86rem;
+  text-decoration: none;
+}
+
+.session-banner:hover { text-decoration: none; background: #d6f2e5; }
+
+.inline-link-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.inline-link-row a {
+  flex: 1;
+  text-align: center;
+  padding: 11px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary-strong);
+  text-decoration: none;
+}
+
+.inline-link-row a:hover { text-decoration: none; border-color: var(--primary); }
 
 .provenance-note {
   font-size: 0.75rem;

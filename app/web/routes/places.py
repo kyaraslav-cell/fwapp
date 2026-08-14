@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.models import Lake
 from app.core.time import parse_iso, to_display, utcnow
+from app.features.season import derive_season
 from app.geo import service as geo_service
 from app.ingest.open_meteo import ingest_forecast
 from app.notebook.sessions import METHODS, active_session, lake_stats, start_session
@@ -61,8 +62,10 @@ def new_place(request: Request, db: Session = Depends(get_db)):
 @router.get("/lake/{slug}")
 def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
     lake = get_lake_by_slug(db, slug)
-    if active_session(db, lake) is not None:
-        return RedirectResponse(url="/session/active")
+    # Deliberately NOT redirecting to an in-progress session: conditions and
+    # the map are exactly what you want to check while you are sitting there
+    # fishing. The banner offers the way back instead.
+    live_session = active_session(db, lake)
 
     conditions = current_conditions(db, lake)
     days = recent_days(db, lake, days=5)
@@ -78,12 +81,15 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
 
     ruleset = load_active_ruleset()
     zone_cfg = ruleset["zone_score"]
+    season = derive_season(ruleset, to_display(utcnow()).date())
 
     return templates.TemplateResponse(
         "lake_detail.html",
         {
             "request": request,
             "lake": lake,
+            "live_session": live_session,
+            "season": season,
             "conditions": conditions,
             "days": days,
             "days_json": json.dumps(days),
@@ -99,8 +105,6 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
                 }
             ),
             "default_wind": default_wind if default_wind is not None else "null",
-            "phases": list(zone_cfg["phase_weights"].keys()),
-            "default_phase": zone_cfg["default_phase"],
             "zone_provenance": zone_cfg["provenance"],
             "display_cfg": json.dumps(zone_cfg["display"]),
             "methods": METHODS,
@@ -124,6 +128,8 @@ def lake_grid(
     inputs = geo_service.get_geometry_inputs(lake, outline, grid, wind_dir)
 
     ruleset = load_active_ruleset()
+    if not phase:
+        phase = derive_season(ruleset, to_display(utcnow()).date()).phase
     scored, phase_used = score_cells(ruleset, phase, inputs)
 
     return JSONResponse(
