@@ -1,0 +1,151 @@
+version: v1
+features_version: f1
+note: >
+  Ruleset v1. Hand-authored from angling knowledge, NOT fitted to data.
+  Two formula slots are PENDING delivery from the project owner and must not
+  be guessed at. All weights below are starting hypotheses to be tested against
+  the owner's own logged CPUE. See docs/04-RULES-ENGINE.md.
+
+species:
+  primary:   [roach, bream, rudd, ide]
+  secondary: [carp, crucian]
+  logged_not_scored: [pike, perch, catfish, eel, tench]
+
+# ---------------------------------------------------------------------------
+# Thermal phase: a STATE derived from modelled water temperature and its trend.
+# Never from calendar date. Hysteresis prevents day-to-day flapping.
+# ---------------------------------------------------------------------------
+thermal_phases:
+  spring_warming:
+    enter_when: "water_temp_bulk_c < 14 and water_temp_trend_72h > 0.2"
+    hysteresis_hours: 48
+  late_spring:
+    enter_when: "water_temp_bulk_c >= 14 and water_temp_bulk_c < 18 and water_temp_trend_72h > 0"
+    hysteresis_hours: 48
+  summer_stagnation:
+    enter_when: "water_temp_bulk_c >= 18"
+    hysteresis_hours: 48
+  early_autumn:
+    enter_when: "water_temp_bulk_c < 18 and water_temp_trend_72h < 0"
+    hysteresis_hours: 48
+  autumn_cooling:
+    enter_when: "water_temp_bulk_c < 14 and water_temp_trend_72h < -0.2"
+    hysteresis_hours: 48
+
+pressure_regimes:
+  falling_fast:  "dp_6h <= -3.0"
+  falling_slow:  "dp_6h < -0.7 and dp_6h > -3.0"
+  stable:        "abs(dp_6h) <= 0.7 and pressure_stability_48h < 2.0"
+  rising_slow:   "dp_6h > 0.7 and dp_6h < 3.0"
+  rising_fast:   "dp_6h >= 3.0"
+
+# ---------------------------------------------------------------------------
+rules:
+
+  - id: wind_exposure
+    scope: zone
+    inputs: [wind_exposure, effective_fetch_m, wind_speed_10m, wave_energy]
+    expression: "FORMULA_WIND_ZONE"     # ======= PENDING FROM OWNER =======
+    weights:
+      spring_warming:    -0.4    # wind mixes away the warm margin -> NEGATIVE
+      late_spring:        0.2
+      summer_stagnation:  0.9    # mixing is life -> POSITIVE
+      early_autumn:       0.6
+      autumn_cooling:     0.5
+    reason_template: "{zone} is {exposure_words} ({wind_dir_words} {wind_speed} m/s, {fetch} m fetch)"
+
+  - id: oxygen_proxy
+    scope: zone
+    status: hypothesis          # UI must mark this as unproven
+    inputs: [o2_proxy, weed_density, mixing_energy, water_temp_bulk_c, cloud_cover_night]
+    weights:
+      spring_warming:     0.1
+      late_spring:        0.4
+      summer_stagnation:  1.0    # likely beats pressure on this lake in July
+      early_autumn:       0.6
+      autumn_cooling:     0.4
+    reason_template: "oxygen likely {o2_words} here - {weed_words} weed, {mixing_words} mixing"
+
+  - id: margin_warmth
+    scope: zone
+    inputs: [margin_temp_offset_c, insolation_received, shade_fraction, mixing_energy]
+    weights:
+      spring_warming:     1.0    # in April and May this is the whole game
+      late_spring:        0.6
+      summer_stagnation: -0.2
+      early_autumn:       0.3
+      autumn_cooling:     0.3
+    reason_template: "margin here running ~{margin_offset}C above open water"
+
+  - id: pressure_trend
+    scope: lake
+    inputs: [dp_6h, dp_9h, dp_24h, pressure_stability_48h, pressure_regime, hours_since_regime_change]
+    weights:
+      spring_warming:     0.5
+      late_spring:        0.5
+      summer_stagnation:  0.4
+      early_autumn:       0.5
+      autumn_cooling:     0.5
+    reason_template: "pressure {regime_words} ({dp_6h} hPa / 6h)"
+
+  - id: light_window
+    scope: lake
+    inputs: [solar_elevation_deg, civil_dawn, sunrise, sunset, civil_dusk, cloud_cover]
+    weights:
+      spring_warming:     0.6
+      late_spring:        0.7
+      summer_stagnation:  0.8
+      early_autumn:       0.7
+      autumn_cooling:     0.6
+
+  - id: weed_edge_proximity
+    scope: zone
+    inputs: [distance_to_weed_m, distance_to_reed_m, weed_density]
+    weights:
+      spring_warming:     0.5
+      late_spring:        0.7
+      summer_stagnation:  0.8    # on a 3 m lake the weed edge IS the structure
+      early_autumn:       0.7
+      autumn_cooling:     0.4
+
+  - id: moon
+    scope: lake
+    inputs: [moon_phase, moon_illumination]
+    weights:
+      spring_warming:     0.0
+      late_spring:        0.0
+      summer_stagnation:  0.0
+      early_autumn:       0.0
+      autumn_cooling:     0.0
+    note: collected from day one, scored at zero until the owner's own data says otherwise
+
+# ---------------------------------------------------------------------------
+depth_band:
+  expression: "FORMULA_PRESSURE_DEPTH"   # ======= PENDING FROM OWNER =======
+  clamp_to_zone_depth: true              # Pomocnia mean depth < 3 m. MANDATORY.
+  fallback_when_unavailable: distance_to_weed_edge
+  species_coefficients:
+    roach:   { status: pending }
+    bream:   { status: pending }
+    rudd:    { status: pending }
+    ide:     { status: pending }
+    carp:    { status: pending }
+    crucian: { status: pending }
+
+# ---------------------------------------------------------------------------
+aggregation:
+  day_score:  { method: weighted_sum, normalise: [0, 10] }
+  zone_score: { method: weighted_sum, normalise: [0, 10] }
+  go_threshold: 5.5
+  min_sessions_for_confidence: 5
+  confidence_bands:
+    low:    { max_legs: 4 }
+    medium: { max_legs: 15 }
+    high:   { min_legs: 16 }
+  exploration_bonus:
+    enabled: true
+    applies_when_zone_hours_below: 10
+    magnitude: 0.8
+    note: >
+      Counteracts selection bias. Without this the system converges on the
+      owner's existing habits and calls the result insight.

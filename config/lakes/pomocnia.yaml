@@ -1,0 +1,111 @@
+slug: pomocnia
+name: Jezioro Pomocnia
+country: PL
+timezone: Europe/Warsaw
+
+# Two published coordinate sources agree to ~150 m. Authoritative value to be
+# confirmed against the OSM polygon centroid during Phase 1.
+centroid:
+  lat: 52.5431
+  lon: 20.6762
+coordinate_sources:
+  - { source: fishsurfing, lat: 52.543087, lon: 20.676173 }
+  - { source: "PZW kolo 5", dms: "N 52 32 32.78 / E 20 40 42.20", lat: 52.54244, lon: 20.67839 }
+
+geometry:
+  area_ha: 9.0
+  equivalent_diameter_m: 339        # a circle of 9 ha. The lake is ~340 m across.
+  mean_depth_m: 2.8                 # "under 3 m", heavily silted
+  max_depth_m: null                 # UNKNOWN - to be measured
+  historic_max_depth_m: 40          # local meteor-crater theory; now silted in
+  max_possible_fetch_m: 400
+  outline_geojson: null             # populated by the OSM auto-resolve pipeline
+  osm_id: null
+
+hydrology:
+  outflow_to: Wkra
+  catchment_note: "jezioro Pomocnia wraz z wodami odplywu do rzeki Wkra"
+
+substrate:
+  bottom: silt
+  silt_factor: 0.85                 # high: drives biological oxygen demand
+  shoreline_profile: gradual        # gently shelving
+
+vegetation:
+  submerged_dominant_areas: [east, south]
+  species:
+    - grazel_zolty      # Nuphar lutea, yellow water-lily
+    - rogatek           # Ceratophyllum, hornwort
+    - moczarka          # Elodea, waterweed
+  reeds: "present along many shore sections"
+  note: >
+    Dense submerged weed in the east and south is the primary driver of the
+    nocturnal oxygen sag hypothesis. These zones need accurate weed_density.
+
+fish:
+  scored:
+    - roach
+    - bream
+    - rudd
+    - ide
+  scored_secondary:
+    - { species: carp,    typical_kg: [3, 17] }
+    - { species: crucian, typical_kg: [0.5, 3] }
+  logged_only:
+    - { species: pike,    typical_kg: [null, 5] }
+    - perch
+    - { species: catfish, typical_kg: [null, 20] }
+    - { species: eel,     record_kg: 2.8 }
+
+season:
+  fishing_months: [4, 5, 6, 7, 8, 9, 10]
+  extended_months: [3, 11]
+  ice_fishing: false
+
+weather:
+  primary:
+    provider: open-meteo
+    lat: 52.5431
+    lon: 20.6762
+    note: grid point at the lake itself; ERA5 archive + 16-day forecast
+    backfill_years: 10
+  secondary:
+    provider: metar
+    station: EPMO           # Warszawa-Modlin
+    lat: 52.4511
+    lon: 20.6518
+    distance_km: 10.4
+    note: real instrument, ~30 min cadence, no history depth, no forecast
+  rejected:
+    - { station: EPWA, name: "Warszawa-Okecie", distance_km: 46.4, reason: "too far for wind" }
+
+# Single-layer energy-balance model. STARTING VALUES ONLY - to be fitted against
+# water temperatures the owner logs with a thermometer. That single field is the
+# highest-value optional input in the whole application.
+water_temp_model:
+  effective_mixed_depth_m: 2.5
+  albedo: 0.06
+  alpha_solar: 1.0
+  k_conv: 1.0
+  k_evap: 1.0
+  wind_mixing_exponent: 0.5
+  spinup_days: 60
+  calibrated: false
+
+access:
+  facility: "stanica wedkarska"
+  beds: 64
+  docks: 3                          # T-shaped
+  boats: 15
+  parking: true
+  route: "Nowy Dwor Mazowiecki -> Pomiechowek -> Kosewko"
+  permits: "PZW Okreg Mazowiecki, Kolo nr 5 Warszawa Praga Polnoc; online"
+
+zones: []   # defined by the owner on the satellite map in Phase 0.
+            # Each REQUIRES bank_aspect_deg and tree_line_height_m / tree_side -
+            # without them there is no shade model and no margin-warmth rule.
+
+sources:
+  - https://kolo5.ompzw.pl/artykul/jezioro-pomocnia
+  - https://www.fishsurfing.com/pl/map/jezioro-pomocnia-1770494874/
+  - https://wedkuje.pl/l/jezioro/30571

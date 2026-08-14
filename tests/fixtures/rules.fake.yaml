@@ -1,0 +1,69 @@
+# =========================================================================
+# WARNING — THE FORMULAS IN THIS FILE ARE FABRICATED FOR TESTING ONLY.
+#
+# They carry NO angling meaning whatsoever. They exist purely so that the
+# rules engine, the expression evaluator and the scoring pipeline can be
+# exercised before the project owner delivers the real formulas.
+#
+# THIS FILE MUST NEVER BE COPIED INTO config/.
+# A plausible wrong formula is worse than a loud missing one: it will
+# quietly poison a season of calibration data.
+# =========================================================================
+
+version: fake-test-only
+features_version: f1
+
+thermal_phases:
+  spring_warming:
+    enter_when: "water_temp_bulk_c < 14 and water_temp_trend_72h > 0.2"
+    hysteresis_hours: 48
+  summer_stagnation:
+    enter_when: "water_temp_bulk_c >= 18"
+    hysteresis_hours: 48
+  autumn_cooling:
+    enter_when: "water_temp_bulk_c < 14 and water_temp_trend_72h < -0.2"
+    hysteresis_hours: 48
+
+rules:
+  - id: wind_exposure
+    scope: zone
+    inputs: [wind_exposure, effective_fetch_m, wind_speed_10m]
+    # FAKE: linear in exposure, damped by a fetch term. Meaningless.
+    expression: "wind_exposure * min(1.0, effective_fetch_m / 400.0) * min(1.0, wind_speed_10m / 8.0)"
+    weights:
+      spring_warming:   -0.4
+      summer_stagnation: 0.9
+      autumn_cooling:    0.5
+
+  - id: pressure_trend
+    scope: lake
+    inputs: [dp_6h, pressure_stability_48h]
+    # FAKE: rewards a gentle fall. Meaningless.
+    expression: "clamp(-dp_6h / 6.0, -1.0, 1.0)"
+    weights:
+      spring_warming:    0.5
+      summer_stagnation: 0.4
+      autumn_cooling:    0.5
+
+depth_band:
+  # FAKE: arbitrary linear map from pressure delta to depth. Meaningless.
+  expression: "clamp(1.0 + (-dp_24h) * 0.15, 0.5, 3.0)"
+  clamp_to_zone_depth: true
+  fallback_when_unavailable: distance_to_weed_edge
+  species_coefficients:
+    roach:   { k: 1.0 }
+    bream:   { k: 1.2 }
+    rudd:    { k: 0.7 }
+    ide:     { k: 1.1 }
+    carp:    { k: 1.3 }
+    crucian: { k: 0.9 }
+
+aggregation:
+  day_score:  { method: weighted_sum, normalise: [0, 10] }
+  zone_score: { method: weighted_sum, normalise: [0, 10] }
+  go_threshold: 5.5
+  min_sessions_for_confidence: 5
+  exploration_bonus:
+    enabled: true
+    applies_when_zone_hours_below: 10
+    magnitude: 0.8
