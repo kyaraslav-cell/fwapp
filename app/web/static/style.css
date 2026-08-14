@@ -679,19 +679,34 @@ table.weather tbody tr:last-child td { border-bottom: none; }
    into the water and shrink away. Gravity easing on the descent; the earlier
    version used one ease for the whole thing, which is why it read as clumsy. */
 .pin-ghost.diving {
-  animation: dive 700ms forwards;
+  animation: dive 780ms forwards;
+  transform-origin: 50% 50%;
   transition: none;
 }
 
 @keyframes dive {
-  0%   { transform: translateY(-2px) rotate(-10deg) scale(1.15); opacity: 1;
-         animation-timing-function: cubic-bezier(0.25, 0.9, 0.4, 1); }
-  22%  { transform: translateY(-14px) rotate(10deg) scale(1.12); opacity: 1;
-         animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5); }
-  55%  { transform: translateY(6px) rotate(58deg) scale(1.0) scaleX(0.92); opacity: 1; }
-  75%  { transform: translateY(20px) rotate(80deg) scale(0.72) scaleX(0.8); opacity: 0.85; }
-  100% { transform: translateY(34px) rotate(92deg) scale(0.3) scaleX(0.6); opacity: 0; }
+  /* Rotation is NEGATIVE throughout the descent. The fish silhouette has its
+     head at the left, and positive (clockwise) rotation swings the left side
+     UP - which dives the fish tail-first. Counter-clockwise puts the nose
+     down, which is the whole point. */
+
+  /* Anticipation: rise, nose tipping UP as it gathers. */
+  0%   { transform: translateY(-4px)  rotate(10deg)  scale(1.15); opacity: 1;
+         animation-timing-function: cubic-bezier(0.3, 0.7, 0.4, 1); }
+  16%  { transform: translateY(-30px) rotate(22deg)  scale(1.12); opacity: 1;
+         animation-timing-function: cubic-bezier(0.45, 0, 0.75, 0.5); }
+  /* Arc over: nose swings down through the horizontal. */
+  42%  { transform: translateY(2px)   rotate(-42deg) scale(1.06); opacity: 1; }
+  /* Nose-first and accelerating, stretched along its own axis to sell speed. */
+  62%  { transform: translateY(34px)  rotate(-84deg) scale(1.0) scaleY(1.1); opacity: 1; }
+  /* Breaking the surface: squash back, still fully visible. */
+  78%  { transform: translateY(58px)  rotate(-90deg) scale(0.88) scaleY(0.96); opacity: 0.95; }
+  /* Under. Fades only now, so it reads as going below the water rather than
+     dissolving in mid-air. */
+  100% { transform: translateY(84px)  rotate(-94deg) scale(0.5); opacity: 0; }
 }
+
+
 
 .fish-pin.is-held { opacity: 0.25; }
 
