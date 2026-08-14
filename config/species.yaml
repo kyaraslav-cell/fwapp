@@ -1,0 +1,40 @@
+# Fish species present in / relevant to Jezioro Pomocnia and Polish lowland
+# lakes generally. Taxonomy and Polish common names are reference data, not
+# angling heuristics - no thresholds or weights live here (law 1).
+#
+# `scoring` mirrors the scope set in CLAUDE.md:
+#   primary     - the four target cyprinids the app is built around
+#   secondary   - scored, because they dominate this water
+#   logged_only - recorded but never scored (out of scope for prediction)
+
+species:
+  # --- primary: bank-fished cyprinids, the target of the whole app ----------
+  - { slug: roach,      name_en: Roach,            name_pl: Płoć,            scientific: Rutilus rutilus,        family: Cyprinidae, scoring: primary,     favourite: true }
+  - { slug: bream,      name_en: Common bream,     name_pl: Leszcz,          scientific: Abramis brama,          family: Cyprinidae, scoring: primary,     favourite: true }
+  - { slug: rudd,       name_en: Rudd,             name_pl: Wzdręga,         scientific: Scardinius erythrophthalmus, family: Cyprinidae, scoring: primary, favourite: true }
+  - { slug: ide,        name_en: Ide,              name_pl: Jaź,             scientific: Leuciscus idus,         family: Cyprinidae, scoring: primary,     favourite: true }
+
+  # --- secondary: scored because they dominate this water -------------------
+  - { slug: carp,       name_en: Common carp,      name_pl: Karp,            scientific: Cyprinus carpio,        family: Cyprinidae, scoring: secondary,   favourite: true }
+  - { slug: crucian,    name_en: Crucian carp,     name_pl: Karaś,           scientific: Carassius carassius,    family: Cyprinidae, scoring: secondary,   favourite: true }
+
+  # --- logged only: recorded, never scored ---------------------------------
+  - { slug: tench,      name_en: Tench,            name_pl: Lin,             scientific: Tinca tinca,            family: Cyprinidae, scoring: logged_only }
+  - { slug: silver_bream, name_en: Silver bream,   name_pl: Krąp,            scientific: Blicca bjoerkna,        family: Cyprinidae, scoring: logged_only }
+  - { slug: gudgeon,    name_en: Gudgeon,          name_pl: Kiełb,           scientific: Gobio gobio,            family: Cyprinidae, scoring: logged_only }
+  - { slug: bleak,      name_en: Bleak,            name_pl: Ukleja,          scientific: Alburnus alburnus,      family: Cyprinidae, scoring: logged_only }
+  - { slug: chub,       name_en: Chub,             name_pl: Kleń,            scientific: Squalius cephalus,      family: Cyprinidae, scoring: logged_only }
+  - { slug: dace,       name_en: Dace,             name_pl: Jelec,           scientific: Leuciscus leuciscus,    family: Cyprinidae, scoring: logged_only }
+  - { slug: barbel,     name_en: Barbel,           name_pl: Brzana,          scientific: Barbus barbus,          family: Cyprinidae, scoring: logged_only }
+  - { slug: asp,        name_en: Asp,              name_pl: Boleń,           scientific: Leuciscus aspius,       family: Cyprinidae, scoring: logged_only }
+  - { slug: grass_carp, name_en: Grass carp,       name_pl: Amur,            scientific: Ctenopharyngodon idella, family: Cyprinidae, scoring: logged_only }
+  - { slug: pike,       name_en: Northern pike,    name_pl: Szczupak,        scientific: Esox lucius,            family: Esocidae,   scoring: logged_only }
+  - { slug: perch,      name_en: European perch,   name_pl: Okoń,            scientific: Perca fluviatilis,      family: Percidae,   scoring: logged_only }
+  - { slug: zander,     name_en: Zander,           name_pl: Sandacz,         scientific: Sander lucioperca,      family: Percidae,   scoring: logged_only }
+  - { slug: ruffe,      name_en: Ruffe,            name_pl: Jazgarz,         scientific: Gymnocephalus cernua,   family: Percidae,   scoring: logged_only }
+  - { slug: catfish,    name_en: Wels catfish,     name_pl: Sum,             scientific: Silurus glanis,         family: Siluridae,  scoring: logged_only }
+  - { slug: eel,        name_en: European eel,     name_pl: Węgorz,          scientific: Anguilla anguilla,      family: Anguillidae, scoring: logged_only }
+  - { slug: burbot,     name_en: Burbot,           name_pl: Miętus,          scientific: Lota lota,              family: Lotidae,    scoring: logged_only }
+  - { slug: brown_trout, name_en: Brown trout,     name_pl: Troć/Pstrąg,     scientific: Salmo trutta,           family: Salmonidae, scoring: logged_only }
+  - { slug: stone_loach, name_en: Stone loach,     name_pl: Śliz,            scientific: Barbatula barbatula,    family: Nemacheilidae, scoring: logged_only }
+  - { slug: other,      name_en: Other,            name_pl: Inny,            scientific: null,                   family: null,       scoring: logged_only }

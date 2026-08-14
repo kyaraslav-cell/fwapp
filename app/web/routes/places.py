@@ -3,31 +3,33 @@ from __future__ import annotations
 import json
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
-from sqlalchemy import func, select
+from fastapi.responses import JSONResponse, RedirectResponse
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.models import FishSession, Lake, Zone
+from app.core.models import Lake
 from app.core.time import parse_iso, to_display, utcnow
-from app.features.wind import wind_exposure
+from app.geo import service as geo_service
 from app.ingest.open_meteo import ingest_forecast
 from app.notebook.sessions import METHODS, active_session, lake_stats, start_session
 from app.predict.daily import generate_predictions, latest_prediction
+from app.rules.loader import load_active_ruleset
+from app.rules.zone_score import score_cells
 from app.web.deps import get_db, get_lake, get_lake_by_slug, templates
-from app.web.view_helpers import current_conditions, outlook_view, prediction_view
+from app.web.view_helpers import current_conditions, prediction_view
+from app.web.weather_table import recent_days
 
 router = APIRouter()
 
 
 @router.get("/")
 def home(request: Request, db: Session = Depends(get_db)):
-    get_lake(db)  # ensure Pomocnia (and its demo zones) are seeded
+    get_lake(db)  # ensure Pomocnia (and species) are seeded
     lakes = db.execute(select(Lake).order_by(Lake.name)).scalars().all()
 
     cards = []
     for lk in lakes:
-        pred = latest_prediction(db, lk, horizon=0)
-        view = prediction_view(pred)
+        view = prediction_view(latest_prediction(db, lk, horizon=0))
         n_sessions, last_visited = lake_stats(db, lk)
         cards.append(
             {
@@ -45,8 +47,7 @@ def home(request: Request, db: Session = Depends(get_db)):
         )
 
     return templates.TemplateResponse(
-        "home.html",
-        {"request": request, "cards": cards, "active_nav": "home"},
+        "home.html", {"request": request, "cards": cards, "active_nav": "home"}
     )
 
 
@@ -60,62 +61,82 @@ def new_place(request: Request, db: Session = Depends(get_db)):
 @router.get("/lake/{slug}")
 def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
     lake = get_lake_by_slug(db, slug)
-    active = active_session(db, lake)
-    if active is not None:
+    if active_session(db, lake) is not None:
         return RedirectResponse(url="/session/active")
 
-    pred = latest_prediction(db, lake, horizon=0)
-    view = prediction_view(pred)
-    outlook = outlook_view(db, lake, days=5, latest_prediction_fn=latest_prediction)
     conditions = current_conditions(db, lake)
+    days = recent_days(db, lake, days=5)
 
-    zones = db.execute(
-        select(Zone).where(Zone.lake_id == lake.id, Zone.is_active == 1).order_by(Zone.id)
-    ).scalars().all()
+    outline = geo_service.ensure_outline(db, lake)
+    grid = geo_service.get_grid(lake, outline)
 
-    zone_session_counts: dict[int, int] = {}
-    for zid, count in db.execute(
-        select(FishSession.zone_id, func.count())
-        .where(FishSession.lake_id == lake.id, FishSession.ended_at.is_not(None))
-        .group_by(FishSession.zone_id)
-    ).all():
-        if zid is not None:
-            zone_session_counts[zid] = count
+    default_wind = None
+    if conditions and conditions.get("wind_direction_10m") is not None:
+        default_wind = conditions["wind_direction_10m"]
+    elif days and days[0]["wind_dir"] is not None:
+        default_wind = days[0]["wind_dir"]
 
-    zone_payload = []
-    for z in zones:
-        exposure = None
-        if (
-            conditions
-            and conditions.get("wind_direction_10m") is not None
-            and z.bank_aspect_deg is not None
-        ):
-            exposure = wind_exposure(z.bank_aspect_deg, conditions["wind_direction_10m"])
-        zone_payload.append(
-            {
-                "id": z.id,
-                "name": z.name,
-                "polygon": json.loads(z.polygon_geojson) if z.polygon_geojson else None,
-                "bank_aspect_deg": z.bank_aspect_deg,
-                "wind_exposure": exposure,
-                "is_demo": bool(z.access_notes and "DEMO ZONE" in z.access_notes),
-                "n_sessions": zone_session_counts.get(z.id, 0),
-            }
-        )
+    ruleset = load_active_ruleset()
+    zone_cfg = ruleset["zone_score"]
 
     return templates.TemplateResponse(
         "lake_detail.html",
         {
             "request": request,
             "lake": lake,
-            "prediction": view,
-            "outlook": outlook,
             "conditions": conditions,
-            "zones": zone_payload,
-            "zones_json": json.dumps(zone_payload),
+            "days": days,
+            "days_json": json.dumps(days),
+            "outline_json": json.dumps(outline),
+            "outline_source": lake.outline_source or "unknown",
+            "grid_meta": json.dumps(
+                {
+                    "origin_lat": grid.origin_lat,
+                    "origin_lon": grid.origin_lon,
+                    "cell_m": grid.cell_m,
+                    "n_rows": grid.n_rows,
+                    "n_cols": grid.n_cols,
+                }
+            ),
+            "default_wind": default_wind if default_wind is not None else "null",
+            "phases": list(zone_cfg["phase_weights"].keys()),
+            "default_phase": zone_cfg["default_phase"],
+            "zone_provenance": zone_cfg["provenance"],
+            "display_cfg": json.dumps(zone_cfg["display"]),
+            "methods": METHODS,
             "now_local": to_display(utcnow()).strftime("%a %d %b, %H:%M"),
             "active_nav": "home",
         },
+    )
+
+
+@router.get("/lake/{slug}/grid")
+def lake_grid(
+    slug: str,
+    wind_dir: float = 270.0,
+    phase: str = "",
+    db: Session = Depends(get_db),
+):
+    """Per-cell provisional zone scores for one wind direction and phase."""
+    lake = get_lake_by_slug(db, slug)
+    outline = geo_service.ensure_outline(db, lake)
+    grid = geo_service.get_grid(lake, outline)
+    inputs = geo_service.get_geometry_inputs(lake, outline, grid, wind_dir)
+
+    ruleset = load_active_ruleset()
+    scored, phase_used = score_cells(ruleset, phase, inputs)
+
+    return JSONResponse(
+        {
+            "origin_lat": grid.origin_lat,
+            "origin_lon": grid.origin_lon,
+            "cell_m": grid.cell_m,
+            "n_rows": grid.n_rows,
+            "n_cols": grid.n_cols,
+            "wind_dir": wind_dir,
+            "phase": phase_used,
+            "cells": [[r, c, v] for r, c, v in scored],
+        }
     )
 
 
@@ -127,37 +148,59 @@ def refresh_lake(slug: str, db: Session = Depends(get_db)):
     return RedirectResponse(url=f"/lake/{slug}", status_code=303)
 
 
-@router.get("/lake/{slug}/zone/{zone_id}/start")
-def zone_start_form(slug: str, zone_id: int, request: Request, db: Session = Depends(get_db)):
+@router.get("/lake/{slug}/spot")
+def spot_start_form(
+    slug: str,
+    request: Request,
+    lat: float,
+    lon: float,
+    cell: str = "",
+    score: float | None = None,
+    db: Session = Depends(get_db),
+):
     lake = get_lake_by_slug(db, slug)
     if active_session(db, lake) is not None:
         return RedirectResponse(url="/session/active")
-    zone = db.get(Zone, zone_id)
-    if zone is None or zone.lake_id != lake.id:
-        raise HTTPException(status_code=404, detail="zone not found")
     return templates.TemplateResponse(
-        "zone_start.html",
-        {"request": request, "lake": lake, "zone": zone, "methods": METHODS, "active_nav": "home"},
+        "spot_start.html",
+        {
+            "request": request,
+            "lake": lake,
+            "lat": lat,
+            "lon": lon,
+            "cell": cell,
+            "score": score,
+            "methods": METHODS,
+            "active_nav": "home",
+        },
     )
 
 
-@router.post("/lake/{slug}/zone/{zone_id}/start")
-def zone_start_submit(
+@router.post("/lake/{slug}/spot")
+def spot_start_submit(
     slug: str,
-    zone_id: int,
+    lat: float = Form(...),
+    lon: float = Form(...),
+    cell: str = Form(default=""),
     method: str = Form(...),
     rod_count: int = Form(...),
     db: Session = Depends(get_db),
 ):
     lake = get_lake_by_slug(db, slug)
-    zone = db.get(Zone, zone_id)
-    if zone is None or zone.lake_id != lake.id:
-        raise HTTPException(status_code=404, detail="zone not found")
     if method not in METHODS:
         raise HTTPException(status_code=400, detail="unknown method")
     rod_count = max(1, min(6, rod_count))
 
     if active_session(db, lake) is None:
         pred = latest_prediction(db, lake, horizon=0)
-        start_session(db, lake, pred, zone_id=zone.id, method=method, rod_count=rod_count)
+        start_session(
+            db,
+            lake,
+            pred,
+            method=method,
+            rod_count=rod_count,
+            grid_cell=cell or None,
+            grid_lat=lat,
+            grid_lon=lon,
+        )
     return RedirectResponse(url="/session/active", status_code=303)

@@ -67,9 +67,15 @@ a:hover { text-decoration: underline; }
   letter-spacing: -0.01em;
 }
 
+/* Desktop nav only. The bottom bar takes over below 720px so the two are
+   never on screen at the same time. */
 .topnav {
-  display: flex;
+  display: none;
   gap: 4px;
+}
+
+@media (min-width: 720px) {
+  .topnav { display: flex; }
 }
 
 .topnav a {
@@ -97,7 +103,6 @@ a:hover { text-decoration: underline; }
 
 @media (min-width: 720px) {
   .page { padding-bottom: 40px; }
-  .bottomnav { display: none; }
 }
 
 .bottomnav {
@@ -121,6 +126,12 @@ a:hover { text-decoration: underline; }
 }
 
 .bottomnav a.active { color: var(--primary-strong); }
+
+/* Must come after the .bottomnav rules above, or the display:flex wins and
+   both navs show at once. */
+@media (min-width: 720px) {
+  .bottomnav { display: none; }
+}
 
 /* ---------- cards & panels ---------- */
 
@@ -460,3 +471,202 @@ table.history th { color: var(--muted); font-weight: 600; font-size: 0.78rem; te
   letter-spacing: 0.05em;
   margin: 4px 0 10px;
 }
+
+/* ---------- weather table ---------- */
+
+table.weather {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+table.weather th {
+  text-align: left;
+  padding: 8px 6px;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+
+table.weather td {
+  padding: 11px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+table.weather tbody tr {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+table.weather tbody tr:hover { background: var(--surface-alt); }
+table.weather tbody tr.selected { background: var(--surface-alt); box-shadow: inset 3px 0 0 var(--primary-strong); }
+table.weather tbody tr:last-child td { border-bottom: none; }
+
+.wind-arrow {
+  display: inline-block;
+  font-size: 1.05rem;
+  color: var(--primary-strong);
+  margin-right: 4px;
+}
+
+/* ---------- heat legend ---------- */
+
+.heat-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 10px;
+}
+
+.heat-bar {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2c7bb6, #00a6ca, #00ccbc, #90eb9d,
+                                     #ffff8c, #f9d057, #f29e2e, #e76818, #d7191c);
+}
+
+.phase-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+
+.phase-btn {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.phase-btn.active { background: var(--primary-strong); color: #fff; border-color: var(--primary-strong); }
+
+.provenance-note {
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: #fff8e6;
+  border: 1px solid #f2e2b8;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+
+/* ---------- fish pin + splash ---------- */
+
+.pin-dock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface-alt);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.fish-pin {
+  width: 54px;
+  height: 40px;
+  cursor: grab;
+  flex-shrink: 0;
+  touch-action: none;
+  animation: fish-bob 2.4s ease-in-out infinite;
+}
+
+.fish-pin:active { cursor: grabbing; }
+
+@keyframes fish-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-5px) rotate(2deg); }
+}
+
+.pin-hint { font-size: 0.82rem; color: var(--muted); }
+
+.splash-ring {
+  position: absolute;
+  border: 2px solid var(--primary-strong);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: splash 900ms ease-out forwards;
+}
+
+@keyframes splash {
+  0%   { width: 0; height: 0; opacity: 0.9; transform: translate(-50%, -50%); }
+  100% { width: 90px; height: 90px; opacity: 0; transform: translate(-50%, -50%); }
+}
+
+.leaflet-container .fish-marker { animation: fish-bob 2.4s ease-in-out infinite; }
+
+/* ---------- catch cards + species search ---------- */
+
+.catch-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.catch-card:last-child { border-bottom: none; }
+
+.catch-photo {
+  width: 46px; height: 46px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.catch-photo-empty {
+  width: 46px; height: 46px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  flex-shrink: 0;
+}
+
+.catch-main { flex: 1; min-width: 0; }
+.catch-name { font-weight: 600; font-size: 0.95rem; }
+.catch-meta { color: var(--muted); font-size: 0.8rem; }
+
+.catch-actions { display: flex; gap: 6px; }
+
+.icon-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-family: inherit;
+}
+
+.icon-btn:hover { border-color: var(--primary); color: var(--primary-strong); }
+.icon-btn.danger:hover { border-color: var(--danger); color: var(--accent-coral-text); }
+
+.search-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.search-row input { flex: 1; }
+
+.species-results { max-height: 260px; overflow-y: auto; }
+
+.species-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.species-latin { font-size: 0.75rem; color: var(--muted); font-style: italic; }
+
+.btn-danger-solid {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+}
+
+.btn-danger-solid:hover { background: #cc5340; }

@@ -19,6 +19,8 @@ class Lake(Base):
     area_ha: Mapped[float | None] = mapped_column(Float)
     mean_depth_m: Mapped[float | None] = mapped_column(Float)
     max_depth_m: Mapped[float | None] = mapped_column(Float)
+    outline_geojson: Mapped[str | None] = mapped_column(Text)
+    outline_source: Mapped[str | None] = mapped_column(String)  # osm|circle_fallback
     timezone: Mapped[str] = mapped_column(String, nullable=False, default="Europe/Warsaw")
     metar_station: Mapped[str | None] = mapped_column(String)
     metar_distance_km: Mapped[float | None] = mapped_column(Float)
@@ -119,6 +121,9 @@ class FishSession(Base):
     effort_minutes: Mapped[int | None] = mapped_column(Integer)
     method: Mapped[str | None] = mapped_column(String)
     rod_count: Mapped[int | None] = mapped_column(Integer)
+    grid_cell: Mapped[str | None] = mapped_column(String)  # 'r12c34'
+    grid_lat: Mapped[float | None] = mapped_column(Float)
+    grid_lon: Mapped[float | None] = mapped_column(Float)
     is_mobile: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     prediction_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("prediction.id"))
     conditions_snapshot: Mapped[str | None] = mapped_column(Text)
@@ -153,6 +158,20 @@ class Catch(Base):
     caught_at: Mapped[str | None] = mapped_column(String)
     bait: Mapped[str | None] = mapped_column(String)
     notes: Mapped[str | None] = mapped_column(Text)
+    photo_path: Mapped[str | None] = mapped_column(String)
+
+
+class Species(Base):
+    __tablename__ = "species"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    slug: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    name_en: Mapped[str] = mapped_column(String, nullable=False)
+    name_pl: Mapped[str] = mapped_column(String, nullable=False)
+    scientific: Mapped[str | None] = mapped_column(String)
+    family: Mapped[str | None] = mapped_column(String)
+    scoring: Mapped[str] = mapped_column(String, nullable=False)  # primary|secondary|logged_only
+    is_favourite: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
 
 class SessionTactic(Base):

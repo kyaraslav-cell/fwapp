@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from app.core.config import get_settings
 from app.core.db import init_db, session_scope
 from app.core.seed import ensure_lake_seeded
 from app.ingest.open_meteo import ingest_forecast
@@ -34,6 +35,11 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(title="Fishlog", lifespan=lifespan)
     app.mount("/static", StaticFiles(directory="app/web/static"), name="static")
+
+    media_dir = get_settings().media_dir
+    media_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/media", StaticFiles(directory=str(media_dir)), name="media")
+
     app.include_router(places.router)
     app.include_router(sessions.router)
     app.include_router(history.router)

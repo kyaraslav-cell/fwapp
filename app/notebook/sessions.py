@@ -23,6 +23,9 @@ def start_session(
     zone_id: int | None = None,
     method: str | None = None,
     rod_count: int | None = None,
+    grid_cell: str | None = None,
+    grid_lat: float | None = None,
+    grid_lon: float | None = None,
 ) -> FishSession:
     now = utcnow()
     session = FishSession(
@@ -31,6 +34,9 @@ def start_session(
         started_at=iso(now),
         method=method,
         rod_count=rod_count,
+        grid_cell=grid_cell,
+        grid_lat=grid_lat,
+        grid_lon=grid_lon,
         prediction_id=prediction.id if prediction else None,
         conditions_snapshot=prediction.payload_json if prediction else None,
         is_blank=0,
@@ -48,6 +54,9 @@ def add_catch(
     count: int = 1,
     weight_g: int | None = None,
     length_cm: float | None = None,
+    bait: str | None = None,
+    notes: str | None = None,
+    photo_path: str | None = None,
 ) -> Catch:
     catch = Catch(
         session_id=session_id,
@@ -55,6 +64,9 @@ def add_catch(
         count=count,
         weight_g=weight_g,
         length_cm=length_cm,
+        bait=bait,
+        notes=notes,
+        photo_path=photo_path,
         caught_at=iso(utcnow()),
     )
     db.add(catch)
@@ -62,10 +74,36 @@ def add_catch(
     return catch
 
 
+def update_catch(
+    db: Session,
+    catch: Catch,
+    species: str | None = None,
+    weight_g: int | None = None,
+    length_cm: float | None = None,
+    bait: str | None = None,
+    notes: str | None = None,
+    photo_path: str | None = None,
+) -> Catch:
+    if species:
+        catch.species = species
+    catch.weight_g = weight_g
+    catch.length_cm = length_cm
+    catch.bait = bait
+    catch.notes = notes
+    if photo_path is not None:
+        catch.photo_path = photo_path
+    db.flush()
+    return catch
+
+
+def delete_catch(db: Session, catch: Catch) -> None:
+    db.delete(catch)
+    db.flush()
+
+
 def end_session(
     db: Session,
     session: FishSession,
-    is_blank: bool,
     reflection: str | None = None,
     water_temp_measured_c: float | None = None,
     water_clarity_cm: float | None = None,
@@ -74,7 +112,12 @@ def end_session(
     session.ended_at = iso(now)
     started = parse_iso(session.started_at)
     session.effort_minutes = max(1, int((now - started).total_seconds() // 60))
-    session.is_blank = 1 if is_blank else 0
+    # A blank is simply a session that caught nothing - derived, never asked
+    # for. It still counts fully in every statistic (law 3).
+    n_catches = db.execute(
+        select(Catch).where(Catch.session_id == session.id)
+    ).scalars().all()
+    session.is_blank = 0 if n_catches else 1
     session.reflection = reflection
     session.water_temp_measured_c = water_temp_measured_c
     session.water_clarity_cm = water_clarity_cm

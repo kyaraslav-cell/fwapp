@@ -9,6 +9,7 @@ from app.core.config import load_lake_config
 from app.core.models import Lake, Zone
 from app.core.time import iso, utcnow
 from app.geo.demo_zones import demo_zones
+from app.notebook.species import ensure_species_seeded
 
 DEMO_ZONE_NOTE = (
     "DEMO ZONE — placeholder wedge geometry, not surveyed. Redraw on the "
@@ -17,6 +18,7 @@ DEMO_ZONE_NOTE = (
 
 
 def ensure_lake_seeded(db: Session) -> Lake:
+    ensure_species_seeded(db)
     cfg = load_lake_config()
     existing = db.execute(select(Lake).where(Lake.slug == cfg["slug"])).scalar_one_or_none()
     if existing is not None:

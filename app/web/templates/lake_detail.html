@@ -8,189 +8,258 @@
 {% block content %}
 <div class="section-label">{{ lake.name }} · {{ now_local }}</div>
 
-{% if prediction %}
-<div class="card">
-  <div class="verdict-block">
-    <span class="verdict-pill {{ prediction.band_color }}">{{ prediction.band_label }}</span>
-  </div>
-  <div class="best-hours">
-    {% for h in prediction.best_hours %}
-    <span class="hour-chip">{{ h }}</span>
-    {% endfor %}
-  </div>
-  <ul class="reasons">
-    {% for r in prediction.reasons %}
-    <li>{{ r }}</li>
-    {% endfor %}
-  </ul>
-</div>
-{% endif %}
-
-<div class="section-label">Conditions</div>
-<div class="dash-grid" id="dash-grid">
-  <div class="dash-tile" id="tile-wind">
-    <div class="dash-label">Wind</div>
-    {% if conditions and conditions.wind_speed_10m is not none %}
-    <div class="dash-value">{{ conditions.wind_speed_10m }} m/s</div>
-    <div class="dash-sub">from {{ conditions.wind_direction_10m | round(0) }}° · tap to show on map</div>
-    {% else %}
-    <div class="dash-value">—</div>
-    <div class="dash-sub">no data yet</div>
-    {% endif %}
-  </div>
-  <div class="dash-tile">
-    <div class="dash-label">Temperature</div>
-    {% if conditions and conditions.temperature_2m is not none %}
-    <div class="dash-value">{{ conditions.temperature_2m }}°C</div>
-    <div class="dash-sub">{{ conditions.age_minutes }} min ago</div>
-    {% else %}
-    <div class="dash-value">—</div>
-    <div class="dash-sub">no data yet</div>
-    {% endif %}
-  </div>
-  <div class="dash-tile">
-    <div class="dash-label">Pressure</div>
-    {% if conditions and conditions.pressure_msl is not none %}
-    <div class="dash-value">{{ conditions.pressure_msl | round(0) }} hPa</div>
-    <div class="dash-sub">{{ prediction.pressure_regime.replace('_', ' ') if prediction and prediction.pressure_regime else 'trend unknown' }}</div>
-    {% else %}
-    <div class="dash-value">—</div>
-    <div class="dash-sub">no data yet</div>
-    {% endif %}
-  </div>
-  <div class="dash-tile">
-    <div class="dash-label">Depth band</div>
-    <div class="dash-value">—</div>
-    <div class="dash-sub">formula pending from owner</div>
-  </div>
+<div class="section-label">Recent conditions — tap a day to see it on the map</div>
+<div class="card" style="padding: 6px 14px;">
+  {% if days %}
+  <table class="weather" id="weather-table">
+    <thead>
+      <tr><th>Day</th><th>Wind</th><th>Temp</th><th>Pressure</th></tr>
+    </thead>
+    <tbody>
+      {% for d in days %}
+      <tr data-index="{{ loop.index0 }}" data-wind="{{ d.wind_dir if d.wind_dir is not none else '' }}">
+        <td>{{ d.label }}</td>
+        <td>
+          {% if d.wind_dir is not none %}
+          <span class="wind-arrow" style="transform: rotate({{ (d.wind_dir + 180) % 360 }}deg);">↑</span>
+          {{ d.wind_compass }} {{ d.wind_speed }} m/s
+          {% else %}—{% endif %}
+        </td>
+        <td>{{ d.temp_c if d.temp_c is not none else "—" }}{% if d.temp_c is not none %}°C{% endif %}</td>
+        <td>{{ d.pressure_hpa | round(0) if d.pressure_hpa is not none else "—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="padding: 12px 0;">No observed weather yet — tap refresh below.</p>
+  {% endif %}
 </div>
 
-{% if outlook %}
-<div class="section-label" style="margin-top: 20px;">Next 5 days</div>
-<div class="card-flat">
-  {% for o in outlook %}
-  <div class="outlook-row">
-    <span>{{ o.label }}</span>
-    <span class="badge badge-{{ o.band_color }}">{{ o.band_label }}</span>
-  </div>
+<div class="section-label" style="margin-top: 20px;">Where to fish</div>
+
+<div class="phase-row" id="phase-row">
+  {% for p in phases %}
+  <button class="phase-btn {{ 'active' if p == default_phase }}" data-phase="{{ p }}">
+    {{ p.replace('_', ' ') }}
+  </button>
   {% endfor %}
 </div>
-{% endif %}
 
-<div class="section-label" style="margin-top: 20px;">Map — tap a zone</div>
-<div class="map-wrap" id="map-wrap">
+<div class="pin-dock">
+  <svg class="fish-pin" id="fish-pin" viewBox="0 0 64 44" draggable="true" aria-label="Drag onto the map to pick your spot">
+    <defs>
+      <linearGradient id="fishGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#6fb1e8"/>
+        <stop offset="100%" stop-color="#4a93d6"/>
+      </linearGradient>
+    </defs>
+    <path d="M4 22 C16 4, 40 4, 50 22 C40 40, 16 40, 4 22 Z" fill="url(#fishGrad)"/>
+    <path d="M50 22 L62 10 L58 22 L62 34 Z" fill="#4a93d6"/>
+    <circle cx="17" cy="19" r="3" fill="#fff"/>
+    <circle cx="17" cy="19" r="1.4" fill="#22384d"/>
+    <path d="M24 22 C30 16, 38 16, 44 21" stroke="#ffffff" stroke-opacity="0.55" stroke-width="2" fill="none"/>
+  </svg>
+  <div class="pin-hint">Drag the fish onto the map — or just tap the water — to pick your spot.</div>
+</div>
+
+<div class="map-wrap" id="map-wrap" style="position: relative;">
   <div id="map"></div>
 </div>
-<p class="map-legend-note" id="map-legend-note">
-  Zone outlines are placeholder wedges (not surveyed) until Pomocnia is mapped for real.
-</p>
 
-<div id="zone-list-fallback">
-  {% for z in zones %}
-  <div class="place-card" style="cursor:default;">
-    <div class="place-info">
-      <div class="place-name">{{ z.name }}</div>
-      <div class="place-meta">n={{ z.n_sessions }} sessions</div>
-    </div>
-    <a class="btn btn-secondary" style="width:auto; padding:10px 16px;" href="/lake/{{ lake.slug }}/zone/{{ z.id }}/start">Fish here</a>
-  </div>
-  {% endfor %}
+<div class="heat-legend">
+  <span id="legend-low">Least preferred</span>
+  <span class="heat-bar"></span>
+  <span id="legend-high">Most preferred</span>
 </div>
 
-<div class="card zone-panel" id="zone-panel">
-  <div id="zone-panel-body"></div>
+<p class="provenance-note">
+  Heat overlay is a <strong>provisional, AI-authored</strong> zone score
+  (<code>{{ zone_provenance }}</code>) built from geometry only — upwind fetch and
+  distance to bank — with weights in <code>config/rules.v0.2.yaml</code>. It is a
+  hypothesis, not a measurement, and nothing here has been checked against a
+  single logged catch yet. Outline source: <code>{{ outline_source }}</code>.
+</p>
+
+<div id="zone-list-fallback" style="display:none;">
+  <a class="btn btn-secondary" href="/lake/{{ lake.slug }}/spot?lat={{ lake.centroid_lat }}&lon={{ lake.centroid_lon }}">
+    Map unavailable — start a session anyway
+  </a>
 </div>
 
 <form method="post" action="/lake/{{ lake.slug }}/refresh" style="margin-top: 16px;">
   <button class="btn btn-ghost" type="submit">↻ Refresh weather &amp; prediction</button>
 </form>
-
 {% endblock %}
 
 {% block extra_script %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
-const ZONES = {{ zones_json | safe }};
 const LAKE = { lat: {{ lake.centroid_lat }}, lon: {{ lake.centroid_lon }}, slug: "{{ lake.slug }}" };
-const WIND_DIR = {{ conditions.wind_direction_10m if conditions and conditions.wind_direction_10m is not none else "null" }};
+const DAYS = {{ days_json | safe }};
+const OUTLINE = {{ outline_json | safe }};
+const GRID = {{ grid_meta | safe }};
+const DEFAULT_WIND = {{ default_wind }};
+let currentPhase = "{{ default_phase }}";
+let currentWind = DEFAULT_WIND !== null ? DEFAULT_WIND : 270;
 
-const layers = {};
-let windMode = false;
-let mapReady = false;
+const M_PER_DEG_LAT = 111320;
+const mPerDegLon = M_PER_DEG_LAT * Math.cos(LAKE.lat * Math.PI / 180);
+const dLat = GRID.cell_m / M_PER_DEG_LAT;
+const dLon = GRID.cell_m / mPerDegLon;
+const bounds = [
+  [GRID.origin_lat, GRID.origin_lon],
+  [GRID.origin_lat + GRID.n_rows * dLat, GRID.origin_lon + GRID.n_cols * dLon]
+];
 
-function toLatLngs(polygon) {
-  return polygon.coordinates[0].map(([lon, lat]) => [lat, lon]);
+// Same ramp as the legend bar: blue (least) -> red (most preferred).
+const RAMP = [
+  [44, 123, 182], [0, 166, 202], [0, 204, 188], [144, 235, 157],
+  [255, 255, 140], [249, 208, 87], [242, 158, 46], [231, 104, 24], [215, 25, 28]
+];
+
+function rampColor(t) {
+  const x = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
+  const i = Math.floor(x);
+  const f = x - i;
+  const a = RAMP[i];
+  const b = RAMP[Math.min(RAMP.length - 1, i + 1)];
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * f),
+    Math.round(a[1] + (b[1] - a[1]) * f),
+    Math.round(a[2] + (b[2] - a[2]) * f)
+  ];
 }
+
+let map = null;
+let heatLayer = null;
+let marker = null;
 
 try {
-  if (typeof L === 'undefined') throw new Error('leaflet failed to load');
+  if (typeof L === 'undefined') throw new Error('leaflet unavailable');
 
-  const map = L.map('map', { scrollWheelZoom: false }).setView([LAKE.lat, LAKE.lon], 16);
+  map = L.map('map', { scrollWheelZoom: false }).setView([LAKE.lat, LAKE.lon], 16);
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles &copy; Esri',
-    maxZoom: 19
+    attribution: 'Tiles &copy; Esri', maxZoom: 19
   }).addTo(map);
 
-  ZONES.forEach(z => {
-    if (!z.polygon) return;
-    const latlngs = toLatLngs(z.polygon);
-    const layer = L.polygon(latlngs, {
-      color: '#4a93d6',
-      weight: 2,
-      fillColor: '#6fb1e8',
-      fillOpacity: 0.28
-    }).addTo(map);
-    layer.bindTooltip(z.name, { direction: 'center', className: 'zone-tooltip' });
-    layer.on('click', () => showZonePanel(z));
-    layers[z.id] = layer;
-  });
+  L.geoJSON(OUTLINE, { style: { color: '#ffffff', weight: 2, fill: false, opacity: 0.85 } }).addTo(map);
+  map.fitBounds(bounds, { padding: [10, 10] });
 
-  mapReady = true;
-  const fallback = document.getElementById('zone-list-fallback');
-  if (fallback) fallback.style.display = 'none';
+  map.on('click', (e) => pickSpot(e.latlng.lat, e.latlng.lng, e.containerPoint));
+  loadGrid();
 } catch (err) {
-  document.getElementById('map-wrap').style.display = 'none';
-  const note = document.getElementById('map-legend-note');
-  if (note) note.textContent = 'Map unavailable right now — pick a zone from the list below.';
+  const wrap = document.getElementById('map-wrap');
+  if (wrap) wrap.style.display = 'none';
+  const fb = document.getElementById('zone-list-fallback');
+  if (fb) fb.style.display = 'block';
 }
 
-function showZonePanel(z) {
-  const panel = document.getElementById('zone-panel');
-  const body = document.getElementById('zone-panel-body');
-  const confidence = z.n_sessions === 0 ? 'no data yet' : (z.n_sessions < 5 ? 'thin data' : 'building confidence');
-  body.innerHTML = `
-    <h2>${z.name}</h2>
-    <span class="badge badge-neutral">n=${z.n_sessions} · ${confidence}</span>
-    <p style="margin-top:10px;">Zone-level scoring needs the pending wind/depth formulas and real
-    geometry — not shown yet. This zone is demo geometry until mapped for real.</p>
-    <a class="btn btn-primary" href="/lake/${LAKE.slug}/zone/${z.id}/start">Fish here</a>
-  `;
-  panel.classList.add('visible');
-  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+// Render one pixel per cell into a small canvas, then let the browser upscale
+// it. That interpolation is what turns discrete 5 m cells into a smooth field
+// instead of a visible mosaic.
+function renderHeat(cells) {
+  const canvas = document.createElement('canvas');
+  canvas.width = GRID.n_cols;
+  canvas.height = GRID.n_rows;
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(GRID.n_cols, GRID.n_rows);
+
+  for (const [row, col, value] of cells) {
+    // Canvas y grows downward, latitude grows upward.
+    const y = GRID.n_rows - 1 - row;
+    const idx = (y * GRID.n_cols + col) * 4;
+    const [r, g, b] = rampColor(value);
+    img.data[idx] = r;
+    img.data[idx + 1] = g;
+    img.data[idx + 2] = b;
+    img.data[idx + 3] = 205;
+  }
+  ctx.putImageData(img, 0, 0);
+
+  if (heatLayer) map.removeLayer(heatLayer);
+  heatLayer = L.imageOverlay(canvas.toDataURL(), bounds, {
+    opacity: 0.72, interactive: false, className: 'heat-overlay'
+  }).addTo(map);
 }
 
-const windTile = document.getElementById('tile-wind');
-if (windTile && WIND_DIR !== null) {
-  windTile.addEventListener('click', () => {
-    windMode = !windMode;
-    windTile.classList.toggle('active', windMode);
-    ZONES.forEach(z => {
-      const layer = layers[z.id];
-      if (!layer) return;
-      if (windMode && z.wind_exposure !== null) {
-        const windward = z.wind_exposure > 0.15;
-        layer.setStyle({
-          fillOpacity: windward ? 0.55 : 0.12,
-          color: windward ? '#4a93d6' : '#a9c4dc'
-        });
-        layer.unbindTooltip();
-        layer.bindTooltip(`${z.name}: exposure ${z.wind_exposure}`, { direction: 'center' });
-      } else {
-        layer.setStyle({ fillOpacity: 0.28, color: '#4a93d6' });
-        layer.unbindTooltip();
-        layer.bindTooltip(z.name, { direction: 'center' });
-      }
-    });
+function loadGrid() {
+  fetch(`/lake/${LAKE.slug}/grid?wind_dir=${currentWind}&phase=${currentPhase}`)
+    .then(r => r.json())
+    .then(data => renderHeat(data.cells))
+    .catch(() => {});
+}
+
+function pickSpot(lat, lon, containerPoint) {
+  const row = Math.floor((lat - GRID.origin_lat) / dLat);
+  const col = Math.floor((lon - GRID.origin_lon) / dLon);
+  const cell = `r${row}c${col}`;
+
+  if (containerPoint) splash(containerPoint);
+
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="fish-marker" style="font-size:26px;line-height:1">🐟</div>`,
+    iconSize: [26, 26], iconAnchor: [13, 13]
+  });
+  if (marker) map.removeLayer(marker);
+  marker = L.marker([lat, lon], { icon }).addTo(map);
+
+  const href = `/lake/${LAKE.slug}/spot?lat=${lat.toFixed(6)}&lon=${lon.toFixed(6)}&cell=${cell}`;
+  marker.bindPopup(
+    `<div style="text-align:center;font-family:inherit;">
+       <div style="font-weight:600;margin-bottom:6px;">Fish here?</div>
+       <a href="${href}" style="color:#4a93d6;font-weight:600;">Start session →</a>
+     </div>`
+  ).openPopup();
+}
+
+function splash(point) {
+  const wrap = document.getElementById('map-wrap');
+  for (let i = 0; i < 3; i++) {
+    const ring = document.createElement('div');
+    ring.className = 'splash-ring';
+    ring.style.left = point.x + 'px';
+    ring.style.top = point.y + 'px';
+    ring.style.animationDelay = (i * 140) + 'ms';
+    wrap.appendChild(ring);
+    setTimeout(() => ring.remove(), 1200 + i * 140);
+  }
+}
+
+// Weather rows recolour the map for that day's wind.
+document.querySelectorAll('#weather-table tbody tr').forEach(tr => {
+  tr.addEventListener('click', () => {
+    const wind = tr.dataset.wind;
+    if (!wind) return;
+    document.querySelectorAll('#weather-table tbody tr').forEach(r => r.classList.remove('selected'));
+    tr.classList.add('selected');
+    currentWind = parseFloat(wind);
+    loadGrid();
+  });
+});
+
+document.querySelectorAll('.phase-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPhase = btn.dataset.phase;
+    loadGrid();
+  });
+});
+
+// Drag the fish onto the map.
+const pin = document.getElementById('fish-pin');
+if (pin && map) {
+  pin.addEventListener('dragstart', (e) => e.dataTransfer.setData('text/plain', 'fish'));
+  const mapEl = document.getElementById('map');
+  mapEl.addEventListener('dragover', (e) => e.preventDefault());
+  mapEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const rect = mapEl.getBoundingClientRect();
+    const point = L.point(e.clientX - rect.left, e.clientY - rect.top);
+    const latlng = map.containerPointToLatLng(point);
+    pickSpot(latlng.lat, latlng.lng, point);
   });
 }
 </script>

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Edit catch — Fishlog{% endblock %}
+{% block page_class %} narrow{% endblock %}
+{% block content %}
+<h1>Edit catch</h1>
+
+<form method="post" action="/session/catch/{{ catch.id }}/edit" enctype="multipart/form-data">
+  <label for="species">Species</label>
+  <select id="species" name="species" style="width:100%;padding:13px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:1rem;font-family:inherit;">
+    {% for sp in species %}
+    <option value="{{ sp.slug }}" {{ 'selected' if sp.slug == catch.species }}>
+      {{ sp.name_en }} / {{ sp.name_pl }}
+    </option>
+    {% endfor %}
+  </select>
+
+  <label for="weight_g">Weight (g)</label>
+  <input type="number" step="1" id="weight_g" name="weight_g" value="{{ catch.weight_g or '' }}">
+
+  <label for="length_cm">Length (cm)</label>
+  <input type="number" step="0.5" id="length_cm" name="length_cm" value="{{ catch.length_cm or '' }}">
+
+  <label for="bait">Bait</label>
+  <input type="text" id="bait" name="bait" value="{{ catch.bait or '' }}">
+
+  <label for="notes">Notes</label>
+  <textarea id="notes" name="notes">{{ catch.notes or '' }}</textarea>
+
+  {% if catch.photo_path %}
+  <label>Current photo</label>
+  <img src="{{ catch.photo_path }}" alt="" style="width:100%;border-radius:12px;">
+  {% endif %}
+
+  <label for="photo">{{ "Replace photo" if catch.photo_path else "Add photo" }}</label>
+  <input type="file" id="photo" name="photo" accept="image/*" capture="environment">
+
+  <button class="btn btn-primary" type="submit" style="margin-top:18px;">Save changes</button>
+  <a class="btn btn-ghost" href="/session/active" style="margin-top:10px;">Cancel</a>
+</form>
+{% endblock %}

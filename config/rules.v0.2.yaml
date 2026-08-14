@@ -1,0 +1,111 @@
+version: v0.2
+features_version: f0
+parent: v0
+
+note: >
+  Ruleset v0.2 = v0 (lake-level day score) PLUS a provisional per-cell zone
+  score. See docs/adr/0002-provisional-zone-score.md.
+
+  IMPORTANT PROVENANCE: the zone_score block below was authored by Claude at
+  the project owner's explicit request, reasoning from the mechanisms already
+  described in docs/02-DOMAIN.md. It was NOT supplied by the owner, is NOT
+  fitted to any logged data, and is NOT the pending FORMULA_WIND_ZONE - that
+  slot remains open and, when delivered, supersedes this block rather than
+  merging with it. Treat every number here as a starting hypothesis that
+  calibration may overturn freely.
+
+# ---------------------------------------------------------------------------
+# Lake-level day scoring, unchanged from v0.
+# ---------------------------------------------------------------------------
+pressure_regimes:
+  falling_fast:  "dp_6h <= -3.0"
+  falling_slow:  "dp_6h < -0.7 and dp_6h > -3.0"
+  stable:        "abs(dp_6h) <= 0.7 and pressure_stability_48h < 2.0"
+  rising_slow:   "dp_6h > 0.7 and dp_6h < 3.0"
+  rising_fast:   "dp_6h >= 3.0"
+
+rules:
+  - id: pressure_trend
+    scope: lake
+    weight: 0.6
+    regime_scores:
+      falling_slow:  1.0
+      stable:        0.6
+      falling_fast:  0.3
+      rising_slow:   0.4
+      rising_fast:  -0.5
+    reason_template: "pressure {regime} ({dp_6h} hPa / 6h)"
+
+  - id: light_window
+    scope: lake
+    weight: 0.4
+    dawn_dusk_window_hours: 2.0
+    score_in_window: 1.0
+    score_outside_window: 0.3
+    reason_template: "{label} light window ({start}–{end})"
+
+aggregation:
+  day_score: { normalise: [0, 10] }
+  go_threshold: 5.5
+  day_score_bands:
+    - { color: red,    label: "Poor",     max: 3.5 }
+    - { color: orange, label: "Marginal", max: 5.5 }
+    - { color: yellow, label: "Fair",     max: 7.5 }
+    - { color: green,  label: "Great" }
+
+# ---------------------------------------------------------------------------
+# PROVISIONAL per-cell zone score. AI-authored, see provenance note above.
+#
+# Inputs are pure geometry, computed per grid cell in app/geo/grid.py:
+#   fetch_norm  0..1  upwind open water / max possible fetch. High = windward,
+#                     wave energy, food and plankton pushed onto this bank.
+#   shore_prox  0..1  1 at the bank, falling to 0 at margin_band_m offshore.
+#                     Proxy for the shallow margin, which on a <3 m lake is
+#                     where the fishable structure and warmth are.
+#   shelter     0..1  1 - fetch_norm. Calm, un-mixed water.
+#
+# The sign of the wind term flips with thermal phase - that inversion is the
+# one thing docs/02-DOMAIN.md is most insistent about, so it is honoured here
+# even though the water-temperature model that should DERIVE the phase is not
+# built yet. Until it is, the phase is chosen by the angler in the UI, which is
+# why it must never be presented as a measurement.
+# ---------------------------------------------------------------------------
+zone_score:
+  provenance: ai_authored_provisional
+  status: hypothesis
+  supersede_with: FORMULA_WIND_ZONE
+
+  expression: "w_fetch * fetch_norm + w_margin * shore_prox + w_shelter * shelter"
+
+  margin_band_m: 25.0
+  max_possible_fetch_m: 400.0
+
+  phase_weights:
+    spring_warming:
+      # Wind is a NEGATIVE: it mixes away the warm surface layer that is the
+      # entire point of fishing a shallow margin in April/May.
+      w_fetch:   -0.40
+      w_margin:   1.00
+      w_shelter:  0.60
+    summer_stagnation:
+      # Wind flips POSITIVE: mixing is oxygen, and still weedy corners are
+      # where the dawn oxygen sag happens.
+      w_fetch:    0.90
+      w_margin:   0.20
+      w_shelter: -0.30
+    autumn_cooling:
+      # Fish follow food; weed dies back. Moderate windward preference, margin
+      # matters less than in spring.
+      w_fetch:    0.55
+      w_margin:   0.40
+      w_shelter:  0.10
+
+  default_phase: summer_stagnation
+
+  # Rendering bands for the heat overlay. Score is min-max normalised across
+  # the lake's own cells before banding, so the map always shows relative
+  # preference within THIS water on THIS day - never an absolute claim.
+  display:
+    colormap: [blue, cyan, green, yellow, orange, red]
+    low_label: "Least preferred"
+    high_label: "Most preferred"

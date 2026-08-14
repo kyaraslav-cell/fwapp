@@ -1,25 +1,62 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Form, Request
+import secrets
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.models import Catch
 from app.notebook.sessions import (
-    ALL_SPECIES,
-    SPECIES_PRIMARY,
-    SPECIES_SECONDARY,
     active_session,
     add_catch,
+    delete_catch,
     end_session,
+    update_catch,
 )
+from app.notebook.species import favourite_species, list_species
 from app.web.deps import get_db, get_lake, templates
 
 router = APIRouter(prefix="/session")
 
+ALLOWED_PHOTO_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".heic"}
+MAX_PHOTO_BYTES = 8 * 1024 * 1024
+
+
+def _float_or_none(s: str) -> float | None:
+    try:
+        return float(s.replace(",", ".")) if s.strip() else None
+    except ValueError:
+        return None
+
+
+def _int_or_none(s: str) -> int | None:
+    value = _float_or_none(s)
+    return int(value) if value is not None else None
+
+
+async def _save_photo(photo: UploadFile | None) -> str | None:
+    if photo is None or not photo.filename:
+        return None
+    suffix = Path(photo.filename).suffix.lower()
+    if suffix not in ALLOWED_PHOTO_SUFFIXES:
+        raise HTTPException(status_code=400, detail=f"unsupported image type: {suffix}")
+
+    data = await photo.read()
+    if len(data) > MAX_PHOTO_BYTES:
+        raise HTTPException(status_code=400, detail="photo larger than 8 MB")
+
+    media_dir = get_settings().media_dir
+    media_dir.mkdir(parents=True, exist_ok=True)
+    name = f"{secrets.token_hex(8)}{suffix}"
+    (media_dir / name).write_bytes(data)
+    return f"/media/{name}"
+
 
 @router.get("/active")
-def active(request: Request, db: Session = Depends(get_db)):
+def active(request: Request, q: str = "", db: Session = Depends(get_db)):
     lake = get_lake(db)
     session = active_session(db, lake)
     if session is None:
@@ -37,22 +74,94 @@ def active(request: Request, db: Session = Depends(get_db)):
             "session": session,
             "catches": catches,
             "total_fish": total_fish,
-            "species_primary": SPECIES_PRIMARY,
-            "species_secondary": SPECIES_SECONDARY,
+            "favourites": favourite_species(db),
+            "search_results": list_species(db, q) if q.strip() else [],
+            "q": q,
             "active_nav": "",
         },
     )
 
 
 @router.post("/catch")
-def catch(species: str = Form(...), db: Session = Depends(get_db)):
+async def catch(
+    species: str = Form(...),
+    weight_g: str = Form(default=""),
+    length_cm: str = Form(default=""),
+    bait: str = Form(default=""),
+    notes: str = Form(default=""),
+    photo: UploadFile | None = File(default=None),
+    db: Session = Depends(get_db),
+):
     lake = get_lake(db)
     session = active_session(db, lake)
     if session is None:
         return RedirectResponse(url="/", status_code=303)
-    if species not in ALL_SPECIES:
+
+    valid = {s.slug for s in list_species(db)}
+    if species not in valid:
         return RedirectResponse(url="/session/active", status_code=303)
-    add_catch(db, session.id, species)
+
+    add_catch(
+        db,
+        session.id,
+        species,
+        weight_g=_int_or_none(weight_g),
+        length_cm=_float_or_none(length_cm),
+        bait=bait or None,
+        notes=notes or None,
+        photo_path=await _save_photo(photo),
+    )
+    return RedirectResponse(url="/session/active", status_code=303)
+
+
+@router.get("/catch/{catch_id}/edit")
+def edit_catch_form(catch_id: int, request: Request, db: Session = Depends(get_db)):
+    catch_row = db.get(Catch, catch_id)
+    if catch_row is None:
+        raise HTTPException(status_code=404, detail="catch not found")
+    return templates.TemplateResponse(
+        "catch_edit.html",
+        {
+            "request": request,
+            "catch": catch_row,
+            "species": list_species(db),
+            "active_nav": "",
+        },
+    )
+
+
+@router.post("/catch/{catch_id}/edit")
+async def edit_catch(
+    catch_id: int,
+    species: str = Form(...),
+    weight_g: str = Form(default=""),
+    length_cm: str = Form(default=""),
+    bait: str = Form(default=""),
+    notes: str = Form(default=""),
+    photo: UploadFile | None = File(default=None),
+    db: Session = Depends(get_db),
+):
+    catch_row = db.get(Catch, catch_id)
+    if catch_row is None:
+        raise HTTPException(status_code=404, detail="catch not found")
+    update_catch(
+        db,
+        catch_row,
+        species=species,
+        weight_g=_int_or_none(weight_g),
+        length_cm=_float_or_none(length_cm),
+        bait=bait or None,
+        notes=notes or None,
+        photo_path=await _save_photo(photo),
+    )
+    return RedirectResponse(url="/session/active", status_code=303)
+
+
+@router.post("/catch/{catch_id}/delete")
+def remove_catch(catch_id: int, db: Session = Depends(get_db)):
+    catch_row = db.get(Catch, catch_id)
+    if catch_row is not None:
+        delete_catch(db, catch_row)
     return RedirectResponse(url="/session/active", status_code=303)
 
 
@@ -62,14 +171,20 @@ def end_form(request: Request, db: Session = Depends(get_db)):
     session = active_session(db, lake)
     if session is None:
         return RedirectResponse(url="/")
+    n_catches = db.query(Catch).filter(Catch.session_id == session.id).count()
     return templates.TemplateResponse(
-        "session_end.html", {"request": request, "session": session, "active_nav": ""}
+        "session_end.html",
+        {
+            "request": request,
+            "session": session,
+            "n_catches": n_catches,
+            "active_nav": "",
+        },
     )
 
 
 @router.post("/end")
 def end(
-    is_blank: str = Form(default=""),
     reflection: str = Form(default=""),
     water_temp_measured_c: str = Form(default=""),
     water_clarity_cm: str = Form(default=""),
@@ -80,16 +195,9 @@ def end(
     if session is None:
         return RedirectResponse(url="/", status_code=303)
 
-    def _float_or_none(s: str) -> float | None:
-        try:
-            return float(s) if s.strip() else None
-        except ValueError:
-            return None
-
     end_session(
         db,
         session,
-        is_blank=bool(is_blank),
         reflection=reflection or None,
         water_temp_measured_c=_float_or_none(water_temp_measured_c),
         water_clarity_cm=_float_or_none(water_clarity_cm),

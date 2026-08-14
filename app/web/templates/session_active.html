@@ -13,35 +13,103 @@
   <div class="counter-label">fish this session</div>
 </div>
 
-<div class="section-label">Log a catch</div>
+<div class="section-label">Quick log</div>
 <div class="chip-grid">
-  {% for sp in species_primary %}
-  <form method="post" action="/session/catch">
-    <input type="hidden" name="species" value="{{ sp }}">
-    <button class="chip" type="submit">{{ sp }}</button>
-  </form>
-  {% endfor %}
-</div>
-<div class="chip-grid">
-  {% for sp in species_secondary %}
-  <form method="post" action="/session/catch">
-    <input type="hidden" name="species" value="{{ sp }}">
-    <button class="chip secondary" type="submit">{{ sp }}</button>
+  {% for sp in favourites %}
+  <form method="post" action="/session/catch" enctype="multipart/form-data">
+    <input type="hidden" name="species" value="{{ sp.slug }}">
+    <button class="chip" type="submit">{{ sp.name_en }}</button>
   </form>
   {% endfor %}
 </div>
 
-{% if catches %}
-<div class="card">
-  <ul class="catch-list">
-    {% for c in catches %}
-    <li><span>{{ c.species }}</span><span>{{ c.caught_at[11:16] }}</span></li>
+<details class="card" {% if q %}open{% endif %}>
+  <summary style="cursor:pointer;font-weight:600;">Log with details, or find another species</summary>
+
+  <form method="get" action="/session/active" class="search-row" style="margin-top:14px;">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search fish — e.g. tench, lin, Tinca">
+    <button class="btn btn-secondary" style="width:auto;padding:0 18px;" type="submit">Search</button>
+  </form>
+
+  {% if q and not search_results %}
+  <p>No species matched “{{ q }}”.</p>
+  {% endif %}
+
+  {% if search_results %}
+  <div class="species-results">
+    {% for sp in search_results %}
+    <div class="species-row">
+      <div>
+        <div style="font-weight:600;">{{ sp.name_en }} <span style="color:var(--muted);font-weight:400;">/ {{ sp.name_pl }}</span></div>
+        <div class="species-latin">{{ sp.scientific or "" }}</div>
+      </div>
+      <form method="post" action="/session/catch" enctype="multipart/form-data">
+        <input type="hidden" name="species" value="{{ sp.slug }}">
+        <button class="icon-btn" type="submit">+ Log</button>
+      </form>
+    </div>
     {% endfor %}
-  </ul>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/session/catch" enctype="multipart/form-data" style="margin-top:16px;">
+    <label for="species-detail">Species</label>
+    <select id="species-detail" name="species" style="width:100%;padding:13px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:1rem;font-family:inherit;">
+      {% for sp in favourites %}
+      <option value="{{ sp.slug }}">{{ sp.name_en }} / {{ sp.name_pl }}</option>
+      {% endfor %}
+      {% for sp in search_results %}
+      <option value="{{ sp.slug }}">{{ sp.name_en }} / {{ sp.name_pl }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="weight_g">Weight (g)</label>
+    <input type="number" step="1" id="weight_g" name="weight_g" placeholder="e.g. 850">
+
+    <label for="length_cm">Length (cm)</label>
+    <input type="number" step="0.5" id="length_cm" name="length_cm" placeholder="e.g. 34">
+
+    <label for="bait">Bait</label>
+    <input type="text" id="bait" name="bait" placeholder="e.g. sweetcorn">
+
+    <label for="photo">Photo</label>
+    <input type="file" id="photo" name="photo" accept="image/*" capture="environment">
+
+    <button class="btn btn-primary" type="submit" style="margin-top:16px;">Log this catch</button>
+  </form>
+</details>
+
+{% if catches %}
+<div class="section-label">This session</div>
+<div class="card">
+  {% for c in catches %}
+  <div class="catch-card">
+    {% if c.photo_path %}
+    <img class="catch-photo" src="{{ c.photo_path }}" alt="">
+    {% else %}
+    <div class="catch-photo-empty"></div>
+    {% endif %}
+    <div class="catch-main">
+      <div class="catch-name">{{ c.species }}</div>
+      <div class="catch-meta">
+        {{ c.caught_at[11:16] }}
+        {% if c.weight_g %} · {{ c.weight_g }} g{% endif %}
+        {% if c.length_cm %} · {{ c.length_cm }} cm{% endif %}
+        {% if c.bait %} · {{ c.bait }}{% endif %}
+      </div>
+    </div>
+    <div class="catch-actions">
+      <a class="icon-btn" href="/session/catch/{{ c.id }}/edit">Edit</a>
+      <form method="post" action="/session/catch/{{ c.id }}/delete">
+        <button class="icon-btn danger" type="submit">Delete</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
 </div>
 {% endif %}
 
 <div class="bottom-fixed">
-  <a class="btn btn-secondary" href="/session/end">■ End session</a>
+  <a class="btn btn-danger-solid" href="/session/end">■ End session</a>
 </div>
 {% endblock %}

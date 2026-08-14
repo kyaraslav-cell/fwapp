@@ -7,6 +7,7 @@ from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
+from app.core.migrate import add_missing_columns
 from app.core.models import Base
 
 _engine: Engine | None = None
@@ -34,7 +35,9 @@ def get_sessionmaker() -> sessionmaker[Session]:
 
 
 def init_db() -> None:
-    Base.metadata.create_all(get_engine())
+    engine = get_engine()
+    Base.metadata.create_all(engine)
+    add_missing_columns(engine)
 
 
 @contextmanager
