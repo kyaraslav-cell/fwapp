@@ -12,6 +12,8 @@
   --accent-green-text: #0e4d38;
   --accent-coral: #f0a898;
   --accent-coral-text: #6b2a1c;
+  --danger: #e07a66;
+  --danger-strong: #cc6350;
   --shadow-sm: 0 2px 8px rgba(30, 74, 120, 0.06);
   --shadow-md: 0 6px 20px rgba(30, 74, 120, 0.10);
   --radius: 16px;
