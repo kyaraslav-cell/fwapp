@@ -620,16 +620,46 @@ table.weather tbody tr:last-child td { border-bottom: none; }
 
 .splash-ring {
   position: absolute;
-  border: 2px solid var(--primary-strong);
+  border: 2px solid #ffffff;
   border-radius: 50%;
   pointer-events: none;
   animation: splash 900ms ease-out forwards;
 }
 
 @keyframes splash {
-  0%   { width: 0; height: 0; opacity: 0.9; transform: translate(-50%, -50%); }
-  100% { width: 90px; height: 90px; opacity: 0; transform: translate(-50%, -50%); }
+  0%   { width: 0; height: 0; opacity: 0.95; transform: translate(-50%, -50%); }
+  100% { width: 110px; height: 110px; opacity: 0; transform: translate(-50%, -50%); }
 }
+
+/* The pin follows the finger while held, instead of the browser's drag ghost
+   (which is invisible on touch). */
+.pin-ghost {
+  position: fixed;
+  z-index: 3000;
+  width: 60px;
+  height: 44px;
+  margin-left: -30px;
+  margin-top: -22px;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 10px rgba(30, 74, 120, 0.35));
+  transition: transform 80ms ease-out;
+}
+
+.pin-ghost.lifted { transform: scale(1.15) rotate(-8deg); }
+
+/* On release: nose over, accelerate down, shrink into the water. */
+.pin-ghost.diving {
+  animation: dive 460ms cubic-bezier(0.55, 0, 0.85, 0.35) forwards;
+  transition: none;
+}
+
+@keyframes dive {
+  0%   { transform: scale(1.15) rotate(-8deg) translateY(-6px); opacity: 1; }
+  35%  { transform: scale(1.05) rotate(35deg) translateY(4px);  opacity: 1; }
+  100% { transform: scale(0.35) rotate(80deg) translateY(26px); opacity: 0; }
+}
+
+.fish-pin.is-held { opacity: 0.25; }
 
 .leaflet-container .fish-marker { animation: fish-bob 2.4s ease-in-out infinite; }
 
@@ -678,6 +708,134 @@ table.weather tbody tr:last-child td { border-bottom: none; }
 
 .icon-btn:hover { border-color: var(--primary); color: var(--primary-strong); }
 .icon-btn.danger:hover { border-color: var(--danger); color: var(--accent-coral-text); }
+
+/* ---------- one-tap fish buttons ---------- */
+
+.fish-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.fish-btn {
+  width: 100%;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.15;
+  transition: transform 0.08s ease, box-shadow 0.15s ease;
+}
+
+.fish-btn:hover { box-shadow: var(--shadow-md); }
+.fish-btn:active { transform: scale(0.96); }
+
+.fish-icon { fill: var(--primary-strong); stroke: var(--primary-strong); stroke-width: 0; }
+.fish-btn .fish-icon { fill: var(--primary); stroke: var(--primary); }
+.catch-photo-empty .fish-icon { fill: var(--muted); stroke: var(--muted); opacity: 0.5; }
+
+.catch-photo-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+details.card summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--primary-strong);
+  list-style: none;
+}
+
+details.card summary::-webkit-details-marker { display: none; }
+details.card summary::before { content: "＋ "; font-weight: 700; }
+details.card[open] summary::before { content: "－ "; }
+
+.select-input {
+  width: 100%;
+  padding: 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+/* ---------- size sliders ---------- */
+
+.slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 16px 0 2px;
+}
+
+.slider-value {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--primary-text);
+}
+
+.slider {
+  width: 100%;
+  height: 40px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  margin: 0;
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+}
+
+.slider::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+}
+
+/* Deliberately oversized: this is dragged with cold, wet hands. */
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 32px;
+  height: 32px;
+  margin-top: -13px;
+  border-radius: 50%;
+  background: var(--primary-strong);
+  border: 3px solid #fff;
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+}
+
+.slider::-moz-range-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary-strong);
+  border: 3px solid #fff;
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+}
 
 .search-row { display: flex; gap: 8px; margin-bottom: 12px; }
 .search-row input { flex: 1; }

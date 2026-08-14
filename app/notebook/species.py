@@ -22,6 +22,13 @@ def ensure_species_seeded(db: Session) -> None:
                 family=entry.get("family"),
                 scoring=entry["scoring"],
                 is_favourite=1 if entry.get("favourite") else 0,
+                shape=entry.get("shape"),
+                typical_g=entry.get("typical_g"),
+                min_g=entry.get("min_g"),
+                max_g=entry.get("max_g"),
+                typical_cm=entry.get("typical_cm"),
+                min_cm=entry.get("min_cm"),
+                max_cm=entry.get("max_cm"),
             )
         )
     db.flush()

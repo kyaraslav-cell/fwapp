@@ -244,19 +244,74 @@ document.querySelectorAll('#weather-table tbody tr').forEach(tr => {
   });
 });
 
-// Drag the fish onto the map.
+// Pointer-events drag, not HTML5 drag-and-drop: the native drag ghost does
+// not exist on touch, so the pin has to be carried manually.
 const pin = document.getElementById('fish-pin');
+const mapEl = document.getElementById('map');
+let ghost = null;
+
+function startDrag(e) {
+  if (!map) return;
+  e.preventDefault();
+  pin.classList.add('is-held');
+
+  ghost = pin.cloneNode(true);
+  ghost.removeAttribute('id');
+  ghost.classList.remove('fish-pin', 'is-held');
+  ghost.classList.add('pin-ghost', 'lifted');
+  document.body.appendChild(ghost);
+  moveGhost(e);
+
+  window.addEventListener('pointermove', moveGhost);
+  window.addEventListener('pointerup', endDrag, { once: true });
+  window.addEventListener('pointercancel', cancelDrag, { once: true });
+}
+
+function moveGhost(e) {
+  if (!ghost) return;
+  ghost.style.left = e.clientX + 'px';
+  ghost.style.top = e.clientY + 'px';
+}
+
+function cleanupDrag() {
+  window.removeEventListener('pointermove', moveGhost);
+  pin.classList.remove('is-held');
+}
+
+function cancelDrag() {
+  cleanupDrag();
+  if (ghost) { ghost.remove(); ghost = null; }
+}
+
+function endDrag(e) {
+  cleanupDrag();
+  if (!ghost) return;
+
+  const rect = mapEl.getBoundingClientRect();
+  const overMap =
+    e.clientX >= rect.left && e.clientX <= rect.right &&
+    e.clientY >= rect.top && e.clientY <= rect.bottom;
+
+  if (!overMap) { ghost.remove(); ghost = null; return; }
+
+  // Dive first, splash as it enters the water, marker once it is under.
+  const point = L.point(e.clientX - rect.left, e.clientY - rect.top);
+  const latlng = map.containerPointToLatLng(point);
+  const diving = ghost;
+  ghost = null;
+  diving.classList.remove('lifted');
+  diving.classList.add('diving');
+
+  setTimeout(() => splash(point), 300);
+  setTimeout(() => {
+    diving.remove();
+    pickSpot(latlng.lat, latlng.lng, null);
+  }, 470);
+}
+
 if (pin && map) {
-  pin.addEventListener('dragstart', (e) => e.dataTransfer.setData('text/plain', 'fish'));
-  const mapEl = document.getElementById('map');
-  mapEl.addEventListener('dragover', (e) => e.preventDefault());
-  mapEl.addEventListener('drop', (e) => {
-    e.preventDefault();
-    const rect = mapEl.getBoundingClientRect();
-    const point = L.point(e.clientX - rect.left, e.clientY - rect.top);
-    const latlng = map.containerPointToLatLng(point);
-    pickSpot(latlng.lat, latlng.lng, point);
-  });
+  pin.addEventListener('pointerdown', startDrag);
+  pin.addEventListener('dragstart', (e) => e.preventDefault());
 }
 </script>
 {% endblock %}

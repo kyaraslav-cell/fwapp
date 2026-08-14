@@ -1,7 +1,10 @@
 {% extends "base.html" %}
+{% import "_fish_icons.html" as icons %}
 {% block title %}Session — Fishlog{% endblock %}
 {% block page_class %} narrow{% endblock %}
 {% block content %}
+{% include "_fish_icons.html" %}
+
 <h1>Session in progress</h1>
 <div class="timer">
   Started {{ session.started_at[11:16] }} UTC
@@ -18,61 +21,56 @@
   <a href="/history">📖 History</a>
 </div>
 
-<div class="section-label">Quick log</div>
-<div class="chip-grid">
+{# One tap = one fish. The fastest path stays one tap; size and photo are
+   refinements you add afterwards if you want them. #}
+<div class="section-label">One tap to log</div>
+<div class="fish-grid">
   {% for sp in favourites %}
-  <form method="post" action="/session/catch" enctype="multipart/form-data">
+  <form method="post" action="/session/catch">
     <input type="hidden" name="species" value="{{ sp.slug }}">
-    <button class="chip" type="submit">{{ sp.name_en }}</button>
+    <button class="fish-btn" type="submit">
+      {{ icons.fish_icon(sp.shape, 40) }}
+      <span>{{ sp.name_en }}</span>
+    </button>
   </form>
   {% endfor %}
 </div>
 
-<details class="card" {% if q %}open{% endif %}>
-  <summary style="cursor:pointer;font-weight:600;">Log with details, or find another species</summary>
+<details class="card" id="detail-panel" {% if q %}open{% endif %}>
+  <summary>With size, bait or photo · other species</summary>
 
   <form method="get" action="/session/active" class="search-row" style="margin-top:14px;">
-    <input type="text" name="q" value="{{ q }}" placeholder="Search fish — e.g. tench, lin, Tinca">
-    <button class="btn btn-secondary" style="width:auto;padding:0 18px;" type="submit">Search</button>
+    <input type="text" name="q" value="{{ q }}" placeholder="Search fish — roach, lin, Tinca…">
+    <button class="btn btn-secondary" style="width:auto;padding:0 18px;" type="submit">Find</button>
   </form>
 
-  {% if q and not search_results %}
-  <p>No species matched “{{ q }}”.</p>
-  {% endif %}
+  {% if q and not search_results %}<p>Nothing matched “{{ q }}”.</p>{% endif %}
 
-  {% if search_results %}
-  <div class="species-results">
-    {% for sp in search_results %}
-    <div class="species-row">
-      <div>
-        <div style="font-weight:600;">{{ sp.name_en }} <span style="color:var(--muted);font-weight:400;">/ {{ sp.name_pl }}</span></div>
-        <div class="species-latin">{{ sp.scientific or "" }}</div>
-      </div>
-      <form method="post" action="/session/catch" enctype="multipart/form-data">
-        <input type="hidden" name="species" value="{{ sp.slug }}">
-        <button class="icon-btn" type="submit">+ Log</button>
-      </form>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <form method="post" action="/session/catch" enctype="multipart/form-data" style="margin-top:16px;">
+  <form method="post" action="/session/catch" enctype="multipart/form-data">
     <label for="species-detail">Species</label>
-    <select id="species-detail" name="species" style="width:100%;padding:13px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:1rem;font-family:inherit;">
-      {% for sp in favourites %}
-      <option value="{{ sp.slug }}">{{ sp.name_en }} / {{ sp.name_pl }}</option>
-      {% endfor %}
-      {% for sp in search_results %}
-      <option value="{{ sp.slug }}">{{ sp.name_en }} / {{ sp.name_pl }}</option>
+    <select id="species-detail" name="species" class="select-input">
+      {% for sp in (search_results or all_species) %}
+      <option value="{{ sp.slug }}"
+              data-typg="{{ sp.typical_g or 300 }}" data-ming="{{ sp.min_g or 1 }}" data-maxg="{{ sp.max_g or 20000 }}"
+              data-typcm="{{ sp.typical_cm or 25 }}" data-mincm="{{ sp.min_cm or 3 }}" data-maxcm="{{ sp.max_cm or 150 }}">
+        {{ sp.name_en }} / {{ sp.name_pl }}
+      </option>
       {% endfor %}
     </select>
 
-    <label for="weight_g">Weight (g)</label>
-    <input type="number" step="1" id="weight_g" name="weight_g" placeholder="e.g. 850">
+    {# Sliders start at this species' typical size, so the common case is a
+       glance and a submit rather than typing numbers with wet hands. #}
+    <div class="slider-head">
+      <label for="weight_g" style="margin:0;">Weight</label>
+      <output id="weight-out" class="slider-value">—</output>
+    </div>
+    <input type="range" id="weight_g" name="weight_g" class="slider">
 
-    <label for="length_cm">Length (cm)</label>
-    <input type="number" step="0.5" id="length_cm" name="length_cm" placeholder="e.g. 34">
+    <div class="slider-head">
+      <label for="length_cm" style="margin:0;">Length</label>
+      <output id="length-out" class="slider-value">—</output>
+    </div>
+    <input type="range" id="length_cm" name="length_cm" class="slider" step="0.5">
 
     <label for="bait">Bait</label>
     <input type="text" id="bait" name="bait" placeholder="e.g. sweetcorn">
@@ -92,10 +90,10 @@
     {% if c.photo_path %}
     <img class="catch-photo" src="{{ c.photo_path }}" alt="">
     {% else %}
-    <div class="catch-photo-empty"></div>
+    <div class="catch-photo-empty">{{ icons.fish_icon(shapes.get(c.species), 30) }}</div>
     {% endif %}
     <div class="catch-main">
-      <div class="catch-name">{{ c.species }}</div>
+      <div class="catch-name">{{ names.get(c.species, c.species) }}</div>
       <div class="catch-meta">
         {{ c.caught_at[11:16] }}
         {% if c.weight_g %} · {{ c.weight_g }} g{% endif %}
@@ -106,7 +104,7 @@
     <div class="catch-actions">
       <a class="icon-btn" href="/session/catch/{{ c.id }}/edit">Edit</a>
       <form method="post" action="/session/catch/{{ c.id }}/delete">
-        <button class="icon-btn danger" type="submit">Delete</button>
+        <button class="icon-btn danger" type="submit">✕</button>
       </form>
     </div>
   </div>
@@ -117,4 +115,39 @@
 <div class="bottom-fixed">
   <a class="btn btn-danger-solid" href="/session/end">■ End session</a>
 </div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+const sel = document.getElementById('species-detail');
+const wIn = document.getElementById('weight_g');
+const lIn = document.getElementById('length_cm');
+const wOut = document.getElementById('weight-out');
+const lOut = document.getElementById('length-out');
+
+function fmtWeight(g) {
+  g = Number(g);
+  return g >= 1000 ? (g / 1000).toFixed(g >= 10000 ? 1 : 2) + ' kg' : Math.round(g) + ' g';
+}
+
+function applySpecies() {
+  const o = sel.options[sel.selectedIndex];
+  if (!o) return;
+  wIn.min = o.dataset.ming; wIn.max = o.dataset.maxg; wIn.value = o.dataset.typg;
+  lIn.min = o.dataset.mincm; lIn.max = o.dataset.maxcm; lIn.value = o.dataset.typcm;
+  sync();
+}
+
+function sync() {
+  wOut.textContent = fmtWeight(wIn.value);
+  lOut.textContent = Number(lIn.value).toFixed(1).replace(/\.0$/, '') + ' cm';
+}
+
+if (sel) {
+  sel.addEventListener('change', applySpecies);
+  wIn.addEventListener('input', sync);
+  lIn.addEventListener('input', sync);
+  applySpecies();
+}
+</script>
 {% endblock %}

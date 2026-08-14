@@ -66,6 +66,7 @@ def active(request: Request, q: str = "", db: Session = Depends(get_db)):
         db.query(Catch).filter(Catch.session_id == session.id).order_by(Catch.id.desc()).all()
     )
     total_fish = sum(c.count for c in catches)
+    all_species = list_species(db)
 
     return templates.TemplateResponse(
         "session_active.html",
@@ -75,7 +76,10 @@ def active(request: Request, q: str = "", db: Session = Depends(get_db)):
             "catches": catches,
             "total_fish": total_fish,
             "favourites": favourite_species(db),
+            "all_species": all_species,
             "search_results": list_species(db, q) if q.strip() else [],
+            "shapes": {s.slug: s.shape for s in all_species},
+            "names": {s.slug: s.name_en for s in all_species},
             "q": q,
             "lake_slug": lake.slug,
             "active_nav": "",
