@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Fishlog — Places{% endblock %}
 {% block content %}
-<div class="section-label">Your fishing places</div>
+<div class="section-label">{{ t('home.section') }}</div>
 
 {% for c in cards %}
 <a href="/lake/{{ c.slug }}" style="text-decoration:none; color:inherit;">
@@ -10,18 +10,18 @@
     <div class="place-info">
       <div class="place-name">{{ c.name }}</div>
       <div class="place-meta">
-        {{ c.n_sessions }} session{{ 's' if c.n_sessions != 1 }}
-        {% if c.n_sessions > 0 %} · last visited {{ c.last_visited }}{% else %} · {{ c.last_visited }}{% endif %}
+        {{ c.n_sessions }} {{ t('home.sessions') if c.n_sessions == 1 else t('home.sessions_plural') }}
+        {% if c.n_sessions > 0 %} · {{ t('home.last_visited') }} {{ c.last_visited }}{% else %} · {{ t('home.never_visited') }}{% endif %}
       </div>
     </div>
     {% if c.band_color %}
       <span class="badge badge-{{ c.band_color }}">{{ c.band_label }}</span>
     {% else %}
-      <span class="badge badge-neutral">no data yet</span>
+      <span class="badge badge-neutral">{{ t('home.no_data') }}</span>
     {% endif %}
   </div>
 </a>
 {% endfor %}
 
-<a href="/places/new" class="btn btn-ghost" style="margin-top: 8px;">+ New place</a>
+<a href="/places/new" class="btn btn-ghost" style="margin-top: 8px;">{{ t('home.new_place') }}</a>
 {% endblock %}

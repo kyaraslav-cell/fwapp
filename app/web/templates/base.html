@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ lang }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -13,11 +13,19 @@
 </head>
 <body>
   <div class="topbar">
-    <a href="/" class="brand" style="text-decoration:none;">Fishlog</a>
-    <nav class="topnav">
-      <a href="/" class="{{ 'active' if active_nav == 'home' }}">Places</a>
-      <a href="/history" class="{{ 'active' if active_nav == 'history' }}">History</a>
-    </nav>
+    <a href="/" class="brand" style="text-decoration:none;">{{ t('nav.brand') }}</a>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <nav class="topnav">
+        <a href="/" class="{{ 'active' if active_nav == 'home' }}">{{ t('nav.places') }}</a>
+        <a href="/history" class="{{ 'active' if active_nav == 'history' }}">{{ t('nav.history') }}</a>
+      </nav>
+      <div class="lang-switch">
+        {% for code, name in languages %}
+        <a href="/lang/{{ code }}?next={{ current_path | urlencode }}"
+           class="{{ 'active' if code == lang }}" title="{{ name }}">{{ code | upper }}</a>
+        {% endfor %}
+      </div>
+    </div>
   </div>
 
   <main class="page{% block page_class %}{% endblock %}">
@@ -25,8 +33,8 @@
   </main>
 
   <nav class="bottomnav">
-    <a href="/" class="{{ 'active' if active_nav == 'home' }}">Places</a>
-    <a href="/history" class="{{ 'active' if active_nav == 'history' }}">History</a>
+    <a href="/" class="{{ 'active' if active_nav == 'home' }}">{{ t('nav.places') }}</a>
+    <a href="/history" class="{{ 'active' if active_nav == 'history' }}">{{ t('nav.history') }}</a>
   </nav>
   {% block extra_script %}{% endblock %}
 </body>

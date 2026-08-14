@@ -533,6 +533,29 @@ table.weather tbody tr:last-child td { border-bottom: none; }
                                      #f3e378, #cee07a, #9cd07a, #6abc7c, #3aa06a);
 }
 
+.lang-switch {
+  display: flex;
+  gap: 2px;
+  background: var(--surface-alt);
+  border-radius: 999px;
+  padding: 3px;
+}
+
+.lang-switch a {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  padding: 6px 9px;
+  border-radius: 999px;
+  text-decoration: none;
+  min-width: 32px;
+  text-align: center;
+}
+
+.lang-switch a:hover { text-decoration: none; color: var(--primary-strong); }
+.lang-switch a.active { background: var(--surface); color: var(--primary-text); box-shadow: var(--shadow-sm); }
+
 .season-line {
   font-size: 0.88rem;
   color: var(--text);

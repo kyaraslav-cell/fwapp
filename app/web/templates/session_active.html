@@ -5,49 +5,49 @@
 {% block content %}
 {% include "_fish_icons.html" %}
 
-<h1>Session in progress</h1>
+<h1>{{ t('session.in_progress') }}</h1>
 <div class="timer">
-  Started {{ session.started_at[11:16] }} UTC
-  {% if session.method %} · {{ session.method }} · {{ session.rod_count }} rod{{ 's' if session.rod_count != 1 }}{% endif %}
+  {{ t('session.started') }} {{ session.started_at[11:16] }} UTC
+  {% if session.method %} · {{ session.method }} · {{ session.rod_count }} {{ t('session.rod') if session.rod_count == 1 else t('session.rods') }}{% endif %}
 </div>
 
 <div class="counter">
   <div class="counter-number">{{ total_fish }}</div>
-  <div class="counter-label">fish this session</div>
+  <div class="counter-label">{{ t('session.fish_this_session') }}</div>
 </div>
 
 <div class="inline-link-row">
-  <a href="/lake/{{ lake_slug }}">🌤 Conditions &amp; map</a>
-  <a href="/history">📖 History</a>
+  <a href="/lake/{{ lake_slug }}">{{ t('session.conditions_map') }}</a>
+  <a href="/history">{{ t('session.history') }}</a>
 </div>
 
 {# One tap = one fish. The fastest path stays one tap; size and photo are
    refinements you add afterwards if you want them. #}
-<div class="section-label">One tap to log</div>
+<div class="section-label">{{ t('session.one_tap') }}</div>
 <div class="fish-grid">
   {% for sp in favourites %}
   <form method="post" action="/session/catch">
     <input type="hidden" name="species" value="{{ sp.slug }}">
     <button class="fish-btn" type="submit">
       {{ icons.fish_icon(sp.shape, 40) }}
-      <span>{{ sp.name_en }}</span>
+      <span>{{ sp.name_en if lang != 'pl' else sp.name_pl }}</span>
     </button>
   </form>
   {% endfor %}
 </div>
 
 <details class="card" id="detail-panel" {% if q %}open{% endif %}>
-  <summary>With size, bait or photo · other species</summary>
+  <summary>{{ t('session.details_summary') }}</summary>
 
   <form method="get" action="/session/active" class="search-row" style="margin-top:14px;">
-    <input type="text" name="q" value="{{ q }}" placeholder="Search fish — roach, lin, Tinca…">
-    <button class="btn btn-secondary" style="width:auto;padding:0 18px;" type="submit">Find</button>
+    <input type="text" name="q" value="{{ q }}" placeholder="{{ t('session.search_placeholder') }}">
+    <button class="btn btn-secondary" style="width:auto;padding:0 18px;" type="submit">{{ t('session.find') }}</button>
   </form>
 
-  {% if q and not search_results %}<p>Nothing matched “{{ q }}”.</p>{% endif %}
+  {% if q and not search_results %}<p>{{ t('session.no_match') }} “{{ q }}”.</p>{% endif %}
 
   <form method="post" action="/session/catch" enctype="multipart/form-data">
-    <label for="species-detail">Species</label>
+    <label for="species-detail">{{ t('session.species') }}</label>
     <select id="species-detail" name="species" class="select-input">
       {% for sp in (search_results or all_species) %}
       <option value="{{ sp.slug }}"
@@ -61,29 +61,29 @@
     {# Sliders start at this species' typical size, so the common case is a
        glance and a submit rather than typing numbers with wet hands. #}
     <div class="slider-head">
-      <label for="weight_g" style="margin:0;">Weight</label>
+      <label for="weight_g" style="margin:0;">{{ t('session.weight') }}</label>
       <output id="weight-out" class="slider-value">—</output>
     </div>
     <input type="range" id="weight_g" name="weight_g" class="slider">
 
     <div class="slider-head">
-      <label for="length_cm" style="margin:0;">Length</label>
+      <label for="length_cm" style="margin:0;">{{ t('session.length') }}</label>
       <output id="length-out" class="slider-value">—</output>
     </div>
     <input type="range" id="length_cm" name="length_cm" class="slider" step="0.5">
 
-    <label for="bait">Bait</label>
-    <input type="text" id="bait" name="bait" placeholder="e.g. sweetcorn">
+    <label for="bait">{{ t('session.bait') }}</label>
+    <input type="text" id="bait" name="bait" placeholder="{{ t('session.bait_placeholder') }}">
 
-    <label for="photo">Photo</label>
+    <label for="photo">{{ t('session.photo') }}</label>
     <input type="file" id="photo" name="photo" accept="image/*" capture="environment">
 
-    <button class="btn btn-primary" type="submit" style="margin-top:16px;">Log this catch</button>
+    <button class="btn btn-primary" type="submit" style="margin-top:16px;">{{ t('session.log_catch') }}</button>
   </form>
 </details>
 
 {% if catches %}
-<div class="section-label">This session</div>
+<div class="section-label">{{ t('session.this_session') }}</div>
 <div class="card">
   {% for c in catches %}
   <div class="catch-card">
@@ -102,7 +102,7 @@
       </div>
     </div>
     <div class="catch-actions">
-      <a class="icon-btn" href="/session/catch/{{ c.id }}/edit">Edit</a>
+      <a class="icon-btn" href="/session/catch/{{ c.id }}/edit">{{ t('session.edit') }}</a>
       <form method="post" action="/session/catch/{{ c.id }}/delete">
         <button class="icon-btn danger" type="submit">✕</button>
       </form>
@@ -113,7 +113,7 @@
 {% endif %}
 
 <div class="bottom-fixed">
-  <a class="btn btn-danger-solid" href="/session/end">■ End session</a>
+  <a class="btn btn-danger-solid" href="/session/end">{{ t('session.end_session') }}</a>
 </div>
 {% endblock %}
 

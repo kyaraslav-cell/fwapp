@@ -8,19 +8,19 @@
 {% block content %}
 {% if live_session %}
 <a href="/session/active" class="session-banner">
-  <span><strong>Session in progress</strong> — started {{ live_session.started_at[11:16] }} UTC</span>
-  <span>Back to logging →</span>
+  <span><strong>{{ t('lake.session_in_progress') }}</strong> — {{ t('lake.started') }} {{ live_session.started_at[11:16] }} UTC</span>
+  <span>{{ t('lake.back_to_logging') }}</span>
 </a>
 {% endif %}
 
 <div class="section-label">{{ lake.name }} · {{ now_local }}</div>
 
-<div class="section-label">Recent conditions — tap a day to see it on the map</div>
+<div class="section-label">{{ t('lake.recent_conditions') }}</div>
 <div class="card" style="padding: 6px 14px;">
   {% if days %}
   <table class="weather" id="weather-table">
     <thead>
-      <tr><th>Day</th><th>Wind</th><th>Temp</th><th>Pressure</th></tr>
+      <tr><th>{{ t('lake.day') }}</th><th>{{ t('lake.wind') }}</th><th>{{ t('lake.temp') }}</th><th>{{ t('lake.pressure') }}</th></tr>
     </thead>
     <tbody>
       {% for d in days %}
@@ -39,19 +39,19 @@
     </tbody>
   </table>
   {% else %}
-  <p style="padding: 12px 0;">No observed weather yet — tap refresh below.</p>
+  <p style="padding: 12px 0;">{{ t('lake.no_weather') }}</p>
   {% endif %}
 </div>
 
-<div class="section-label" style="margin-top: 20px;">Where to fish</div>
+<div class="section-label" style="margin-top: 20px;">{{ t('lake.where_to_fish') }}</div>
 
 <div class="season-line">
-  Assuming <strong>{{ season.label }}</strong>
-  <span class="season-caveat" title="{{ season.caveat }}">— {{ season.caveat }}</span>
+  {{ t('lake.assuming') }} <strong>{{ t('phase.' ~ season.phase) }}</strong>
+  <span class="season-caveat">— {{ t('season_caveat') }}</span>
 </div>
 
 <div class="pin-dock">
-  <svg class="fish-pin" id="fish-pin" viewBox="0 0 64 44" draggable="true" aria-label="Drag onto the map to pick your spot">
+  <svg class="fish-pin" id="fish-pin" viewBox="0 0 64 44" draggable="true" aria-label="{{ t('lake.pin_hint') }}">
     <defs>
       <linearGradient id="fishGrad" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stop-color="#6fb1e8"/>
@@ -64,7 +64,7 @@
     <circle cx="17" cy="19" r="1.4" fill="#22384d"/>
     <path d="M24 22 C30 16, 38 16, 44 21" stroke="#ffffff" stroke-opacity="0.55" stroke-width="2" fill="none"/>
   </svg>
-  <div class="pin-hint">Drag the fish onto the map — or just tap the water — to pick your spot.</div>
+  <div class="pin-hint">{{ t('lake.pin_hint') }}</div>
 </div>
 
 <div class="map-wrap" id="map-wrap" style="position: relative;">
@@ -72,27 +72,25 @@
 </div>
 
 <div class="heat-legend">
-  <span id="legend-low">Poor</span>
+  <span id="legend-low">{{ t('lake.legend_low') }}</span>
   <span class="heat-bar"></span>
-  <span id="legend-high">Best</span>
+  <span id="legend-high">{{ t('lake.legend_high') }}</span>
 </div>
 
 <p class="provenance-note">
-  Heat overlay is a <strong>provisional, AI-authored</strong> zone score
-  (<code>{{ zone_provenance }}</code>) built from geometry only — upwind fetch and
-  distance to bank — with weights in <code>config/rules.v0.2.yaml</code>. It is a
-  hypothesis, not a measurement, and nothing here has been checked against a
-  single logged catch yet. Outline source: <code>{{ outline_source }}</code>.
+  {{ t('lake.provenance') }}
+  <code>{{ zone_provenance }}</code> ·
+  {{ t('lake.outline_source') }}: <code>{{ outline_source }}</code>
 </p>
 
 <div id="zone-list-fallback" style="display:none;">
   <a class="btn btn-secondary" href="/lake/{{ lake.slug }}/spot?lat={{ lake.centroid_lat }}&lon={{ lake.centroid_lon }}">
-    Map unavailable — start a session anyway
+    {{ t('lake.map_unavailable') }}
   </a>
 </div>
 
 <form method="post" action="/lake/{{ lake.slug }}/refresh" style="margin-top: 16px;">
-  <button class="btn btn-ghost" type="submit">↻ Refresh weather &amp; prediction</button>
+  <button class="btn btn-ghost" type="submit">{{ t('lake.refresh') }}</button>
 </form>
 {% endblock %}
 
@@ -105,6 +103,10 @@ const OUTLINE = {{ outline_json | safe }};
 const GRID = {{ grid_meta | safe }};
 const DEFAULT_WIND = {{ default_wind }};
 const PHASE = "{{ season.phase }}";
+const I18N = {
+  fish_here: {{ t('lake.fish_here') | tojson }},
+  start_session: {{ t('lake.start_session_link') | tojson }}
+};
 let currentWind = DEFAULT_WIND !== null ? DEFAULT_WIND : 270;
 
 const M_PER_DEG_LAT = 111320;
@@ -213,8 +215,8 @@ function pickSpot(lat, lon, containerPoint) {
   const href = `/lake/${LAKE.slug}/spot?lat=${lat.toFixed(6)}&lon=${lon.toFixed(6)}&cell=${cell}`;
   marker.bindPopup(
     `<div style="text-align:center;font-family:inherit;">
-       <div style="font-weight:600;margin-bottom:6px;">Fish here?</div>
-       <a href="${href}" style="color:#4a93d6;font-weight:600;">Start session →</a>
+       <div style="font-weight:600;margin-bottom:6px;">${I18N.fish_here}</div>
+       <a href="${href}" style="color:#4a93d6;font-weight:600;">${I18N.start_session}</a>
      </div>`
   ).openPopup();
 }

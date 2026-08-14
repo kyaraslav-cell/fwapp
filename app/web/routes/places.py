@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.i18n import COOKIE_NAME, normalise
 from app.core.models import Lake
 from app.core.time import parse_iso, to_display, utcnow
 from app.features.season import derive_season
@@ -50,6 +51,19 @@ def home(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         "home.html", {"request": request, "cards": cards, "active_nav": "home"}
     )
+
+
+@router.get("/lang/{code}")
+def set_language(code: str, next: str = "/"):
+    """Switch UI language and return to where the angler was."""
+    lang = normalise(code)
+    # Only ever redirect to a path on this app, never to an absolute URL.
+    target = next if next.startswith("/") and not next.startswith("//") else "/"
+    response = RedirectResponse(url=target, status_code=303)
+    response.set_cookie(
+        COOKIE_NAME, lang, max_age=60 * 60 * 24 * 365, httponly=False, samesite="lax"
+    )
+    return response
 
 
 @router.get("/places/new")

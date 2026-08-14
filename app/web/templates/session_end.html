@@ -2,30 +2,29 @@
 {% block title %}End session — Fishlog{% endblock %}
 {% block page_class %} narrow{% endblock %}
 {% block content %}
-<h1>End session</h1>
+<h1>{{ t('end.title') }}</h1>
 
 <div class="card-flat">
   {% if n_catches %}
-  <strong>{{ n_catches }} catch{{ 'es' if n_catches != 1 }}</strong> logged this session.
+  <strong>{{ n_catches }} {{ t('end.logged_prefix') if n_catches == 1 else t('end.logged_prefix_plural') }}</strong> {{ t('end.logged_suffix') }}
   {% else %}
-  No fish this time — this will be saved as a <strong>blank session</strong>.
-  Blanks count fully in every statistic; they are as much data as a good day.
+  {{ t('end.blank_note') }}
   {% endif %}
 </div>
 
 <form method="post" action="/session/end">
-  <label for="water_temp_measured_c">Water temperature °C (optional — highest-value field in the app)</label>
+  <label for="water_temp_measured_c">{{ t('end.water_temp') }}</label>
   <input type="number" step="0.1" id="water_temp_measured_c" name="water_temp_measured_c" placeholder="e.g. 16.5">
 
-  <label for="water_clarity_cm">Water clarity, cm (optional)</label>
+  <label for="water_clarity_cm">{{ t('end.clarity') }}</label>
   <input type="number" step="1" id="water_clarity_cm" name="water_clarity_cm" placeholder="e.g. 40">
 
-  <label for="reflection">What worked / what didn't (optional, 20 seconds)</label>
-  <textarea id="reflection" name="reflection" placeholder="Free text..."></textarea>
+  <label for="reflection">{{ t('end.reflection') }}</label>
+  <textarea id="reflection" name="reflection" placeholder="{{ t('end.reflection_placeholder') }}"></textarea>
 
   <div class="bottom-fixed">
-    <button class="btn btn-danger-solid btn-block-gap" type="submit">Save &amp; end session</button>
-    <a class="btn btn-ghost" href="/session/active">Cancel, keep fishing</a>
+    <button class="btn btn-danger-solid btn-block-gap" type="submit">{{ t('end.save') }}</button>
+    <a class="btn btn-ghost" href="/session/active">{{ t('end.cancel') }}</a>
   </div>
 </form>
 {% endblock %}

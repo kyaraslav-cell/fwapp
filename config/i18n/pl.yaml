@@ -1,0 +1,131 @@
+language_name: Polski
+
+nav:
+  places: Łowiska
+  history: Historia
+  brand: Fishlog
+
+home:
+  section: Twoje łowiska
+  sessions: sesja
+  sessions_plural: sesji
+  last_visited: ostatnio
+  never_visited: Jeszcze nie odwiedzone
+  no_data: brak danych
+  new_place: + Nowe łowisko
+
+place_new:
+  title: Nowe łowisko
+  body: >
+    Obsługa wielu jezior jest na razie odłożona — Fishlog obejmuje wyłącznie
+    Jezioro Pomocnia, dopóki nie powstanie pełny mechanizm dodawania łowisk
+    (geokodowanie → wielokąt z OSM → mapowanie stref).
+  back: ← Powrót do łowisk
+
+lake:
+  session_in_progress: Sesja w toku
+  started: start
+  back_to_logging: Wróć do zapisu →
+  recent_conditions: Ostatnie warunki — dotknij dnia, aby zobaczyć go na mapie
+  no_weather: Brak zarejestrowanej pogody — odśwież poniżej.
+  day: Dzień
+  wind: Wiatr
+  temp: Temp.
+  pressure: Ciśnienie
+  where_to_fish: Gdzie łowić
+  assuming: Zakładam
+  pin_hint: Przeciągnij rybkę na mapę — albo po prostu dotknij wody — aby wybrać miejsce.
+  legend_low: Słabo
+  legend_high: Najlepiej
+  outline_source: Źródło obrysu
+  map_unavailable: Mapa niedostępna — rozpocznij sesję mimo to
+  refresh: ↻ Odśwież pogodę i prognozę
+  fish_here: Łowić tutaj?
+  start_session_link: Rozpocznij sesję →
+  provenance: >
+    Nakładka to wstępna, wygenerowana przez AI ocena stref, policzona wyłącznie
+    z geometrii — rozpędu fali pod wiatr i odległości od brzegu — z wagami w
+    config/rules.v0.3.yaml. To hipoteza, nie pomiar, i nie została jeszcze
+    sprawdzona na żadnym zapisanym braniu.
+
+spot:
+  title: Twoje stanowisko
+  method: Metoda
+  rods: Liczba wędek
+  start: Rozpocznij sesję
+  back: ← Powrót do mapy
+
+method:
+  carp: karpiowa
+  feeder: feeder
+  float: spławik
+
+session:
+  in_progress: Sesja w toku
+  started: Start
+  rod: wędka
+  rods: wędki
+  fish_this_session: ryb w tej sesji
+  conditions_map: 🌤 Warunki i mapa
+  history: 📖 Historia
+  one_tap: Jedno dotknięcie = jedna ryba
+  details_summary: Z wagą, przynętą lub zdjęciem · inne gatunki
+  search_placeholder: Szukaj ryby — płoć, lin, Tinca…
+  find: Szukaj
+  no_match: Nic nie pasuje do
+  species: Gatunek
+  weight: Waga
+  length: Długość
+  bait: Przynęta
+  bait_placeholder: np. kukurydza
+  photo: Zdjęcie
+  log_catch: Zapisz branie
+  this_session: Ta sesja
+  edit: Edytuj
+  end_session: ■ Zakończ sesję
+
+end:
+  title: Zakończ sesję
+  logged_prefix: branie
+  logged_prefix_plural: brań
+  logged_suffix: zapisano w tej sesji.
+  blank_note: >
+    Bez ryby — zapiszemy to jako sesję bez brań. Puste sesje liczą się w pełni
+    w każdej statystyce; to taka sama dana jak udany dzień.
+  water_temp: Temperatura wody °C (opcjonalnie — najcenniejsze pole w aplikacji)
+  clarity: Przejrzystość wody, cm (opcjonalnie)
+  reflection: Co zadziałało, a co nie (opcjonalnie, 20 sekund)
+  reflection_placeholder: Dowolny tekst...
+  save: Zapisz i zakończ
+  cancel: Anuluj, łowię dalej
+
+catch_edit:
+  title: Edytuj branie
+  notes: Notatki
+  current_photo: Obecne zdjęcie
+  replace_photo: Zmień zdjęcie
+  add_photo: Dodaj zdjęcie
+  save: Zapisz zmiany
+  cancel: Anuluj
+
+history:
+  title: Historia
+  sessions_logged: zapisanych sesji
+  blanks: bez brań (liczone)
+  date: Data
+  method: Metoda
+  effort: Czas
+  fish: Ryby
+  cpue: CPUE
+  blank: bez brań
+  none_yet: Brak zapisanych sesji.
+  min: min
+
+phase:
+  spring_warming: wiosenne ocieplanie
+  summer_stagnation: letnia stagnacja
+  autumn_cooling: jesienne wychładzanie
+
+season_caveat: >
+  Przyjęte z daty, nie zmierzone. O prawdziwej fazie decyduje temperatura wody
+  — zimny maj albo ciepły kwiecień zmylą to założenie.

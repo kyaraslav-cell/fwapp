@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% block title %}History — Fishlog{% endblock %}
 {% block content %}
-<h1>History</h1>
+<h1>{{ t('history.title') }}</h1>
 
 <div class="stat-row">
   <div class="stat">
     <div class="stat-number">{{ n_sessions }}</div>
-    <div class="stat-label">sessions logged</div>
+    <div class="stat-label">{{ t('history.sessions_logged') }}</div>
   </div>
   <div class="stat">
     <div class="stat-number">{{ n_blanks }}</div>
-    <div class="stat-label">blanks (kept, counted)</div>
+    <div class="stat-label">{{ t('history.blanks') }}</div>
   </div>
 </div>
 
@@ -18,15 +18,15 @@
 <div class="card" style="overflow-x: auto;">
   <table class="history">
     <thead>
-      <tr><th>Date</th><th>Method</th><th>Effort</th><th>Fish</th><th>CPUE</th></tr>
+      <tr><th>{{ t('history.date') }}</th><th>{{ t('history.method') }}</th><th>{{ t('history.effort') }}</th><th>{{ t('history.fish') }}</th><th>{{ t('history.cpue') }}</th></tr>
     </thead>
     <tbody>
       {% for r in rows %}
       <tr>
         <td>{{ r.started }}</td>
         <td>{{ r.method or "—" }}{% if r.rod_count %} · {{ r.rod_count }}r{% endif %}</td>
-        <td>{{ r.effort_minutes }} min</td>
-        <td>{{ "blank" if r.is_blank else r.total_fish }}</td>
+        <td>{{ r.effort_minutes }} {{ t('history.min') }}</td>
+        <td>{{ t('history.blank') if r.is_blank else r.total_fish }}</td>
         <td>{{ r.cpue }}</td>
       </tr>
       {% endfor %}
@@ -34,6 +34,6 @@
   </table>
 </div>
 {% else %}
-<div class="card"><p style="margin:0;">No sessions logged yet.</p></div>
+<div class="card"><p style="margin:0;">{{ t('history.none_yet') }}</p></div>
 {% endif %}
 {% endblock %}

@@ -2,16 +2,31 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.db import get_sessionmaker
+from app.core.i18n import COOKIE_NAME, language_names, normalise, translate
 from app.core.models import Lake
 from app.core.seed import ensure_lake_seeded
 
-templates = Jinja2Templates(directory="app/web/templates")
+
+def _i18n_context(request: Request) -> dict[str, object]:
+    """Per-request, so `t()` is never shared mutable state between requests."""
+    lang = normalise(request.cookies.get(COOKIE_NAME))
+    return {
+        "lang": lang,
+        "languages": language_names(),
+        "t": lambda key: translate(lang, key),
+        "current_path": request.url.path,
+    }
+
+
+templates = Jinja2Templates(
+    directory="app/web/templates", context_processors=[_i18n_context]
+)
 
 
 def get_db() -> Iterator[Session]:

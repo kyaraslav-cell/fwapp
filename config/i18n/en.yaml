@@ -1,0 +1,131 @@
+language_name: English
+
+nav:
+  places: Places
+  history: History
+  brand: Fishlog
+
+home:
+  section: Your fishing places
+  sessions: session
+  sessions_plural: sessions
+  last_visited: last visited
+  never_visited: Not visited yet
+  no_data: no data yet
+  new_place: + New place
+
+place_new:
+  title: New place
+  body: >
+    Multi-lake support is deferred for now — Fishlog is scoped to Jezioro
+    Pomocnia until the real add-a-lake pipeline (geocode → OSM polygon → zone
+    mapping) is built.
+  back: ← Back to places
+
+lake:
+  session_in_progress: Session in progress
+  started: started
+  back_to_logging: Back to logging →
+  recent_conditions: Recent conditions — tap a day to see it on the map
+  no_weather: No observed weather yet — tap refresh below.
+  day: Day
+  wind: Wind
+  temp: Temp
+  pressure: Pressure
+  where_to_fish: Where to fish
+  assuming: Assuming
+  pin_hint: Drag the fish onto the map — or just tap the water — to pick your spot.
+  legend_low: Poor
+  legend_high: Best
+  outline_source: Outline source
+  map_unavailable: Map unavailable — start a session anyway
+  refresh: ↻ Refresh weather & prediction
+  fish_here: Fish here?
+  start_session_link: Start session →
+  provenance: >
+    Heat overlay is a provisional, AI-authored zone score built from geometry
+    only — upwind fetch and distance to bank — with weights in
+    config/rules.v0.3.yaml. It is a hypothesis, not a measurement, and nothing
+    here has been checked against a single logged catch yet.
+
+spot:
+  title: Your spot
+  method: Method
+  rods: Number of rods
+  start: Start session
+  back: ← Back to map
+
+method:
+  carp: carp
+  feeder: feeder
+  float: float
+
+session:
+  in_progress: Session in progress
+  started: Started
+  rod: rod
+  rods: rods
+  fish_this_session: fish this session
+  conditions_map: 🌤 Conditions & map
+  history: 📖 History
+  one_tap: One tap to log
+  details_summary: With size, bait or photo · other species
+  search_placeholder: Search fish — roach, lin, Tinca…
+  find: Find
+  no_match: Nothing matched
+  species: Species
+  weight: Weight
+  length: Length
+  bait: Bait
+  bait_placeholder: e.g. sweetcorn
+  photo: Photo
+  log_catch: Log this catch
+  this_session: This session
+  edit: Edit
+  end_session: ■ End session
+
+end:
+  title: End session
+  logged_prefix: catch
+  logged_prefix_plural: catches
+  logged_suffix: logged this session.
+  blank_note: >
+    No fish this time — this will be saved as a blank session. Blanks count
+    fully in every statistic; they are as much data as a good day.
+  water_temp: Water temperature °C (optional — highest-value field in the app)
+  clarity: Water clarity, cm (optional)
+  reflection: What worked / what didn't (optional, 20 seconds)
+  reflection_placeholder: Free text...
+  save: Save & end session
+  cancel: Cancel, keep fishing
+
+catch_edit:
+  title: Edit catch
+  notes: Notes
+  current_photo: Current photo
+  replace_photo: Replace photo
+  add_photo: Add photo
+  save: Save changes
+  cancel: Cancel
+
+history:
+  title: History
+  sessions_logged: sessions logged
+  blanks: blanks (kept, counted)
+  date: Date
+  method: Method
+  effort: Effort
+  fish: Fish
+  cpue: CPUE
+  blank: blank
+  none_yet: No sessions logged yet.
+  min: min
+
+phase:
+  spring_warming: spring warming
+  summer_stagnation: summer stagnation
+  autumn_cooling: autumn cooling
+
+season_caveat: >
+  Assumed from the date, not measured. Water temperature drives the real
+  phase — a cold May or a warm April will fool this.

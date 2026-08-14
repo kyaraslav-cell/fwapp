@@ -2,7 +2,7 @@
 {% block title %}New place — Fishlog{% endblock %}
 {% block page_class %} narrow{% endblock %}
 {% block content %}
-<h1>New place</h1>
+<h1>{{ t('place_new.title') }}</h1>
 <div class="card">
   <p>
     Multi-lake support is deferred for now — Fishlog is scoped to
@@ -12,5 +12,5 @@
   <p>When it ships, this is where you'll type a lake name and get an
   auto-resolved outline to start mapping zones on.</p>
 </div>
-<a href="/" class="btn btn-secondary">← Back to places</a>
+<a href="/" class="btn btn-secondary">{{ t('place_new.back') }}</a>
 {% endblock %}

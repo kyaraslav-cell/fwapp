@@ -2,7 +2,7 @@
 {% block title %}Start session — Fishlog{% endblock %}
 {% block page_class %} narrow{% endblock %}
 {% block content %}
-<h1>Your spot</h1>
+<h1>{{ t('spot.title') }}</h1>
 <p style="margin-bottom: 18px;">
   {{ lake.name }} · {{ "%.5f"|format(lat) }}, {{ "%.5f"|format(lon) }}
 </p>
@@ -12,17 +12,17 @@
   <input type="hidden" name="lon" value="{{ lon }}">
   <input type="hidden" name="cell" value="{{ cell }}">
 
-  <div class="section-label">Method</div>
+  <div class="section-label">{{ t('spot.method') }}</div>
   <div class="method-grid">
     {% for m in methods %}
     <label class="method-card{{ ' selected' if loop.first }}">
       <input type="radio" name="method" value="{{ m }}" {{ 'checked' if loop.first }}>
-      {{ m }}
+      {{ t('method.' ~ m) }}
     </label>
     {% endfor %}
   </div>
 
-  <div class="section-label">Number of rods</div>
+  <div class="section-label">{{ t('spot.rods') }}</div>
   <div class="stepper">
     <button type="button" id="rod-minus">−</button>
     <span class="count" id="rod-count-display">2</span>
@@ -30,8 +30,8 @@
   </div>
   <input type="hidden" name="rod_count" id="rod-count-input" value="2">
 
-  <button class="btn btn-primary" type="submit">Start session</button>
-  <a href="/lake/{{ lake.slug }}" class="btn btn-ghost" style="margin-top:10px;">← Back to map</a>
+  <button class="btn btn-primary" type="submit">{{ t('spot.start') }}</button>
+  <a href="/lake/{{ lake.slug }}" class="btn btn-ghost" style="margin-top:10px;">{{ t('spot.back') }}</a>
 </form>
 {% endblock %}
 

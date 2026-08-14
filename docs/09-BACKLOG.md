@@ -8,7 +8,7 @@ verified in the app).
 
 ---
 
-## 1. Multi-language UI — RU / PL / EN · TODO
+## 1. Multi-language UI — RU / PL / EN · DONE (needs a native check)
 
 - Three languages: **Russian, Polish, English**. Translate everything the
   angler actually reads: nav, buttons, labels, table headers, weather terms,
@@ -19,11 +19,14 @@ verified in the app).
 - Approach: a small dict-based catalogue (`config/i18n/{en,pl,ru}.yaml`) and a
   Jinja global `t("key")`, with the choice stored in a cookie. No new
   dependency — gettext/babel would be heavier than this earns.
-- Polish and Russian angling vocabulary must be checked by the owner: a
-  literal translation of "fetch", "margin" or "blank session" will read wrong
-  to a Polish angler.
+- **Still open:** Polish and Russian angling vocabulary needs a native check.
+  Translations were written without a native angler reviewing them, and terms
+  like "fetch", "margin", "blank session" and "CPUE" are exactly the kind that
+  read wrong when translated literally. Species names come from
+  `config/species.yaml` (`name_pl`); **`name_ru` is still missing**, so Russian
+  currently falls back to English species names.
 
-## 2. Drop the manual phase buttons · TODO
+## 2. Drop the manual phase buttons · DONE
 
 - Remove the `spring warming / summer stagnation / autumn cooling` button row
   from the lake page.
@@ -47,7 +50,7 @@ verified in the app).
 - Feeds a shelter multiplier applied to effective fetch per cell, and finally
   makes `bank_aspect_deg` / `tree_line_height_m` on `zone` earn their place.
 
-## 4. Make the map differentiate visibly · PARTIAL
+## 4. Make the map differentiate visibly · DONE (first pass)
 
 Problem the owner reported: **almost the whole lake renders one colour**, so
 the overlay says nothing.
@@ -64,7 +67,7 @@ the overlay says nothing.
   ai_authored_provisional`, keep `FORMULA_WIND_ZONE` unfilled.
   See `docs/adr/0002-provisional-zone-score.md`.
 
-## 5. Fish pin interaction · PARTIAL
+## 5. Fish pin interaction · DONE
 
 - **While dragging:** the pin must stay visibly held under the cursor/finger
   (currently the browser's default drag ghost, which looks wrong on mobile).
@@ -73,7 +76,7 @@ the overlay says nothing.
   water, ripples expand. Current build splashes but does not dive.
 - Keep the idle bob animation.
 
-## 6. Catch logging UI · PARTIAL
+## 6. Catch logging UI · DONE (first pass)
 
 - **Species icons**: recognisable per-species silhouettes on the quick-log
   buttons, not text-only chips. Inline SVG (no icon-font dependency).
@@ -104,3 +107,20 @@ the overlay says nothing.
   took the largest nearby water polygon. Now containment-first.
 - Colour ramp inverted so green = best, red = poor.
 - Duplicated Places/History nav on desktop.
+
+
+---
+
+## Added since
+
+## 8. Terrain shelter is still the big missing input · TODO
+
+Item 3 above remains untouched and is now the largest single gap in the score.
+Every term in `zone_score` is open-water geometry; a bank with a tall tree line
+to windward is scored as exposed as one with none. Until that lands, the
+overlay systematically over-rates sheltered corners in summer.
+
+## 9. Session UI while fishing · DONE
+
+`/lake/{slug}` no longer redirects away during an active session, and the
+session screen links back to conditions and history.
