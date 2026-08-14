@@ -7,6 +7,24 @@ notebook.
 Read `docs/01-SPEC.md` before your first change. Read `docs/08-DEV-WORKFLOW.md` before
 opening a pull request.
 
+**Starting a new session? Read [`docs/10-SESSION-HANDOVER.md`](docs/10-SESSION-HANDOVER.md)
+first.** It carries the standing rules the owner gave in conversation (which are not
+in this file), what is already built, what is known broken, and two hard-won
+verification rules. Outstanding requests are in
+[`docs/09-BACKLOG.md`](docs/09-BACKLOG.md).
+
+## Verification rules — these cost real rework
+
+- **Motion cannot be checked from a screenshot, or by reading your own keyframes.**
+  The fish-pin dive shipped three times diving *tail first*. Use
+  `tools/animation_filmstrip.py`.
+- **Visual design cannot be checked from your own diff.** The species icons were
+  declared "redrawn" twice and still looked identical. Render the result and compare
+  old against new **side by side** before saying a change landed.
+
+For anything visual or temporal: produce the artefact and look at it. A green test
+suite says nothing about whether a fish is upside down.
+
 ---
 
 ## The five laws
