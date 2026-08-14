@@ -29,7 +29,7 @@
   <form method="post" action="/session/catch">
     <input type="hidden" name="species" value="{{ sp.slug }}">
     <button class="fish-btn" type="submit">
-      {{ icons.fish_icon(sp.shape, 44, sp.color) }}
+      {{ icons.fish_icon(sp.shape, 46) }}
       <span>{{ sp.name_en if lang != 'pl' else sp.name_pl }}</span>
     </button>
   </form>
@@ -90,7 +90,7 @@
     {% if c.photo_path %}
     <img class="catch-photo" src="{{ c.photo_path }}" alt="">
     {% else %}
-    <div class="catch-photo-empty">{{ icons.fish_icon(shapes.get(c.species), 30, colors.get(c.species)) }}</div>
+    <div class="catch-photo-empty">{{ icons.fish_icon(shapes.get(c.species), 34) }}</div>
     {% endif %}
     <div class="catch-main">
       <div class="catch-name">{{ names.get(c.species, c.species) }}</div>

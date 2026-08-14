@@ -794,7 +794,7 @@ table.weather tbody tr:last-child td { border-bottom: none; }
 
 /* Icons inherit `color`, so each species can tint its own silhouette while
    the shapes stay shared. */
-.fish-icon { color: var(--primary-strong); fill: currentColor; stroke: currentColor; stroke-width: 0; }
+.fish-icon { display: block; }
 .catch-photo-empty .fish-icon { opacity: 0.55; }
 
 /* Idle: a slow tail-side swim. Deliberately small - this sits behind a

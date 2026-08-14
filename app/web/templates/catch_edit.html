@@ -10,7 +10,7 @@
 <form method="post" action="/session/catch/{{ catch.id }}/edit" enctype="multipart/form-data">
   <label for="species">{{ t('session.species') }}</label>
   <div class="species-row-inline">
-    <span id="species-icon">{{ icons.fish_icon(current.shape, 40, current.color) }}</span>
+    <span id="species-icon">{{ icons.fish_icon(current.shape, 46) }}</span>
     <select id="species" name="species" class="select-input">
       {% for sp in species %}
       <option value="{{ sp.slug }}" {{ 'selected' if sp.slug == catch.species }}
