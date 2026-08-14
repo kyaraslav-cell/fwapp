@@ -11,6 +11,7 @@ from app.core.db import get_sessionmaker
 from app.core.i18n import COOKIE_NAME, language_names, normalise, translate
 from app.core.models import Lake
 from app.core.seed import ensure_lake_seeded
+from app.core.time import parse_iso, to_display
 
 
 def _i18n_context(request: Request) -> dict[str, object]:
@@ -27,6 +28,28 @@ def _i18n_context(request: Request) -> dict[str, object]:
 templates = Jinja2Templates(
     directory="app/web/templates", context_processors=[_i18n_context]
 )
+
+
+def _local_time(iso_ts: str | None) -> str:
+    """UTC ISO string -> HH:MM in Europe/Warsaw.
+
+    Everything is stored UTC and displayed in the lake's timezone
+    (CLAUDE.md style rules). Templates were slicing the raw ISO string, which
+    showed UTC and read as an hour or two wrong all summer.
+    """
+    if not iso_ts:
+        return "—"
+    return to_display(parse_iso(iso_ts)).strftime("%H:%M")
+
+
+def _local_datetime(iso_ts: str | None) -> str:
+    if not iso_ts:
+        return "—"
+    return to_display(parse_iso(iso_ts)).strftime("%a %d %b, %H:%M")
+
+
+templates.env.filters["localtime"] = _local_time
+templates.env.filters["localdatetime"] = _local_datetime
 
 
 def get_db() -> Iterator[Session]:

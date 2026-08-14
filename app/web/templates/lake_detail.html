@@ -8,32 +8,56 @@
 {% block content %}
 {% if live_session %}
 <a href="/session/active" class="session-banner">
-  <span><strong>{{ t('lake.session_in_progress') }}</strong> — {{ t('lake.started') }} {{ live_session.started_at[11:16] }} UTC</span>
+  <span><strong>{{ t('lake.session_in_progress') }}</strong> — {{ t('lake.started') }} {{ live_session.started_at | localtime }}</span>
   <span>{{ t('lake.back_to_logging') }}</span>
 </a>
 {% endif %}
 
 <div class="section-label">{{ lake.name }} · {{ now_local }}</div>
 
+{% if now_wx %}
+<div class="now-card">
+  <div class="now-temp">{{ now_wx.temp_c | round(0) | int }}<span>°C</span></div>
+  <div class="now-meta">
+    <div class="now-label">{{ t('lake.right_now') }} · {{ now_wx.local_time }}</div>
+    <div>
+      {% if now_wx.wind_dir is not none %}
+      <span class="wind-arrow" style="transform: rotate({{ (now_wx.wind_dir + 180) % 360 }}deg);">↑</span>
+      {{ now_wx.wind_compass }} {{ now_wx.wind_speed }} m/s ·
+      {% endif %}
+      {{ now_wx.pressure_hpa | round(0) | int }} hPa
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="section-label">{{ t('lake.recent_conditions') }}</div>
 <div class="card" style="padding: 6px 14px;">
   {% if days %}
   <table class="weather" id="weather-table">
     <thead>
-      <tr><th>{{ t('lake.day') }}</th><th>{{ t('lake.wind') }}</th><th>{{ t('lake.temp') }}</th><th>{{ t('lake.pressure') }}</th></tr>
+      <tr><th>{{ t('lake.day') }}</th><th>{{ t('lake.wind') }}</th><th>{{ t('lake.high_low') }}</th><th>{{ t('lake.pressure') }}</th></tr>
     </thead>
     <tbody>
       {% for d in days %}
       <tr data-index="{{ loop.index0 }}" data-wind="{{ d.wind_dir if d.wind_dir is not none else '' }}">
-        <td>{{ d.label }}</td>
+        <td>
+          {{ d.label }}
+          {% if d.is_partial %}<span class="partial-flag">{{ t('lake.partial') }}</span>{% endif %}
+        </td>
         <td>
           {% if d.wind_dir is not none %}
           <span class="wind-arrow" style="transform: rotate({{ (d.wind_dir + 180) % 360 }}deg);">↑</span>
-          {{ d.wind_compass }} {{ d.wind_speed }} m/s
+          {{ d.wind_compass }} {{ d.wind_max }} m/s
           {% else %}—{% endif %}
         </td>
-        <td>{{ d.temp_c if d.temp_c is not none else "—" }}{% if d.temp_c is not none %}°C{% endif %}</td>
-        <td>{{ d.pressure_hpa | round(0) if d.pressure_hpa is not none else "—" }}</td>
+        <td>
+          {% if d.temp_max is not none %}
+          <strong>{{ d.temp_max | round(0) | int }}°</strong>
+          <span style="color:var(--muted);">/ {{ d.temp_min | round(0) | int }}°</span>
+          {% else %}—{% endif %}
+        </td>
+        <td>{{ d.pressure_hpa | round(0) | int if d.pressure_hpa is not none else "—" }}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -223,14 +247,17 @@ function pickSpot(lat, lon, containerPoint) {
 
 function splash(point) {
   const wrap = document.getElementById('map-wrap');
+  // Three staggered rings: a fast tight one at impact, then slower wider
+  // ripples spreading out. Staggering is what makes it read as water rather
+  // than a single expanding circle.
   for (let i = 0; i < 3; i++) {
     const ring = document.createElement('div');
-    ring.className = 'splash-ring';
+    ring.className = i === 0 ? 'splash-ring' : 'splash-ring wide';
     ring.style.left = point.x + 'px';
     ring.style.top = point.y + 'px';
-    ring.style.animationDelay = (i * 140) + 'ms';
+    ring.style.animationDelay = (i * 170) + 'ms';
     wrap.appendChild(ring);
-    setTimeout(() => ring.remove(), 1200 + i * 140);
+    setTimeout(() => ring.remove(), 1500 + i * 170);
   }
 }
 
@@ -304,11 +331,11 @@ function endDrag(e) {
   diving.classList.remove('lifted');
   diving.classList.add('diving');
 
-  setTimeout(() => splash(point), 300);
+  setTimeout(() => splash(point), 385);
   setTimeout(() => {
     diving.remove();
     pickSpot(latlng.lat, latlng.lng, null);
-  }, 470);
+  }, 710);
 }
 
 if (pin && map) {

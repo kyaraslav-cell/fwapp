@@ -19,7 +19,7 @@ from app.rules.loader import load_active_ruleset
 from app.rules.zone_score import score_cells
 from app.web.deps import get_db, get_lake, get_lake_by_slug, templates
 from app.web.view_helpers import current_conditions, prediction_view
-from app.web.weather_table import recent_days
+from app.web.weather_table import current_reading, recent_days
 
 router = APIRouter()
 
@@ -83,6 +83,7 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
 
     conditions = current_conditions(db, lake)
     days = recent_days(db, lake, days=5)
+    now_wx = current_reading(db, lake)
 
     outline = geo_service.ensure_outline(db, lake)
     grid = geo_service.get_grid(lake, outline)
@@ -106,6 +107,7 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
             "season": season,
             "conditions": conditions,
             "days": days,
+            "now_wx": now_wx,
             "days_json": json.dumps(days),
             "outline_json": json.dumps(outline),
             "outline_source": lake.outline_source or "unknown",

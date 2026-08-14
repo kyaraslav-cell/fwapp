@@ -23,6 +23,7 @@ def ensure_species_seeded(db: Session) -> None:
                 scoring=entry["scoring"],
                 is_favourite=1 if entry.get("favourite") else 0,
                 shape=entry.get("shape"),
+                color=entry.get("color"),
                 typical_g=entry.get("typical_g"),
                 min_g=entry.get("min_g"),
                 max_g=entry.get("max_g"),

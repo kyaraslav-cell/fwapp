@@ -173,6 +173,7 @@ class Species(Base):
     scoring: Mapped[str] = mapped_column(String, nullable=False)  # primary|secondary|logged_only
     is_favourite: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     shape: Mapped[str | None] = mapped_column(String)  # icon silhouette group
+    color: Mapped[str | None] = mapped_column(String)  # icon tint, keeps shared shapes distinct
     typical_g: Mapped[int | None] = mapped_column(Integer)
     min_g: Mapped[int | None] = mapped_column(Integer)
     max_g: Mapped[int | None] = mapped_column(Integer)

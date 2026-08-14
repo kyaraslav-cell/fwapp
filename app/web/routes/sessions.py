@@ -79,6 +79,7 @@ def active(request: Request, q: str = "", db: Session = Depends(get_db)):
             "all_species": all_species,
             "search_results": list_species(db, q) if q.strip() else [],
             "shapes": {s.slug: s.shape for s in all_species},
+            "colors": {s.slug: s.color for s in all_species},
             "names": {s.slug: s.name_en for s in all_species},
             "q": q,
             "lake_slug": lake.slug,
@@ -124,12 +125,15 @@ def edit_catch_form(catch_id: int, request: Request, db: Session = Depends(get_d
     catch_row = db.get(Catch, catch_id)
     if catch_row is None:
         raise HTTPException(status_code=404, detail="catch not found")
+    species = list_species(db)
+    current = next((s for s in species if s.slug == catch_row.species), None)
     return templates.TemplateResponse(
         "catch_edit.html",
         {
             "request": request,
             "catch": catch_row,
-            "species": list_species(db),
+            "species": species,
+            "current": current,
             "active_nav": "",
         },
     )

@@ -47,6 +47,9 @@ lake:
     only — upwind fetch and distance to bank — with weights in
     config/rules.v0.3.yaml. It is a hypothesis, not a measurement, and nothing
     here has been checked against a single logged catch yet.
+  right_now: Right now
+  high_low: High / low
+  partial: partial day
 
 spot:
   title: Your spot

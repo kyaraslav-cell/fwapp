@@ -7,7 +7,7 @@
 
 <h1>{{ t('session.in_progress') }}</h1>
 <div class="timer">
-  {{ t('session.started') }} {{ session.started_at[11:16] }} UTC
+  {{ t('session.started') }} {{ session.started_at | localtime }}
   {% if session.method %} · {{ session.method }} · {{ session.rod_count }} {{ t('session.rod') if session.rod_count == 1 else t('session.rods') }}{% endif %}
 </div>
 
@@ -29,7 +29,7 @@
   <form method="post" action="/session/catch">
     <input type="hidden" name="species" value="{{ sp.slug }}">
     <button class="fish-btn" type="submit">
-      {{ icons.fish_icon(sp.shape, 40) }}
+      {{ icons.fish_icon(sp.shape, 44, sp.color) }}
       <span>{{ sp.name_en if lang != 'pl' else sp.name_pl }}</span>
     </button>
   </form>
@@ -90,12 +90,12 @@
     {% if c.photo_path %}
     <img class="catch-photo" src="{{ c.photo_path }}" alt="">
     {% else %}
-    <div class="catch-photo-empty">{{ icons.fish_icon(shapes.get(c.species), 30) }}</div>
+    <div class="catch-photo-empty">{{ icons.fish_icon(shapes.get(c.species), 30, colors.get(c.species)) }}</div>
     {% endif %}
     <div class="catch-main">
       <div class="catch-name">{{ names.get(c.species, c.species) }}</div>
       <div class="catch-meta">
-        {{ c.caught_at[11:16] }}
+        {{ c.caught_at | localtime }}
         {% if c.weight_g %} · {{ c.weight_g }} g{% endif %}
         {% if c.length_cm %} · {{ c.length_cm }} cm{% endif %}
         {% if c.bait %} · {{ c.bait }}{% endif %}
