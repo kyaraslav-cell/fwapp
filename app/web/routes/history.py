@@ -26,6 +26,8 @@ def history(request: Request, db: Session = Depends(get_db)):
                 "cpue": s.cpue,
                 "is_blank": bool(s.session.is_blank),
                 "reflection": s.session.reflection,
+                "method": s.session.method,
+                "rod_count": s.session.rod_count,
             }
         )
 
@@ -34,5 +36,11 @@ def history(request: Request, db: Session = Depends(get_db)):
 
     return templates.TemplateResponse(
         "history.html",
-        {"request": request, "rows": rows, "n_sessions": n_sessions, "n_blanks": n_blanks},
+        {
+            "request": request,
+            "rows": rows,
+            "n_sessions": n_sessions,
+            "n_blanks": n_blanks,
+            "active_nav": "history",
+        },
     )

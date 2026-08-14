@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}End session — Fishlog{% endblock %}
+{% block page_class %} narrow{% endblock %}
 {% block content %}
 <h1>End session</h1>
 
@@ -18,8 +19,8 @@
   <label for="reflection">What worked / what didn't (optional, 20 seconds)</label>
   <textarea id="reflection" name="reflection" placeholder="Free text..."></textarea>
 
-  <div class="bottom-bar">
-    <button class="btn btn-primary" type="submit">Save session</button>
+  <div class="bottom-fixed">
+    <button class="btn btn-primary btn-block-gap" type="submit">Save session</button>
     <a class="btn btn-ghost" href="/session/active">Cancel, keep fishing</a>
   </div>
 </form>

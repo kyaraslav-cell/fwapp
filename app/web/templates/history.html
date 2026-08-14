@@ -15,26 +15,25 @@
 </div>
 
 {% if rows %}
-<table class="history">
-  <thead>
-    <tr><th>Date</th><th>Effort</th><th>Fish</th><th>CPUE</th></tr>
-  </thead>
-  <tbody>
-    {% for r in rows %}
-    <tr>
-      <td>{{ r.started }}</td>
-      <td>{{ r.effort_minutes }} min</td>
-      <td>{{ "blank" if r.is_blank else r.total_fish }}</td>
-      <td>{{ r.cpue }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% else %}
-<p>No sessions logged yet.</p>
-{% endif %}
-
-<div style="margin-top: 24px;">
-  <a href="/today">← Back to today</a>
+<div class="card" style="overflow-x: auto;">
+  <table class="history">
+    <thead>
+      <tr><th>Date</th><th>Method</th><th>Effort</th><th>Fish</th><th>CPUE</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.started }}</td>
+        <td>{{ r.method or "—" }}{% if r.rod_count %} · {{ r.rod_count }}r{% endif %}</td>
+        <td>{{ r.effort_minutes }} min</td>
+        <td>{{ "blank" if r.is_blank else r.total_fish }}</td>
+        <td>{{ r.cpue }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
+{% else %}
+<div class="card"><p style="margin:0;">No sessions logged yet.</p></div>
+{% endif %}
 {% endblock %}

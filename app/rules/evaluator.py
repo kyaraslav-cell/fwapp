@@ -27,9 +27,19 @@ class TimeWindow:
 class ScoreBundle:
     day_score: float
     go: bool
+    band_color: str
+    band_label: str
     best_hours: list[TimeWindow]
     reasons: list[str]
     per_rule_contributions: dict[str, float] = field(default_factory=dict)
+
+
+def _band_for_score(ruleset: dict[str, Any], day_score: float) -> tuple[str, str]:
+    bands = ruleset["aggregation"]["day_score_bands"]
+    for band in bands:
+        if "max" not in band or day_score < band["max"]:
+            return band["color"], band["label"]
+    return bands[-1]["color"], bands[-1]["label"]
 
 
 def _pressure_component(
@@ -77,9 +87,13 @@ def evaluate(ruleset: dict[str, Any], features: FeatureBundle) -> ScoreBundle:
             )
         )
 
+    band_color, band_label = _band_for_score(ruleset, day_score)
+
     return ScoreBundle(
         day_score=round(day_score, 1),
         go=day_score >= go_threshold,
+        band_color=band_color,
+        band_label=band_label,
         best_hours=windows,
         reasons=reasons,
         per_rule_contributions={

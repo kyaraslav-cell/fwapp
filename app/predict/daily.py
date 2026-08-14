@@ -80,6 +80,8 @@ def generate_predictions(db: Session, lake: Lake) -> list[Prediction]:
         payload = {
             "day_score": bundle.day_score,
             "go": bundle.go,
+            "band_color": bundle.band_color,
+            "band_label": bundle.band_label,
             "best_hours": [
                 {
                     "label": w.label,

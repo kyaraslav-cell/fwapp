@@ -118,6 +118,7 @@ class FishSession(Base):
     ended_at: Mapped[str | None] = mapped_column(String)
     effort_minutes: Mapped[int | None] = mapped_column(Integer)
     method: Mapped[str | None] = mapped_column(String)
+    rod_count: Mapped[int | None] = mapped_column(Integer)
     is_mobile: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     prediction_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("prediction.id"))
     conditions_snapshot: Mapped[str | None] = mapped_column(Text)

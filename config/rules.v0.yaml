@@ -44,3 +44,8 @@ rules:
 aggregation:
   day_score: { normalise: [0, 10] }
   go_threshold: 5.5
+  day_score_bands:
+    - { color: red,    label: "Poor",     max: 3.5 }
+    - { color: orange, label: "Marginal", max: 5.5 }
+    - { color: yellow, label: "Fair",     max: 7.5 }
+    - { color: green,  label: "Great" }

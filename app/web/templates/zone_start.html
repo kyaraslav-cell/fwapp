@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Start session — Fishlog{% endblock %}
+{% block page_class %} narrow{% endblock %}
+{% block content %}
+<h1>{{ zone.name }}</h1>
+<p style="margin-bottom: 20px;">{{ lake.name }}</p>
+
+<form method="post" action="/lake/{{ lake.slug }}/zone/{{ zone.id }}/start">
+  <div class="section-label">Method</div>
+  <div class="method-grid">
+    {% for m in methods %}
+    <label class="method-card{{ ' selected' if loop.first }}">
+      <input type="radio" name="method" value="{{ m }}" {{ 'checked' if loop.first }}>
+      {{ m }}
+    </label>
+    {% endfor %}
+  </div>
+
+  <div class="section-label">Number of rods</div>
+  <div class="stepper">
+    <button type="button" id="rod-minus">−</button>
+    <span class="count" id="rod-count-display">2</span>
+    <button type="button" id="rod-plus">+</button>
+  </div>
+  <input type="hidden" name="rod_count" id="rod-count-input" value="2">
+
+  <button class="btn btn-primary" type="submit">Start session</button>
+  <a href="/lake/{{ lake.slug }}" class="btn btn-ghost" style="margin-top:10px;">← Back to map</a>
+</form>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+document.querySelectorAll('.method-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+  });
+});
+
+let rodCount = 2;
+const display = document.getElementById('rod-count-display');
+const input = document.getElementById('rod-count-input');
+document.getElementById('rod-minus').addEventListener('click', () => {
+  rodCount = Math.max(1, rodCount - 1);
+  display.textContent = rodCount;
+  input.value = rodCount;
+});
+document.getElementById('rod-plus').addEventListener('click', () => {
+  rodCount = Math.min(6, rodCount + 1);
+  display.textContent = rodCount;
+  input.value = rodCount;
+});
+</script>
+{% endblock %}

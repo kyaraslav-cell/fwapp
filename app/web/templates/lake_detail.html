@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}{{ lake.name }} — Fishlog{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+{% endblock %}
+
+{% block content %}
+<div class="section-label">{{ lake.name }} · {{ now_local }}</div>
+
+{% if prediction %}
+<div class="card">
+  <div class="verdict-block">
+    <span class="verdict-pill {{ prediction.band_color }}">{{ prediction.band_label }}</span>
+  </div>
+  <div class="best-hours">
+    {% for h in prediction.best_hours %}
+    <span class="hour-chip">{{ h }}</span>
+    {% endfor %}
+  </div>
+  <ul class="reasons">
+    {% for r in prediction.reasons %}
+    <li>{{ r }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="section-label">Conditions</div>
+<div class="dash-grid" id="dash-grid">
+  <div class="dash-tile" id="tile-wind">
+    <div class="dash-label">Wind</div>
+    {% if conditions and conditions.wind_speed_10m is not none %}
+    <div class="dash-value">{{ conditions.wind_speed_10m }} m/s</div>
+    <div class="dash-sub">from {{ conditions.wind_direction_10m | round(0) }}° · tap to show on map</div>
+    {% else %}
+    <div class="dash-value">—</div>
+    <div class="dash-sub">no data yet</div>
+    {% endif %}
+  </div>
+  <div class="dash-tile">
+    <div class="dash-label">Temperature</div>
+    {% if conditions and conditions.temperature_2m is not none %}
+    <div class="dash-value">{{ conditions.temperature_2m }}°C</div>
+    <div class="dash-sub">{{ conditions.age_minutes }} min ago</div>
+    {% else %}
+    <div class="dash-value">—</div>
+    <div class="dash-sub">no data yet</div>
+    {% endif %}
+  </div>
+  <div class="dash-tile">
+    <div class="dash-label">Pressure</div>
+    {% if conditions and conditions.pressure_msl is not none %}
+    <div class="dash-value">{{ conditions.pressure_msl | round(0) }} hPa</div>
+    <div class="dash-sub">{{ prediction.pressure_regime.replace('_', ' ') if prediction and prediction.pressure_regime else 'trend unknown' }}</div>
+    {% else %}
+    <div class="dash-value">—</div>
+    <div class="dash-sub">no data yet</div>
+    {% endif %}
+  </div>
+  <div class="dash-tile">
+    <div class="dash-label">Depth band</div>
+    <div class="dash-value">—</div>
+    <div class="dash-sub">formula pending from owner</div>
+  </div>
+</div>
+
+{% if outlook %}
+<div class="section-label" style="margin-top: 20px;">Next 5 days</div>
+<div class="card-flat">
+  {% for o in outlook %}
+  <div class="outlook-row">
+    <span>{{ o.label }}</span>
+    <span class="badge badge-{{ o.band_color }}">{{ o.band_label }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="section-label" style="margin-top: 20px;">Map — tap a zone</div>
+<div class="map-wrap" id="map-wrap">
+  <div id="map"></div>
+</div>
+<p class="map-legend-note" id="map-legend-note">
+  Zone outlines are placeholder wedges (not surveyed) until Pomocnia is mapped for real.
+</p>
+
+<div id="zone-list-fallback">
+  {% for z in zones %}
+  <div class="place-card" style="cursor:default;">
+    <div class="place-info">
+      <div class="place-name">{{ z.name }}</div>
+      <div class="place-meta">n={{ z.n_sessions }} sessions</div>
+    </div>
+    <a class="btn btn-secondary" style="width:auto; padding:10px 16px;" href="/lake/{{ lake.slug }}/zone/{{ z.id }}/start">Fish here</a>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card zone-panel" id="zone-panel">
+  <div id="zone-panel-body"></div>
+</div>
+
+<form method="post" action="/lake/{{ lake.slug }}/refresh" style="margin-top: 16px;">
+  <button class="btn btn-ghost" type="submit">↻ Refresh weather &amp; prediction</button>
+</form>
+
+{% endblock %}
+
+{% block extra_script %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+const ZONES = {{ zones_json | safe }};
+const LAKE = { lat: {{ lake.centroid_lat }}, lon: {{ lake.centroid_lon }}, slug: "{{ lake.slug }}" };
+const WIND_DIR = {{ conditions.wind_direction_10m if conditions and conditions.wind_direction_10m is not none else "null" }};
+
+const layers = {};
+let windMode = false;
+let mapReady = false;
+
+function toLatLngs(polygon) {
+  return polygon.coordinates[0].map(([lon, lat]) => [lat, lon]);
+}
+
+try {
+  if (typeof L === 'undefined') throw new Error('leaflet failed to load');
+
+  const map = L.map('map', { scrollWheelZoom: false }).setView([LAKE.lat, LAKE.lon], 16);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 19
+  }).addTo(map);
+
+  ZONES.forEach(z => {
+    if (!z.polygon) return;
+    const latlngs = toLatLngs(z.polygon);
+    const layer = L.polygon(latlngs, {
+      color: '#4a93d6',
+      weight: 2,
+      fillColor: '#6fb1e8',
+      fillOpacity: 0.28
+    }).addTo(map);
+    layer.bindTooltip(z.name, { direction: 'center', className: 'zone-tooltip' });
+    layer.on('click', () => showZonePanel(z));
+    layers[z.id] = layer;
+  });
+
+  mapReady = true;
+  const fallback = document.getElementById('zone-list-fallback');
+  if (fallback) fallback.style.display = 'none';
+} catch (err) {
+  document.getElementById('map-wrap').style.display = 'none';
+  const note = document.getElementById('map-legend-note');
+  if (note) note.textContent = 'Map unavailable right now — pick a zone from the list below.';
+}
+
+function showZonePanel(z) {
+  const panel = document.getElementById('zone-panel');
+  const body = document.getElementById('zone-panel-body');
+  const confidence = z.n_sessions === 0 ? 'no data yet' : (z.n_sessions < 5 ? 'thin data' : 'building confidence');
+  body.innerHTML = `
+    <h2>${z.name}</h2>
+    <span class="badge badge-neutral">n=${z.n_sessions} · ${confidence}</span>
+    <p style="margin-top:10px;">Zone-level scoring needs the pending wind/depth formulas and real
+    geometry — not shown yet. This zone is demo geometry until mapped for real.</p>
+    <a class="btn btn-primary" href="/lake/${LAKE.slug}/zone/${z.id}/start">Fish here</a>
+  `;
+  panel.classList.add('visible');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+const windTile = document.getElementById('tile-wind');
+if (windTile && WIND_DIR !== null) {
+  windTile.addEventListener('click', () => {
+    windMode = !windMode;
+    windTile.classList.toggle('active', windMode);
+    ZONES.forEach(z => {
+      const layer = layers[z.id];
+      if (!layer) return;
+      if (windMode && z.wind_exposure !== null) {
+        const windward = z.wind_exposure > 0.15;
+        layer.setStyle({
+          fillOpacity: windward ? 0.55 : 0.12,
+          color: windward ? '#4a93d6' : '#a9c4dc'
+        });
+        layer.unbindTooltip();
+        layer.bindTooltip(`${z.name}: exposure ${z.wind_exposure}`, { direction: 'center' });
+      } else {
+        layer.setStyle({ fillOpacity: 0.28, color: '#4a93d6' });
+        layer.unbindTooltip();
+        layer.bindTooltip(z.name, { direction: 'center' });
+      }
+    });
+  });
+}
+</script>
+{% endblock %}

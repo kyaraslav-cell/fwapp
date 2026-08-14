@@ -12,22 +12,10 @@ from app.notebook.sessions import (
     active_session,
     add_catch,
     end_session,
-    start_session,
 )
-from app.predict.daily import latest_prediction
 from app.web.deps import get_db, get_lake, templates
 
 router = APIRouter(prefix="/session")
-
-
-@router.post("/start")
-def start(db: Session = Depends(get_db)):
-    lake = get_lake(db)
-    existing = active_session(db, lake)
-    if existing is None:
-        pred = latest_prediction(db, lake, horizon=0)
-        start_session(db, lake, pred)
-    return RedirectResponse(url="/session/active", status_code=303)
 
 
 @router.get("/active")
@@ -35,7 +23,7 @@ def active(request: Request, db: Session = Depends(get_db)):
     lake = get_lake(db)
     session = active_session(db, lake)
     if session is None:
-        return RedirectResponse(url="/today")
+        return RedirectResponse(url="/")
 
     catches = (
         db.query(Catch).filter(Catch.session_id == session.id).order_by(Catch.id.desc()).all()
@@ -51,6 +39,7 @@ def active(request: Request, db: Session = Depends(get_db)):
             "total_fish": total_fish,
             "species_primary": SPECIES_PRIMARY,
             "species_secondary": SPECIES_SECONDARY,
+            "active_nav": "",
         },
     )
 
@@ -60,7 +49,7 @@ def catch(species: str = Form(...), db: Session = Depends(get_db)):
     lake = get_lake(db)
     session = active_session(db, lake)
     if session is None:
-        return RedirectResponse(url="/today", status_code=303)
+        return RedirectResponse(url="/", status_code=303)
     if species not in ALL_SPECIES:
         return RedirectResponse(url="/session/active", status_code=303)
     add_catch(db, session.id, species)
@@ -72,8 +61,10 @@ def end_form(request: Request, db: Session = Depends(get_db)):
     lake = get_lake(db)
     session = active_session(db, lake)
     if session is None:
-        return RedirectResponse(url="/today")
-    return templates.TemplateResponse("session_end.html", {"request": request, "session": session})
+        return RedirectResponse(url="/")
+    return templates.TemplateResponse(
+        "session_end.html", {"request": request, "session": session, "active_nav": ""}
+    )
 
 
 @router.post("/end")
@@ -87,7 +78,7 @@ def end(
     lake = get_lake(db)
     session = active_session(db, lake)
     if session is None:
-        return RedirectResponse(url="/today", status_code=303)
+        return RedirectResponse(url="/", status_code=303)
 
     def _float_or_none(s: str) -> float | None:
         try:

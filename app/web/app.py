@@ -11,7 +11,7 @@ from app.core.seed import ensure_lake_seeded
 from app.ingest.open_meteo import ingest_forecast
 from app.ingest.scheduler import build_scheduler
 from app.predict.daily import generate_predictions
-from app.web.routes import history, sessions, today
+from app.web.routes import history, places, sessions
 
 logging.basicConfig(level=logging.INFO)
 
@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(title="Fishlog", lifespan=lifespan)
     app.mount("/static", StaticFiles(directory="app/web/static"), name="static")
-    app.include_router(today.router)
+    app.include_router(places.router)
     app.include_router(sessions.router)
     app.include_router(history.router)
     return app

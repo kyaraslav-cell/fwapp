@@ -1,15 +1,19 @@
 {% extends "base.html" %}
 {% block title %}Session — Fishlog{% endblock %}
+{% block page_class %} narrow{% endblock %}
 {% block content %}
 <h1>Session in progress</h1>
-<div class="timer">Started {{ session.started_at[11:16] }} UTC</div>
+<div class="timer">
+  Started {{ session.started_at[11:16] }} UTC
+  {% if session.method %} · {{ session.method }} · {{ session.rod_count }} rod{{ 's' if session.rod_count != 1 }}{% endif %}
+</div>
 
 <div class="counter">
   <div class="counter-number">{{ total_fish }}</div>
   <div class="counter-label">fish this session</div>
 </div>
 
-<h2 style="font-size:1rem;">Log a catch</h2>
+<div class="section-label">Log a catch</div>
 <div class="chip-grid">
   {% for sp in species_primary %}
   <form method="post" action="/session/catch">
@@ -28,7 +32,7 @@
 </div>
 
 {% if catches %}
-<div class="panel">
+<div class="card">
   <ul class="catch-list">
     {% for c in catches %}
     <li><span>{{ c.species }}</span><span>{{ c.caught_at[11:16] }}</span></li>
@@ -37,7 +41,7 @@
 </div>
 {% endif %}
 
-<div class="bottom-bar">
-  <a class="btn btn-secondary" href="/session/end">■ END SESSION</a>
+<div class="bottom-fixed">
+  <a class="btn btn-secondary" href="/session/end">■ End session</a>
 </div>
 {% endblock %}

@@ -26,6 +26,11 @@ rules:
 aggregation:
   day_score: { normalise: [0, 10] }
   go_threshold: 5.5
+  day_score_bands:
+    - { color: red, label: "Poor", max: 3.5 }
+    - { color: orange, label: "Marginal", max: 5.5 }
+    - { color: yellow, label: "Fair", max: 7.5 }
+    - { color: green, label: "Great" }
 """
 
 
@@ -45,6 +50,8 @@ def test_evaluate_falling_slow_is_go():
     bundle = evaluate(_ruleset(), features)
     assert 0.0 <= bundle.day_score <= 10.0
     assert bundle.go is True
+    assert bundle.band_color in {"red", "orange", "yellow", "green"}
+    assert bundle.band_label
     assert len(bundle.best_hours) == 2
     assert bundle.best_hours[0].end > bundle.best_hours[0].start
 
@@ -88,6 +95,28 @@ def test_go_threshold_boundary():
         ),
     )
     assert bad.go is False
+
+
+def test_band_color_matches_score_range():
+    sun = compute_sun_times(52.5431, 20.6762, datetime(2026, 6, 15).date())
+    base_now = datetime(2026, 6, 15, 12, 0, tzinfo=UTC)
+    ruleset = _ruleset()
+    ruleset["rules"][0]["regime_scores"]["rising_fast"] = -5.0
+
+    poor = evaluate(
+        ruleset,
+        FeatureBundle(
+            now=base_now, pressure=PressureFeatures(4.0, 5.0, 3.0, "rising_fast"), sun=sun
+        ),
+    )
+    great = evaluate(
+        ruleset,
+        FeatureBundle(
+            now=base_now, pressure=PressureFeatures(-1.5, -2.0, 1.0, "falling_slow"), sun=sun
+        ),
+    )
+    assert poor.band_color == "red"
+    assert great.band_color == "green"
 
 
 def test_no_pressure_data_is_neutral_not_a_crash():

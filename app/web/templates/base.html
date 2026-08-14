@@ -4,12 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>{% block title %}Fishlog{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
-  <meta name="theme-color" content="#0b1220">
+  <meta name="theme-color" content="#f2f8fd">
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <main class="screen">
+  <div class="topbar">
+    <a href="/" class="brand" style="text-decoration:none;">Fishlog</a>
+    <nav class="topnav">
+      <a href="/" class="{{ 'active' if active_nav == 'home' }}">Places</a>
+      <a href="/history" class="{{ 'active' if active_nav == 'history' }}">History</a>
+    </nav>
+  </div>
+
+  <main class="page{% block page_class %}{% endblock %}">
     {% block content %}{% endblock %}
   </main>
+
+  <nav class="bottomnav">
+    <a href="/" class="{{ 'active' if active_nav == 'home' }}">Places</a>
+    <a href="/history" class="{{ 'active' if active_nav == 'history' }}">History</a>
+  </nav>
+  {% block extra_script %}{% endblock %}
 </body>
 </html>

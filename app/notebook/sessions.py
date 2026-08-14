@@ -13,12 +13,24 @@ SPECIES_SECONDARY = ["carp", "crucian"]
 SPECIES_LOGGED_ONLY = ["pike", "perch", "catfish", "eel", "tench"]
 ALL_SPECIES = SPECIES_PRIMARY + SPECIES_SECONDARY + SPECIES_LOGGED_ONLY
 
+METHODS = ["carp", "feeder", "float"]
 
-def start_session(db: Session, lake: Lake, prediction: Prediction | None) -> FishSession:
+
+def start_session(
+    db: Session,
+    lake: Lake,
+    prediction: Prediction | None,
+    zone_id: int | None = None,
+    method: str | None = None,
+    rod_count: int | None = None,
+) -> FishSession:
     now = utcnow()
     session = FishSession(
         lake_id=lake.id,
+        zone_id=zone_id,
         started_at=iso(now),
+        method=method,
+        rod_count=rod_count,
         prediction_id=prediction.id if prediction else None,
         conditions_snapshot=prediction.payload_json if prediction else None,
         is_blank=0,
@@ -104,3 +116,15 @@ def active_session(db: Session, lake: Lake) -> FishSession | None:
         .order_by(FishSession.started_at.desc())
         .limit(1)
     ).scalar_one_or_none()
+
+
+def lake_stats(db: Session, lake: Lake) -> tuple[int, str | None]:
+    """(session_count, last_visited_iso) for a lake, ended sessions only."""
+    rows = db.execute(
+        select(FishSession.started_at)
+        .where(FishSession.lake_id == lake.id, FishSession.ended_at.is_not(None))
+        .order_by(FishSession.started_at.desc())
+    ).all()
+    if not rows:
+        return 0, None
+    return len(rows), rows[0][0]
