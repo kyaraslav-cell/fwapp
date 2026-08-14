@@ -1,0 +1,46 @@
+version: v0
+features_version: f0
+note: >
+  MVP ruleset. Deliberately narrow: only pressure_trend and light_window are
+  scored, because these are the only two of the four v1 rules that need
+  neither a zone (none are mapped for Pomocnia yet) nor a pending formula
+  (FORMULA_PRESSURE_DEPTH / FORMULA_WIND_ZONE, still owed by the project
+  owner — see docs/04-RULES-ENGINE.md). This ruleset produces a lake-level
+  day score and best-hours window only. No zone ranking, no depth band, no
+  thermal-phase weight switching (the water-temp model is deferred too).
+  Hand-authored from angling generalities, NOT fitted to data. Supersede
+  with rules.v1.yaml once zones exist and the two formulas arrive.
+
+# ---------------------------------------------------------------------------
+# Same classification bands as rules.v1.yaml — reused, not reinvented.
+# ---------------------------------------------------------------------------
+pressure_regimes:
+  falling_fast:  "dp_6h <= -3.0"
+  falling_slow:  "dp_6h < -0.7 and dp_6h > -3.0"
+  stable:        "abs(dp_6h) <= 0.7 and pressure_stability_48h < 2.0"
+  rising_slow:   "dp_6h > 0.7 and dp_6h < 3.0"
+  rising_fast:   "dp_6h >= 3.0"
+
+rules:
+  - id: pressure_trend
+    scope: lake
+    weight: 0.6
+    regime_scores:
+      falling_slow:  1.0
+      stable:        0.6
+      falling_fast:  0.3
+      rising_slow:   0.4
+      rising_fast:  -0.5
+    reason_template: "pressure {regime} ({dp_6h} hPa / 6h)"
+
+  - id: light_window
+    scope: lake
+    weight: 0.4
+    dawn_dusk_window_hours: 2.0
+    score_in_window: 1.0
+    score_outside_window: 0.3
+    reason_template: "{label} light window ({start}–{end})"
+
+aggregation:
+  day_score: { normalise: [0, 10] }
+  go_threshold: 5.5

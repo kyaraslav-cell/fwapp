@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}History — Fishlog{% endblock %}
+{% block content %}
+<h1>History</h1>
+
+<div class="stat-row">
+  <div class="stat">
+    <div class="stat-number">{{ n_sessions }}</div>
+    <div class="stat-label">sessions logged</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number">{{ n_blanks }}</div>
+    <div class="stat-label">blanks (kept, counted)</div>
+  </div>
+</div>
+
+{% if rows %}
+<table class="history">
+  <thead>
+    <tr><th>Date</th><th>Effort</th><th>Fish</th><th>CPUE</th></tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.started }}</td>
+      <td>{{ r.effort_minutes }} min</td>
+      <td>{{ "blank" if r.is_blank else r.total_fish }}</td>
+      <td>{{ r.cpue }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No sessions logged yet.</p>
+{% endif %}
+
+<div style="margin-top: 24px;">
+  <a href="/today">← Back to today</a>
+</div>
+{% endblock %}

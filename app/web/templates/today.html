@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Fishlog — {{ lake.name }}{% endblock %}
+{% block content %}
+<div class="lake-header">
+  <span>{{ lake.name }}</span>
+  <span>{{ now_local }}</span>
+</div>
+
+{% if prediction %}
+<div class="score-block">
+  <div class="score-number">{{ prediction.day_score }}<span class="score-max">/10</span></div>
+  <div class="verdict {{ 'go' if prediction.go else 'no-go' }}">
+    {{ "WORTH GOING" if prediction.go else "PROBABLY NOT" }}
+  </div>
+</div>
+
+<div class="panel">
+  <div class="best-hours">
+    {% for h in prediction.best_hours %}
+    <div>{{ h }}</div>
+    {% endfor %}
+  </div>
+  <ul class="reasons">
+    {% for r in prediction.reasons %}
+    <li>{{ r }}</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="panel">
+  <h2 style="font-size:1rem;">7-day outlook</h2>
+  {% for o in outlook %}
+  <div class="outlook-row">
+    <span>{{ o.label }}</span>
+    <span class="outlook-score {{ 'go' if o.go else 'no-go' }}">{{ o.day_score }}/10</span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="panel">
+  <p>No prediction yet — weather hasn't been ingested. Tap refresh below.</p>
+</div>
+{% endif %}
+
+<form method="post" action="/refresh">
+  <button class="btn btn-ghost" type="submit">↻ Refresh weather &amp; prediction</button>
+</form>
+
+<div style="margin-top: 24px;">
+  <a href="/history">Session history →</a>
+</div>
+
+<div class="bottom-bar">
+  {% if active_session %}
+  <a class="btn btn-primary" href="/session/active">▶ CONTINUE SESSION</a>
+  {% else %}
+  <form method="post" action="/session/start">
+    <button class="btn btn-primary" type="submit">▶ START SESSION</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

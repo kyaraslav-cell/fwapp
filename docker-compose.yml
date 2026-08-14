@@ -1,0 +1,11 @@
+services:
+  fishlog:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - fishlog-data:/data
+    restart: unless-stopped
+
+volumes:
+  fishlog-data:

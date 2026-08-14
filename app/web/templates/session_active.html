@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Session — Fishlog{% endblock %}
+{% block content %}
+<h1>Session in progress</h1>
+<div class="timer">Started {{ session.started_at[11:16] }} UTC</div>
+
+<div class="counter">
+  <div class="counter-number">{{ total_fish }}</div>
+  <div class="counter-label">fish this session</div>
+</div>
+
+<h2 style="font-size:1rem;">Log a catch</h2>
+<div class="chip-grid">
+  {% for sp in species_primary %}
+  <form method="post" action="/session/catch">
+    <input type="hidden" name="species" value="{{ sp }}">
+    <button class="chip" type="submit">{{ sp }}</button>
+  </form>
+  {% endfor %}
+</div>
+<div class="chip-grid">
+  {% for sp in species_secondary %}
+  <form method="post" action="/session/catch">
+    <input type="hidden" name="species" value="{{ sp }}">
+    <button class="chip secondary" type="submit">{{ sp }}</button>
+  </form>
+  {% endfor %}
+</div>
+
+{% if catches %}
+<div class="panel">
+  <ul class="catch-list">
+    {% for c in catches %}
+    <li><span>{{ c.species }}</span><span>{{ c.caught_at[11:16] }}</span></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="bottom-bar">
+  <a class="btn btn-secondary" href="/session/end">■ END SESSION</a>
+</div>
+{% endblock %}

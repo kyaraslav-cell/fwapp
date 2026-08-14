@@ -38,11 +38,38 @@ logbook can say whether the app was right.
 
 ## Current status
 
-**Phase 0 — sharpening the axe.** No application code yet, deliberately.
+**v0 MVP is running code.** Single lake (Pomocnia, hardcoded), weather ingest,
+a deliberately narrow rules engine, and the full session-logging notebook.
 
-Blocking item: two formulas pending from the project owner —
-`FORMULA_PRESSURE_DEPTH` and `FORMULA_WIND_ZONE`. Do not guess at them.
-See [`docs/04-RULES-ENGINE.md`](docs/04-RULES-ENGINE.md).
+v0 scores day quality from **only** `pressure_trend` and `light_window` — the
+two v1 rules that need neither a zone (none are mapped yet) nor a pending
+formula. `FORMULA_PRESSURE_DEPTH` and `FORMULA_WIND_ZONE` are still owed by
+the project owner and nothing in v0 guesses at them — see
+[`docs/04-RULES-ENGINE.md`](docs/04-RULES-ENGINE.md) and
+[`config/rules.v0.yaml`](config/rules.v0.yaml). Zones, the satellite map, the
+water-temperature model and oxygen proxy are deferred; `rules.v1.yaml` stays
+the target to grow into once those inputs exist.
+
+## Getting started
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+make check          # ruff + mypy --strict + pytest
+make dev             # http://localhost:8000, auto-reload
+```
+
+Or with Docker:
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:8000`. On first boot the app seeds the Pomocnia lake
+row from `config/lakes/pomocnia.yaml`, fetches Open-Meteo forecast data, and
+generates today's + a 7-day prediction. A failed weather fetch never
+fabricates data — it writes an `ingest_gap` row and the day score falls back
+to the light-window component alone (see Law 4 in `CLAUDE.md`).
 
 ## Stack
 
