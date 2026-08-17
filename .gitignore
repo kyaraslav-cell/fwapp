@@ -10,3 +10,5 @@ media/
 .ruff_cache/
 .mypy_cache/
 .env
+dist/
+spike-verdict.png

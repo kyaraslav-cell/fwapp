@@ -75,6 +75,16 @@ cd dist/.. && python -m http.server 8099   # then open /fwapp/
 Serve it from a *parent* directory with the output named after the base path, or
 the rewritten URLs will not resolve and you will get a stylesheet-less page.
 
+## The Pyodide spike at `/spike/pyodide/`
+
+The build also publishes an engineering page that is not part of the app and is
+linked from nowhere: it loads CPython and shapely into the browser and checks
+whether they reproduce this build's own zone scores, cell by cell. It exists
+because the pre-rendered wind buckets above are a workaround for "Pages runs no
+Python", and that premise is worth testing. Open it, screenshot the verdict, and
+read `docs/12-SPIKE-PYODIDE.md` for what the numbers mean. `--no-spike` leaves it
+out of the build.
+
 ## Known gaps
 
 - **The map needs the network.** Leaflet and the Esri satellite tiles come from

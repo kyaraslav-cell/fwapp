@@ -160,7 +160,11 @@ these have **never actually run**:
 - the Overpass outline fetch — the real Pomocnia polygon has never been seen,
   and `outline_source` on the lake page will say whether you got `osm` or
   `circle_fallback`;
-- Esri satellite tiles and Google Fonts.
+- Esri satellite tiles and Google Fonts;
+- the Pyodide spike's second half. Every CDN is blocked from the sandbox, so
+  `loadPackage("shapely")` has never been executed here. Booting Pyodide and
+  running the scoring modules in a browser *has* been — see
+  `docs/12-SPIKE-PYODIDE.md` §2 for what is measured and what is still owed.
 
 **First thing to check on a real machine:** does the map show the real
 shoreline, and does "Right now" match a thermometer outside.
@@ -187,8 +191,11 @@ tools/animation_filmstrip.py  pin a CSS animation to exact progress %, tile it
 tools/splash_filmstrip.py     drive the real JS splash and photograph it
 tools/icon_sheet.py           render icons; --compare puts git's set beside it
 tools/build_static.py         render the read-only site for GitHub Pages
+tools/build_spike.py          the Pyodide spike page and its payload
+tools/spike_check.py          drive the spike in a real browser, or as a control
 .github/workflows/pages.yml   twice-daily ingest + publish
 docs/11-DEPLOY-PAGES.md       what Pages can and cannot host, and the setup
+docs/12-SPIKE-PYODIDE.md      can a browser run our geometry? the measurements
 ```
 
 ---

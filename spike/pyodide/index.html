@@ -1,0 +1,493 @@
+<!doctype html>
+<!--
+  SPIKE - Pyodide + shapely on a static host.
+
+  Not part of the app. This page exists to settle one question with numbers
+  instead of opinions: can the published Pages site run Fishlog's real geometry
+  and scoring code in the visitor's browser, and how much does it cost?
+
+  Everything it runs comes from payload.json, which tools/build_spike.py fills
+  with the real lake outline, the real ruleset block, the real module sources,
+  and this build's own server-side answers. The browser's results are compared
+  against those answers cell by cell - a spike that only proves "Python ran" is
+  worthless, because the interesting failure is a browser that computes
+  something slightly different.
+
+  Query parameters:
+    ?index=<url>   load Pyodide from somewhere else (a self-hosted copy)
+    ?only=core     stop after the steps that need no network (boot + scoring)
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Spike - Pyodide + shapely</title>
+<style>
+  :root {
+    --bg: #f2f8fd; --surface: #ffffff; --surface-alt: #eaf3fb; --border: #dbe9f5;
+    --text: #22384d; --muted: #6c8299; --primary-text: #0d3a63;
+    --pass: #7fcfae; --pass-text: #0e4d38; --fail: #e07a66; --fail-text: #6b2a1c;
+    --radius: 16px; --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px 16px 60px; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 780px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; color: var(--primary-text); }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px;
+  }
+  #verdict { font-size: 17px; font-weight: 600; text-align: center; padding: 18px 16px; }
+  #verdict.pass { background: var(--pass); color: var(--pass-text); }
+  #verdict.fail { background: var(--fail); color: var(--fail-text); }
+  #verdict small { display: block; font-weight: 400; font-size: 13px; margin-top: 6px; opacity: .85; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .chip {
+    display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: 12px; font-weight: 600;
+  }
+  .chip.pass { background: var(--pass); color: var(--pass-text); }
+  .chip.fail { background: var(--fail); color: var(--fail-text); }
+  .chip.run  { background: var(--surface-alt); color: var(--primary-text); }
+  .chip.skip { background: var(--surface-alt); color: var(--muted); }
+  .detail { color: var(--muted); font-size: 13px; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; font-size: 13px; }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-variant-numeric: tabular-nums; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; }
+  button {
+    font: inherit; border: 1px solid var(--border); background: var(--surface-alt);
+    color: var(--primary-text); border-radius: var(--radius-sm); padding: 8px 14px; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  code { background: var(--surface-alt); border-radius: 4px; padding: 0 4px; font-size: 13px; }
+  .note { font-size: 13px; color: var(--muted); }
+  .note p { margin: 0 0 8px; }
+  .note p:last-child { margin: 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Spike &mdash; Pyodide + shapely on a static host</h1>
+  <p class="sub">
+    Can the published site run <code>app/geo/grid.py</code> and
+    <code>app/rules/zone_score.py</code> in the browser, unmodified, and get the
+    same numbers the server got? This page runs them and checks every cell.
+  </p>
+
+  <div id="verdict" class="card">Running&hellip;</div>
+
+  <div class="card">
+    <h2>Steps</h2>
+    <table>
+      <thead>
+        <tr><th>Step</th><th>Result</th><th class="num">ms</th></tr>
+      </thead>
+      <tbody id="steps"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Environment</h2>
+    <dl id="env"></dl>
+  </div>
+
+  <div class="card">
+    <h2>Cost</h2>
+    <dl id="cost"></dl>
+    <p class="note" style="margin-top:10px">
+      Bytes are what the browser reports for this page load. Cross-origin
+      responses only report a size when the server sends
+      <code>Timing-Allow-Origin</code>; anything that does not shows as
+      <em>not disclosed</em>. A reload runs against a warm HTTP cache, which is
+      the number a returning angler sees &mdash; the cold one above is the first
+      visit.
+    </p>
+    <p style="margin:12px 0 0"><button id="again">Run again</button></p>
+  </div>
+
+  <div class="card note">
+    <p><strong>What a pass means.</strong> The browser loaded CPython and
+      shapely, built the 5&nbsp;m grid from the real lake outline, ray-cast the
+      effective fetch for one wind direction, scored every cell through the YAML
+      expression, and matched the server's answer. If that holds, the twelve
+      pre-baked wind buckets in the Pages build could become one live
+      computation at any bearing.</p>
+    <p><strong>What it does not mean.</strong> Nothing about whether to adopt it.
+      That turns on the cold-load seconds above, measured on a phone on the
+      bank &mdash; not on a desktop with a warm cache.</p>
+  </div>
+</main>
+
+<script id="harness" type="text/x-python">
+# Runs inside Pyodide. Imports the real modules from /spike and checks the
+# browser's answers against the ones the build computed on the server.
+#
+# Comparison is exact where the pipeline is deterministic and tolerance-based
+# where it is not: fetch lengths are floating-point ray-cast intersections
+# rounded to 0.1 m by app/geo/grid.py, and the displayed score is rounded to
+# 3 dp, so equality is checked at the precision the app itself publishes.
+import json
+import sys
+import time
+
+sys.path.insert(0, "/spike")
+
+PAYLOAD = json.loads(PAYLOAD_JSON)
+FETCH_TOL_M = 0.1      # what fetch_values() itself rounds to
+SCORE_TOL = 0.001      # what score_cells() itself rounds to
+
+
+def _diff(got, want, tol):
+    """(n_compared, n_over_tolerance, worst_absolute_difference)."""
+    worst = 0.0
+    over = 0
+    for a, b in zip(got, want):
+        d = abs(a - b)
+        worst = max(worst, d)
+        if d > tol:
+            over += 1
+    return len(want), over, worst
+
+
+def step_scoring():
+    """Scoring only - pure Python, no shapely. Runs with no network."""
+    from app.rules.zone_score import score_cells
+
+    inputs = [(r, c, f, s) for r, c, f, s in PAYLOAD["expected"]["inputs"]]
+    ruleset = {"zone_score": PAYLOAD["zone_score"]}
+
+    t0 = time.perf_counter()
+    scored, phase_used = score_cells(ruleset, PAYLOAD["phase"], inputs)
+    ms = (time.perf_counter() - t0) * 1000
+
+    want = PAYLOAD["expected"]["cells"]
+    if len(scored) != len(want):
+        return {"ok": False, "detail": f"{len(scored)} cells, server had {len(want)}"}
+    if [(r, c) for r, c, _ in scored] != [(r, c) for r, c, _ in want]:
+        return {"ok": False, "detail": "cell order differs from the server"}
+
+    n, over, worst = _diff([v for _, _, v in scored], [v for _, _, v in want], SCORE_TOL)
+    return {
+        "ok": over == 0 and phase_used == PAYLOAD["phase"],
+        "detail": f"{n} cells, {over} over tolerance, worst {worst:.6f}, phase {phase_used}",
+        "python_ms": round(ms, 1),
+    }
+
+
+def step_grid():
+    """The 5 m grid, clipped to the real outline by shapely."""
+    from app.geo.grid import build_grid
+
+    t0 = time.perf_counter()
+    grid = build_grid(PAYLOAD["outline"], PAYLOAD["lake"]["cell_m"])
+    ms = (time.perf_counter() - t0) * 1000
+
+    globals()["_GRID"] = grid
+    want_n = PAYLOAD["expected"]["n_cells"]
+    want_ids = [(r, c) for r, c, _, _ in PAYLOAD["expected"]["inputs"]]
+    got_ids = [(cell.row, cell.col) for cell in grid.cells]
+    ok = (
+        len(grid.cells) == want_n
+        and got_ids == want_ids
+        and grid.n_rows == PAYLOAD["lake"]["n_rows"]
+        and grid.n_cols == PAYLOAD["lake"]["n_cols"]
+    )
+    detail = f"{len(grid.cells)} water cells, server had {want_n}"
+    if got_ids != want_ids:
+        detail += f"; {sum(1 for a, b in zip(got_ids, want_ids) if a != b)} cells land differently"
+    return {"ok": ok, "detail": detail, "python_ms": round(ms, 1)}
+
+
+def step_geometry():
+    """Effective-fetch ray-cast and shore distance - the shapely-heavy part."""
+    from app.geo.grid import geometry_inputs
+
+    t0 = time.perf_counter()
+    got = geometry_inputs(PAYLOAD["outline"], globals()["_GRID"], PAYLOAD["wind_dir"])
+    ms = (time.perf_counter() - t0) * 1000
+
+    globals()["_INPUTS"] = got
+    want = PAYLOAD["expected"]["inputs"]
+    if len(got) != len(want):
+        return {"ok": False, "detail": f"{len(got)} rows, server had {len(want)}"}
+
+    n, f_over, f_worst = _diff([g[2] for g in got], [w[2] for w in want], FETCH_TOL_M)
+    _, s_over, s_worst = _diff([g[3] for g in got], [w[3] for w in want], FETCH_TOL_M)
+    return {
+        "ok": f_over == 0 and s_over == 0,
+        "detail": (
+            f"{n} cells; fetch {f_over} over tolerance (worst {f_worst:.3f} m), "
+            f"shore {s_over} over tolerance (worst {s_worst:.3f} m)"
+        ),
+        "python_ms": round(ms, 1),
+    }
+
+
+def step_end_to_end():
+    """Score the browser's own geometry - the whole pipeline, server untouched."""
+    from app.rules.zone_score import score_cells
+
+    ruleset = {"zone_score": PAYLOAD["zone_score"]}
+    t0 = time.perf_counter()
+    scored, _ = score_cells(ruleset, PAYLOAD["phase"], globals()["_INPUTS"])
+    ms = (time.perf_counter() - t0) * 1000
+
+    want = PAYLOAD["expected"]["cells"]
+    n, over, worst = _diff(
+        [v for _, _, v in scored], [v for _, _, v in want], SCORE_TOL
+    )
+    return {
+        "ok": over == 0,
+        "detail": f"{n} cells, {over} differ by more than {SCORE_TOL}, worst {worst:.6f}",
+        "python_ms": round(ms, 1),
+    }
+
+
+def versions():
+    import platform
+    out = {"python": platform.python_version()}
+    try:
+        import shapely
+        out["shapely"] = shapely.__version__
+        out["geos"] = shapely.geos_version_string
+    except ImportError:
+        out["shapely"] = "not loaded"
+    try:
+        import numpy
+        out["numpy"] = numpy.__version__
+    except ImportError:
+        out["numpy"] = "not loaded"
+    return json.dumps(out)
+</script>
+
+<script>
+// Rewritten by tools/build_spike.py to the Pages base path.
+const BASE = "";
+
+const params = new URLSearchParams(location.search);
+const CORE_ONLY = params.get("only") === "core";
+
+const stepsEl = document.getElementById("steps");
+const verdictEl = document.getElementById("verdict");
+const envEl = document.getElementById("env");
+const costEl = document.getElementById("cost");
+const againEl = document.getElementById("again");
+
+function row(name) {
+  const tr = document.createElement("tr");
+  tr.innerHTML =
+    '<td><strong class="n"></strong><br><span class="detail"></span></td>' +
+    '<td><span class="chip run">running</span></td>' +
+    '<td class="num t">&mdash;</td>';
+  tr.querySelector(".n").textContent = name;
+  stepsEl.appendChild(tr);
+  return {
+    finish(state, detail, ms) {
+      const chip = tr.querySelector(".chip");
+      chip.className = "chip " + state;
+      chip.textContent = state === "pass" ? "pass" : state === "fail" ? "fail" : "skipped";
+      tr.querySelector(".detail").textContent = detail || "";
+      tr.querySelector(".t").textContent = ms == null ? "—" : Math.round(ms);
+    },
+  };
+}
+
+function defs(el, pairs) {
+  el.innerHTML = "";
+  for (const [k, v] of pairs) {
+    const dt = document.createElement("dt");
+    dt.textContent = k;
+    const dd = document.createElement("dd");
+    dd.textContent = v;
+    el.append(dt, dd);
+  }
+}
+
+function bytes(n) {
+  if (n == null) return "not disclosed";
+  if (n === 0) return "not disclosed";
+  return n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.round(n / 1024) + " KB";
+}
+
+// Sum what the browser will admit to having transferred. Cross-origin responses
+// report 0 unless the host sends Timing-Allow-Origin, so this is a floor, not a
+// total, and the page says so rather than quietly under-reporting.
+function transferred(sinceMs) {
+  let total = 0, disclosed = 0, opaque = 0;
+  for (const e of performance.getEntriesByType("resource")) {
+    if (e.startTime < sinceMs) continue;
+    if (e.transferSize > 0) { total += e.transferSize; disclosed++; }
+    else if (e.decodedBodySize > 0) { total += e.decodedBodySize; disclosed++; }
+    else opaque++;
+  }
+  return { total, disclosed, opaque };
+}
+
+async function run() {
+  againEl.disabled = true;
+  stepsEl.innerHTML = "";
+  verdictEl.className = "card";
+  verdictEl.textContent = "Running…";
+
+  const t0 = performance.now();
+  const results = [];
+  const record = (r, state, detail, ms) => {
+    r.finish(state, detail, ms);
+    results.push(state);
+  };
+
+  // ---- payload -----------------------------------------------------------
+  const rPayload = row("Fetch payload (outline, ruleset, module sources, server answers)");
+  let payload, harness;
+  try {
+    const t = performance.now();
+    const res = await fetch(BASE + "/spike/pyodide/payload.json", { cache: "no-cache" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    payload = await res.json();
+    harness = document.getElementById("harness").textContent;
+    record(rPayload, "pass",
+      `${payload.expected.n_cells} cells, outline ${payload.lake.outline_source}, built ${payload.built_at}`,
+      performance.now() - t);
+  } catch (err) {
+    record(rPayload, "fail", String(err), performance.now() - t0);
+    return finish(t0, results, null);
+  }
+
+  const indexURL = params.get("index") || payload.pyodide.index_url;
+
+  // ---- boot --------------------------------------------------------------
+  const rBoot = row("Load Pyodide (CPython in WebAssembly)");
+  let pyodide;
+  try {
+    const t = performance.now();
+    const { loadPyodide } = await import(indexURL + "pyodide.mjs");
+    pyodide = await loadPyodide({ indexURL });
+    record(rBoot, "pass", indexURL, performance.now() - t);
+  } catch (err) {
+    record(rBoot, "fail", indexURL + " — " + err, performance.now() - t0);
+    return finish(t0, results, null);
+  }
+
+  // ---- mount the real modules -------------------------------------------
+  const rMount = row("Mount the real app/ modules and run them unmodified");
+  try {
+    const t = performance.now();
+    for (const [path, text] of Object.entries(payload.sources)) {
+      const dir = ("/spike/" + path).split("/").slice(0, -1).join("/");
+      pyodide.FS.mkdirTree(dir);
+      pyodide.FS.writeFile("/spike/" + path, text);
+    }
+    pyodide.globals.set("PAYLOAD_JSON", JSON.stringify(payload));
+    pyodide.runPython(harness);
+    record(rMount, "pass",
+      Object.keys(payload.sources).filter((p) => !p.endsWith("__init__.py")).join(", "),
+      performance.now() - t);
+  } catch (err) {
+    record(rMount, "fail", String(err), performance.now() - t0);
+    return finish(t0, results, null);
+  }
+
+  const runStep = async (label, fn) => {
+    const r = row(label);
+    const t = performance.now();
+    try {
+      const out = JSON.parse(pyodide.runPython(`json.dumps(${fn}())`));
+      const wall = performance.now() - t;
+      const detail = out.detail + (out.python_ms != null ? ` — ${out.python_ms} ms in Python` : "");
+      record(r, out.ok ? "pass" : "fail", detail, wall);
+      return out.ok;
+    } catch (err) {
+      record(r, "fail", String(err), performance.now() - t);
+      return false;
+    }
+  };
+
+  // Scoring first: it is pure Python, so it separates "the browser cannot run
+  // our code" from "the browser cannot load shapely".
+  await runStep("Score every cell from the server's geometry (pure Python, no shapely)", "step_scoring");
+
+  let shapelyOk = false;
+  const rShapely = row("Load shapely (and numpy) into the browser");
+  if (CORE_ONLY) {
+    record(rShapely, "skip", "?only=core", null);
+  } else {
+    const t = performance.now();
+    try {
+      await pyodide.loadPackage("shapely");
+      shapelyOk = true;
+      record(rShapely, "pass", "from " + indexURL, performance.now() - t);
+    } catch (err) {
+      record(rShapely, "fail", String(err), performance.now() - t);
+    }
+  }
+
+  if (shapelyOk) {
+    const gridOk = await runStep("Build the 5 m grid from the real lake outline", "step_grid");
+    if (gridOk) {
+      const geoOk = await runStep("Ray-cast effective fetch + shore distance for one wind direction", "step_geometry");
+      if (geoOk) {
+        await runStep("Score the browser's own geometry end to end", "step_end_to_end");
+      }
+    }
+  } else if (!CORE_ONLY) {
+    record(row("Geometry and end-to-end scoring"), "skip", "needs shapely", null);
+  }
+
+  let env = {};
+  try { env = JSON.parse(pyodide.runPython("versions()")); } catch (e) { /* reported below */ }
+  finish(t0, results, { payload, indexURL, env });
+}
+
+function finish(t0, results, ctx) {
+  const wall = performance.now() - t0;
+  const failed = results.filter((s) => s === "fail").length;
+  const skipped = results.filter((s) => s === "skip").length;
+
+  verdictEl.className = "card " + (failed === 0 ? "pass" : "fail");
+  const head = failed === 0
+    ? (skipped ? "Passed, with steps skipped" : "Pyodide + shapely runs Fishlog's real code on a static host")
+    : `${failed} step${failed === 1 ? "" : "s"} failed`;
+  verdictEl.innerHTML = "";
+  verdictEl.append(head);
+  const small = document.createElement("small");
+  small.textContent =
+    `${results.length - failed - skipped} passed, ${failed} failed, ${skipped} skipped ` +
+    `— ${(wall / 1000).toFixed(1)} s from page load`;
+  verdictEl.appendChild(small);
+
+  defs(envEl, [
+    ["Pyodide", ctx ? `${ctx.payload.pyodide.version} — ${ctx.indexURL}` : "—"],
+    ["Python (browser)", ctx?.env.python || "—"],
+    ["Python (server, at build)", ctx ? ctx.payload.server.python : "—"],
+    ["shapely (browser)", ctx?.env.shapely || "—"],
+    ["shapely (server, at build)", ctx ? `${ctx.payload.server.shapely} / GEOS ${ctx.payload.server.geos}` : "—"],
+    ["numpy (browser)", ctx?.env.numpy || "—"],
+    ["Lake outline", ctx ? ctx.payload.lake.outline_source : "—"],
+    ["Wind direction scored", ctx ? ctx.payload.wind_dir + "°" : "—"],
+  ]);
+
+  const t = transferred(0);
+  defs(costEl, [
+    ["Wall clock, page load to verdict", (wall / 1000).toFixed(1) + " s"],
+    ["Bytes reported by the browser", bytes(t.total)],
+    ["Responses that reported a size", `${t.disclosed} (${t.opaque} did not)`],
+    ["Cache state", performance.getEntriesByType("navigation")[0]?.type || "unknown"],
+  ]);
+
+  againEl.disabled = false;
+}
+
+againEl.addEventListener("click", run);
+run();
+</script>
+</body>
+</html>

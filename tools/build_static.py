@@ -45,6 +45,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+import tools.build_spike as build_spike  # noqa: E402
 from app.core.i18n import COOKIE_NAME  # noqa: E402
 from app.web.app import app  # noqa: E402
 
@@ -117,6 +118,11 @@ def main() -> int:
     parser.add_argument("--out", default="dist")
     parser.add_argument("--base", default="", help='e.g. "/fwapp" for project Pages')
     parser.add_argument("--slug", default="pomocnia")
+    parser.add_argument(
+        "--no-spike",
+        action="store_true",
+        help="skip /spike/pyodide/ (see tools/build_spike.py)",
+    )
     args = parser.parse_args()
 
     base = args.base.rstrip("/")
@@ -132,10 +138,12 @@ def main() -> int:
     # invisible in a working tree with a stale fishlog.db and fatal on a fresh
     # CI runner, which is exactly where this build runs.
     with TestClient(app) as client:
-        return build(client, out, base, args.slug)
+        return build(client, out, base, args.slug, spike=not args.no_spike)
 
 
-def build(client: TestClient, out: pathlib.Path, base: str, slug: str) -> int:
+def build(
+    client: TestClient, out: pathlib.Path, base: str, slug: str, spike: bool = True
+) -> int:
     # Static assets, copied wholesale.
     shutil.copytree("app/web/static", out / "static")
 
@@ -166,6 +174,13 @@ def build(client: TestClient, out: pathlib.Path, base: str, slug: str) -> int:
         r.raise_for_status()
         (grid_dir / f"wd{bucket:03d}.json").write_text(json.dumps(r.json()))
     print(f"  {360 // WIND_STEP} wind buckets -> {grid_dir}")
+
+    # The Pyodide spike, at /spike/pyodide/. Unlinked from the angler-facing
+    # pages on purpose - it is an engineering measurement, not a feature - but
+    # it has to be published, because the question it answers ("can a browser on
+    # a static host run our geometry?") can only be answered on the real URL.
+    if spike:
+        build_spike.build(out, base, slug, 270.0, ensure_app=False)
 
     # Tell Pages not to run the output through Jekyll, which would eat any
     # directory whose name starts with an underscore.

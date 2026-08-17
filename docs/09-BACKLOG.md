@@ -120,6 +120,20 @@ Every term in `zone_score` is open-water geometry; a bank with a tall tree line
 to windward is scored as exposed as one with none. Until that lands, the
 overlay systematically over-rates sheltered corners in summer.
 
+## 10. Live zone scores on the published site · SPIKED, undecided
+
+The Pages build answers only twelve wind directions because it has to pre-render
+them. `/spike/pyodide/` tests whether the browser could run `app/geo/grid.py` and
+`app/rules/zone_score.py` itself instead. Booting CPython in the browser and
+scoring all 3 564 cells to an exact match with the server is done and measured;
+loading the shapely wheel could not be tested from the build sandbox and is
+verified by opening the published page.
+
+**Next:** open it, screenshot the verdict, then decide between the three shapes
+in `docs/12-SPIKE-PYODIDE.md` §4. Adopting Pyodide needs an ADR first — a 6 MB
+interpreter fetched at page load is a dependency whatever `requirements.txt`
+says.
+
 ## 9. Session UI while fishing · DONE
 
 `/lake/{slug}` no longer redirects away during an active session, and the
