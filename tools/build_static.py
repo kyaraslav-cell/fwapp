@@ -100,6 +100,12 @@ def rewrite(html: str, base: str, lang: str) -> str:
         r'<a[^>]+href="[^"]*/lake/[^"]*/spot[^"]*"[^>]*>.*?</a>', "", html, flags=re.S
     )
 
+    # Every POST form is dead here - a static host has nothing to receive it.
+    # "Refresh weather & prediction" is the visible one, and leaving a button
+    # that silently does nothing is worse than not showing it: the workflow's
+    # cron is what refreshes this site, not the reader.
+    html = re.sub(r'<form[^>]+method="post".*?</form>', "", html, flags=re.S | re.I)
+
     title, body = BANNER_TEXT.get(lang, BANNER_TEXT["en"])
     return html.replace(
         '<main class="page', BANNER.format(title=title, body=body) + '<main class="page', 1

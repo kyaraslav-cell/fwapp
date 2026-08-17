@@ -11,12 +11,20 @@ name: Publish conditions to GitHub Pages
 # Europe/Warsaw during summer time: one refresh before a morning session and one
 # before an evening one. The odd minute is deliberate - GitHub delays jobs
 # scheduled on the hour, when everyone else's crons fire.
+#
+# IMPORTANT: `schedule` and `workflow_dispatch` only ever run from the
+# repository's DEFAULT branch. This file has to be merged there before the
+# twice-daily refresh starts, whatever branch it was written on.
 on:
   schedule:
     - cron: "20 4,16 * * *"
   workflow_dispatch:
   push:
-    branches: [main, master]
+    branches:
+      - main
+      - master
+      # The repository's current default branch. Remove once it becomes `main`.
+      - claude/repository-edit-push-ggr229
 
 # The deploy job needs these; nothing here writes to the repository.
 permissions:
