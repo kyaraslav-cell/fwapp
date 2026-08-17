@@ -1,0 +1,87 @@
+name: Publish conditions to GitHub Pages
+
+# Twice a day, plus on demand and on every push to the default branch.
+#
+# "Twice a day" is the publish cadence, not the weather resolution. Each run
+# calls the real Open-Meteo ingest, which pulls the whole HOURLY series, so
+# `weather_hourly` stays hourly exactly as the data model requires - the site is
+# simply rebuilt from it twice a day.
+#
+# Times are UTC (cron always is). 04:20 and 16:20 UTC are 06:20 and 18:20 in
+# Europe/Warsaw during summer time: one refresh before a morning session and one
+# before an evening one. The odd minute is deliberate - GitHub delays jobs
+# scheduled on the hour, when everyone else's crons fire.
+#
+# IMPORTANT: `schedule` and `workflow_dispatch` only ever run from the
+# repository's DEFAULT branch. This file has to be merged there before the
+# twice-daily refresh starts, whatever branch it was written on.
+on:
+  schedule:
+    - cron: "20 4,16 * * *"
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+      # The repository's current default branch. Remove once it becomes `main`.
+      - claude/repository-edit-push-ggr229
+
+# The deploy job needs these; nothing here writes to the repository.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let a scheduled run and a manual run publish over each other. Queued
+# rather than cancelled, so a refresh in flight still finishes.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ingest weather
+        # Law 4: never fabricate an observation. If Open-Meteo is unreachable
+        # the ingest writes nothing and records a gap - so this step must NOT
+        # fail the build. The site then republishes the last real observations
+        # with their true timestamp, which is honest; inventing a reading to
+        # keep the page looking fresh would not be.
+        continue-on-error: true
+        run: python -m app.ingest.scheduler --once
+
+      - name: Build static site
+        # `github.event.repository.name` gives the /<repo>/ prefix that project
+        # Pages are served under. A user/org page served from the domain root
+        # needs --base "" instead.
+        run: |
+          python tools/build_static.py \
+            --out dist \
+            --base "/${{ github.event.repository.name }}"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

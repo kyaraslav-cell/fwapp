@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import logging
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -31,3 +32,39 @@ def build_scheduler() -> BackgroundScheduler:
     scheduler.add_job(run_ingest_job, CronTrigger(minute=5), id="fetch_openmeteo_forecast")
     scheduler.add_job(run_predict_job, CronTrigger(hour=4, minute=0), id="generate_prediction")
     return scheduler
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run one ingest-and-predict pass and exit.
+
+    For environments with no long-lived process to hold APScheduler: the
+    GitHub Pages workflow runs this on its own cron before rebuilding the site.
+
+    It exits 0 even when the fetch fails. That is deliberate and follows law 4 -
+    a failed fetch writes no observation and records a gap, which is a correct
+    outcome, not a broken build. Making it fail here would either block the
+    publish or invite someone to paper over the gap with a fabricated reading.
+    """
+    parser = argparse.ArgumentParser(prog="app.ingest.scheduler")
+    parser.add_argument(
+        "--once", action="store_true",
+        help="run one ingest + prediction pass instead of starting a scheduler",
+    )
+    args = parser.parse_args(argv)
+    if not args.once:
+        parser.error("only --once is supported; the app itself starts the scheduler")
+
+    logging.basicConfig(level=logging.INFO)
+    try:
+        run_ingest_job()
+    except Exception:
+        logger.exception("ingest failed - leaving the gap unfilled (law 4)")
+    try:
+        run_predict_job()
+    except Exception:
+        logger.exception("prediction pass failed")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
