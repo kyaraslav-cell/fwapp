@@ -125,8 +125,17 @@ def main() -> int:
         shutil.rmtree(out)
     out.mkdir(parents=True)
 
-    client = TestClient(app)
+    # As a CONTEXT MANAGER, so the FastAPI lifespan actually runs. A bare
+    # `TestClient(app)` issues requests without ever starting the app, so
+    # `init_db()` never fires and the first query dies on "no such table:
+    # species" whenever the database file does not already exist. That is
+    # invisible in a working tree with a stale fishlog.db and fatal on a fresh
+    # CI runner, which is exactly where this build runs.
+    with TestClient(app) as client:
+        return build(client, out, base, args.slug)
 
+
+def build(client: TestClient, out: pathlib.Path, base: str, slug: str) -> int:
     # Static assets, copied wholesale.
     shutil.copytree("app/web/static", out / "static")
 
@@ -136,24 +145,24 @@ def main() -> int:
         target = out if lang == "en" else out / lang
         target.mkdir(parents=True, exist_ok=True)
 
-        response = client.get(f"/lake/{args.slug}", cookies=cookies)
+        response = client.get(f"/lake/{slug}", cookies=cookies)
         response.raise_for_status()
 
         html = response.text
         # Point the page at the pre-rendered buckets instead of the live route.
         html = html.replace(
             "const STATIC_GRID = null;",
-            f'const STATIC_GRID = "{base}/grid/{args.slug}";',
+            f'const STATIC_GRID = "{base}/grid/{slug}";',
         )
         (target / "index.html").write_text(rewrite(html, base, lang), encoding="utf-8")
         print(f"  {lang}: {target / 'index.html'}")
 
     # One grid per wind bucket. These are what make the overlay respond to the
     # wind without a server.
-    grid_dir = out / "grid" / args.slug
+    grid_dir = out / "grid" / slug
     grid_dir.mkdir(parents=True, exist_ok=True)
     for bucket in range(0, 360, WIND_STEP):
-        r = client.get(f"/lake/{args.slug}/grid", params={"wind_dir": float(bucket)})
+        r = client.get(f"/lake/{slug}/grid", params={"wind_dir": float(bucket)})
         r.raise_for_status()
         (grid_dir / f"wd{bucket:03d}.json").write_text(json.dumps(r.json()))
     print(f"  {360 // WIND_STEP} wind buckets -> {grid_dir}")
