@@ -11,10 +11,12 @@ Usage:  python tools/animation_filmstrip.py [duration_ms] [out_name]
         (needs the app running on 127.0.0.1:8090)
 """
 
+import os
 import sys
 from playwright.sync_api import sync_playwright
 
-S = "/tmp/claude-0/-home-user-fwapp/0e8fc2b1-e35a-58de-80ef-5f56018b0462/scratchpad"
+S = os.environ.get("FILMSTRIP_OUT", "/tmp/filmstrip")
+os.makedirs(S, exist_ok=True)
 DURATION = int(sys.argv[1]) if len(sys.argv) > 1 else 700
 OUT = sys.argv[2] if len(sys.argv) > 2 else "strip.png"
 FRAMES = 10

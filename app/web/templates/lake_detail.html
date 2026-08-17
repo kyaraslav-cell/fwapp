@@ -127,6 +127,12 @@ const OUTLINE = {{ outline_json | safe }};
 const GRID = {{ grid_meta | safe }};
 const DEFAULT_WIND = {{ default_wind }};
 const PHASE = "{{ season.phase }}";
+// The GitHub Pages build has no server to answer /grid?wind_dir=..., and a
+// static host ignores the query string entirely - every wind direction would
+// return the same file. So the build pre-renders one JSON per wind bucket and
+// sets STATIC_GRID to their directory; live serving leaves it null.
+const STATIC_GRID = {{ static_grid | tojson }};
+const STATIC_GRID_STEP = {{ static_grid_step }};
 const I18N = {
   fish_here: {{ t('lake.fish_here') | tojson }},
   start_session: {{ t('lake.start_session_link') | tojson }}
@@ -214,8 +220,19 @@ function renderHeat(cells) {
   }).addTo(map);
 }
 
+function gridUrl() {
+  if (!STATIC_GRID) {
+    return `/lake/${LAKE.slug}/grid?wind_dir=${currentWind}&phase=${PHASE}`;
+  }
+  // Snap to the bucket the build actually rendered. Modulo before rounding, so
+  // 350 degrees lands on the 0 bucket rather than a file that does not exist.
+  const step = STATIC_GRID_STEP;
+  const bucket = (Math.round(((currentWind % 360) + 360) % 360 / step) * step) % 360;
+  return `${STATIC_GRID}/wd${String(bucket).padStart(3, '0')}.json`;
+}
+
 function loadGrid() {
-  fetch(`/lake/${LAKE.slug}/grid?wind_dir=${currentWind}&phase=${PHASE}`)
+  fetch(gridUrl())
     .then(r => r.json())
     .then(data => renderHeat(data.cells))
     .catch(() => {});
@@ -245,20 +262,81 @@ function pickSpot(lat, lon, containerPoint) {
   ).openPopup();
 }
 
-function splash(point) {
+// Everything the splash draws goes in one absolutely-positioned layer above the
+// Leaflet panes, rather than being appended straight to the map wrapper. One
+// layer means one z-index to reason about and one node to remove, and the map
+// itself never gets DOM churn while an animation is running.
+function splashLayer() {
   const wrap = document.getElementById('map-wrap');
-  // Three staggered rings: a fast tight one at impact, then slower wider
-  // ripples spreading out. Staggering is what makes it read as water rather
-  // than a single expanding circle.
-  for (let i = 0; i < 3; i++) {
-    const ring = document.createElement('div');
-    ring.className = i === 0 ? 'splash-ring' : 'splash-ring wide';
-    ring.style.left = point.x + 'px';
-    ring.style.top = point.y + 'px';
-    ring.style.animationDelay = (i * 170) + 'ms';
-    wrap.appendChild(ring);
-    setTimeout(() => ring.remove(), 1500 + i * 170);
+  let layer = wrap.querySelector('.splash-layer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.className = 'splash-layer';
+    wrap.appendChild(layer);
   }
+  return layer;
+}
+
+function splash(point) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const layer = splashLayer();
+  const parts = [];
+
+  const add = (cls, styles, life) => {
+    const el = document.createElement('div');
+    el.className = cls;
+    el.style.left = point.x + 'px';
+    el.style.top = point.y + 'px';
+    // setProperty, not Object.assign: assigning to `style` silently ignores
+    // custom properties, so every droplet would inherit an empty --dx and land
+    // exactly where it started.
+    for (const [prop, value] of Object.entries(styles)) {
+      if (prop.startsWith('--')) el.style.setProperty(prop, value);
+      else el.style[prop] = value;
+    }
+    layer.appendChild(el);
+    parts.push(el);
+    setTimeout(() => el.remove(), life);
+  };
+
+  // Order matters: the dark dimple sits under the white water, and the rings
+  // spread from beneath the crown.
+  add('splash-hole', {}, 800);
+  add('splash-crown', {}, 640);
+  add('splash-ring contact', {}, 520);
+
+  // Two spreading rings, staggered. The second is slower and fainter, which is
+  // what makes it read as a surface disturbance rather than one growing circle.
+  // Sized here rather than with an inline `transform`, because a running CSS
+  // animation overrides inline transforms and the second ring would come out
+  // exactly the same size as the first.
+  add('splash-ring', { animationDelay: '60ms' }, 1320);
+  add('splash-ring', {
+    animationDelay: '210ms', opacity: '0.55',
+    width: '186px', height: '82px', marginLeft: '-93px', marginTop: '-41px',
+  }, 1520);
+
+  // Droplets: random spread, biased sideways and up, each with its own arc.
+  // Randomising per-drop is the difference between spray and a starburst.
+  const count = 7;
+  for (let i = 0; i < count; i++) {
+    const spread = (i / (count - 1)) * 2 - 1;            // -1 .. 1
+    const dx = spread * (26 + Math.random() * 22);
+    const peak = -(16 + Math.random() * 20) + 'px';
+    const fall = 12 + Math.random() * 16 + 'px';
+    const size = (4 + Math.random() * 3.5).toFixed(1) + 'px';
+    add('splash-drop', {
+      width: size, height: size,
+      marginLeft: `-${parseFloat(size) / 2}px`,
+      marginTop: `-${parseFloat(size) / 2}px`,
+      animationDelay: Math.round(Math.random() * 60) + 'ms',
+      '--dx': dx.toFixed(1) + 'px',
+      '--peak': peak,
+      '--fall': fall,
+    }, 760);
+  }
+
+  return parts;
 }
 
 // Weather rows recolour the map for that day's wind.
@@ -331,11 +409,15 @@ function endDrag(e) {
   diving.classList.remove('lifted');
   diving.classList.add('diving');
 
-  setTimeout(() => splash(point), 385);
+  // Timings are derived from the `dive` keyframes, not guessed: the fish meets
+  // the surface at the 82% mark of an 860ms animation, so the splash fires at
+  // 705ms. If you retime the dive, retime these with it or the water will break
+  // before the fish arrives.
+  setTimeout(() => splash(point), 705);
   setTimeout(() => {
     diving.remove();
     pickSpot(latlng.lat, latlng.lng, null);
-  }, 710);
+  }, 900);
 }
 
 if (pin && map) {

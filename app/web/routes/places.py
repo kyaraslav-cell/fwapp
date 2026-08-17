@@ -126,6 +126,10 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
             "methods": METHODS,
             "now_local": to_display(utcnow()).strftime("%a %d %b, %H:%M"),
             "active_nav": "home",
+            # Live serving answers /grid itself; only the static build overrides
+            # these (see tools/build_static.py).
+            "static_grid": None,
+            "static_grid_step": 30,
         },
     )
 

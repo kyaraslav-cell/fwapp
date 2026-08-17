@@ -19,8 +19,32 @@ verification rules. Outstanding requests are in
   The fish-pin dive shipped three times diving *tail first*. Use
   `tools/animation_filmstrip.py`.
 - **Visual design cannot be checked from your own diff.** The species icons were
-  declared "redrawn" twice and still looked identical. Render the result and compare
-  old against new **side by side** before saying a change landed.
+  declared "redrawn" three times and still looked identical. Render the result and
+  compare old against new **side by side** before saying a change landed, and put
+  the comparison in front of the owner rather than describing it.
+
+### Species icons: no shared assets
+
+An icon set where every fish is the same drawing in another colour is worth less
+than no icons at all — it costs a tap to read and teaches the angler nothing. So:
+
+- **Every species owns its geometry.** Body outline, tail, dorsal fin, anal fin
+  and head are drawn per species. Not one path recoloured, not one path rescaled,
+  not one path with a different gradient.
+- **The tail alone must identify the fish** with the body hidden. A crucian's tail
+  is a rounded fan, a bream's is a long unequal fork, a carp's is broad and
+  shallow. If two species share a tail wedge, the set has failed.
+- **Curved forms only.** Organic bezier outlines. No polygon fins, no triangles
+  standing in for a tail.
+- **Silhouette carries the recognition, not detail.** These render at ~24 device
+  pixels tall. Scales, spots and barbels are garnish; body depth, back curvature,
+  fin placement and tail shape are the whole signal.
+- **Verify by rendering.** `tools/icon_sheet.py` draws the real sprite through the
+  real stylesheet, and `--compare` puts the previous set beside it.
+
+`tests/test_species_seed.py` asserts the six quick-log species never collapse onto
+a shared shape key. That test only catches the wiring, not the drawing — the
+drawing is checked by looking.
 
 For anything visual or temporal: produce the artefact and look at it. A green test
 suite says nothing about whether a fish is upside down.
