@@ -6,7 +6,7 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from app.core.db import session_scope
+from app.core.db import init_db, session_scope
 from app.core.seed import ensure_lake_seeded
 from app.ingest.open_meteo import ingest_forecast
 from app.predict.daily import generate_predictions
@@ -55,6 +55,11 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("only --once is supported; the app itself starts the scheduler")
 
     logging.basicConfig(level=logging.INFO)
+    # The tables are created by the FastAPI lifespan, which never runs here.
+    # Without this the first call dies on "no such table: species" the moment
+    # the database file is absent - invisible locally, where fishlog.db already
+    # exists, and fatal on a fresh CI runner.
+    init_db()
     try:
         run_ingest_job()
     except Exception:
