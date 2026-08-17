@@ -113,12 +113,23 @@ model lands.**
 
 Ordered by how much it matters.
 
-1. **Fish icons still look alike.** Repeatedly reported by the owner and still
-   not fixed. They share a construction: one closed body path plus curved
-   fins. The owner wants genuinely distinct, realistic, rounded, per-species
-   art — see the reference images in the session (a real bream, a real carp).
-   Next attempt should probably abandon hand-drawn paths and use PhyloPic
-   (CC0 species silhouettes) despite the vendoring cost.
+1. **Fish icons — root cause fixed, drawing half done.** There were two
+   separate faults, which is why two redraws changed nothing:
+   - *Nothing rendered them.* `shape` was added to `Species` after the table
+     was seeded, and the seed refused to backfill, so every species resolved to
+     `fish_icon(None)` → `#fish-roach`. The owner was looking at six roach the
+     whole time. Fixed in `app/notebook/species.py`; pinned by
+     `tests/test_species_seed.py`.
+   - *The drawings really were one asset.* A closed oval body with fins stuck
+     on, differing only in colour. The six quick-log species are now single
+     continuous outlines — snout, dorsal, wrist, forked tail, anal and pelvic
+     all cut into the silhouette, concave trailing edges, no ovals and no
+     triangles. **The other eight (tench, pike, perch, zander, catfish, eel,
+     trout, small) are still the old flat style** and need the same treatment.
+
+   The standing rule is now in `CLAUDE.md` under "Species icons: no shared
+   assets" — read it before touching them. Render with
+   `tools/icon_sheet.py --compare` and show the owner, never a description.
 2. **Terrain and tree-line wind shelter is missing** (backlog §3). Every score
    term is open-water geometry, so a bank with a 10 m tree line to windward is
    scored as exposed as a bare one. This systematically over-rates sheltered
@@ -172,7 +183,12 @@ config/lakes/pomocnia.yaml    lake constants
 app/geo/                      outline, grid, fetch ray-cast, service cache
 app/rules/                    expressions, evaluator, zone_score, loader
 app/features/                 pressure, solar, wind, season
-tools/animation_filmstrip.py  look at animations before claiming they work
+tools/animation_filmstrip.py  pin a CSS animation to exact progress %, tile it
+tools/splash_filmstrip.py     drive the real JS splash and photograph it
+tools/icon_sheet.py           render icons; --compare puts git's set beside it
+tools/build_static.py         render the read-only site for GitHub Pages
+.github/workflows/pages.yml   twice-daily ingest + publish
+docs/11-DEPLOY-PAGES.md       what Pages can and cannot host, and the setup
 ```
 
 ---
