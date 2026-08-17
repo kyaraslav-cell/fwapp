@@ -13,6 +13,7 @@ Usage:  python tools/animation_filmstrip.py [duration_ms] [out_name]
 
 import os
 import sys
+
 from playwright.sync_api import sync_playwright
 
 S = os.environ.get("FILMSTRIP_OUT", "/tmp/filmstrip")
@@ -22,7 +23,8 @@ OUT = sys.argv[2] if len(sys.argv) > 2 else "strip.png"
 FRAMES = 10
 
 HARNESS = """
-<div id="stage" style="position:relative;width:900px;height:200px;background:#7fa9c9;overflow:hidden;">
+<div id="stage" style="position:relative;width:900px;height:200px;
+     background:#7fa9c9;overflow:hidden;">
   <div style="position:absolute;top:96px;left:0;right:0;height:104px;background:#4a7fa5;"></div>
 </div>
 """
