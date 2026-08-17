@@ -38,6 +38,8 @@ lake:
   legend_low: Poor
   legend_high: Best
   outline_source: Outline source
+  outline_fallback_title: "Lake outline is a placeholder circle"
+  outline_fallback_body: "The real shoreline could not be fetched from OpenStreetMap, so the map shows a circle of the correct area but the wrong shape. It will overlap the bank and dry land. Scores near the edge are unreliable until this resolves — it retries on every restart."
   map_unavailable: Map unavailable — start a session anyway
   refresh: ↻ Refresh weather & prediction
   fish_here: Fish here?

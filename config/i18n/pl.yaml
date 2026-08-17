@@ -38,6 +38,8 @@ lake:
   legend_low: Słabo
   legend_high: Najlepiej
   outline_source: Źródło obrysu
+  outline_fallback_title: "Zarys jeziora to zastępcze koło"
+  outline_fallback_body: "Nie udało się pobrać prawdziwej linii brzegowej z OpenStreetMap, więc mapa pokazuje koło o właściwej powierzchni, ale złym kształcie. Nachodzi na brzeg i ląd. Wyniki przy krawędzi są niewiarygodne — próba ponawiana przy każdym starcie."
   map_unavailable: Mapa niedostępna — rozpocznij sesję mimo to
   refresh: ↻ Odśwież pogodę i prognozę
   fish_here: Łowić tutaj?

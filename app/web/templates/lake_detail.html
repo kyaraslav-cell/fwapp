@@ -101,6 +101,17 @@
   <span id="legend-high">{{ t('lake.legend_high') }}</span>
 </div>
 
+{# `circle_fallback` means the Overpass fetch failed and the shape on the map is
+   a synthetic circle of the right AREA but entirely the wrong outline - it will
+   sit over the bank and over dry land. Printing the bare slug in a footnote was
+   not enough: it looked like a shape the app believed in. Say it plainly. #}
+{% if outline_source != 'osm' %}
+<div class="callout" style="border-color:#e9c46a;background:#fff8e6;">
+  <strong>{{ t('lake.outline_fallback_title') }}</strong><br>
+  {{ t('lake.outline_fallback_body') }}
+</div>
+{% endif %}
+
 <p class="provenance-note">
   {{ t('lake.provenance') }}
   <code>{{ zone_provenance }}</code> ·
@@ -210,13 +221,18 @@ function renderHeat(cells) {
     img.data[idx] = r;
     img.data[idx + 1] = g;
     img.data[idx + 2] = b;
-    img.data[idx + 3] = 205;
+    // Per-pixel alpha, multiplied again by the layer opacity below. Kept low
+    // on purpose: the overlay is a provisional hypothesis painted over a real
+    // satellite image, and you have to be able to see the bank, the weed and
+    // the reeds THROUGH it to drop the pin somewhere sensible. An overlay you
+    // cannot see past is worse than no overlay.
+    img.data[idx + 3] = 170;
   }
   ctx.putImageData(img, 0, 0);
 
   if (heatLayer) map.removeLayer(heatLayer);
   heatLayer = L.imageOverlay(canvas.toDataURL(), bounds, {
-    opacity: 0.72, interactive: false, className: 'heat-overlay'
+    opacity: 0.45, interactive: false, className: 'heat-overlay'
   }).addTo(map);
 }
 
