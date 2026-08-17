@@ -193,12 +193,73 @@ docs/11-DEPLOY-PAGES.md       what Pages can and cannot host, and the setup
 
 ---
 
-## 8. Suggested next session
+## 8. Where session 2 ended (read this first)
 
-1. Fix the icons properly — vendor PhyloPic, or commission real art. Compare
-   side by side with the old set before declaring it done.
-2. ADR + implementation for terrain/tree shelter.
+### Done and pushed
+
+| Thing | Note |
+|---|---|
+| Icon root cause | `shape` was NULL on every species → all 14 rendered as roach. Seed now re-applies the YAML. `tests/test_species_seed.py` |
+| All 14 icons redrawn | Single continuous outline per species. Rule in `CLAUDE.md` |
+| Splash | Never appeared: `.map-wrap` had no `position`, rings had no `z-index` (Leaflet panes are 400). Rebuilt as real water |
+| Dive | Retimed; verified nose-first frame by frame |
+| Pages deployment | `tools/build_static.py` + `.github/workflows/pages.yml`, twice daily |
+| Overlay legibility | Opacity 0.72×205 → 0.45×170 so the bank shows through |
+| `circle_fallback` warning | Now says plainly the outline is fake, in all three languages |
+| `fly.toml` | Full-app hosting. Volume and single-machine pinning are load-bearing — comments explain why |
+
+### Blocked on the owner
+
+1. **PR #3 is unmerged.** Until it lands the Pages build fails with
+   `no such table: species`. Nothing else about Pages works until then.
+2. **Settings → Pages → Source: GitHub Actions.** No token here can set it.
+3. **Zones are still demo wedges.** Pomocnia has never been mapped for real;
+   `bank_aspect_deg` and `tree_line_height_m` are empty.
+4. **Both formulas still undelivered.** Owner says later. Slots stay unfilled.
+
+### The live decision: full app on GitHub Pages
+
+The owner wants the **whole** app on Pages, not the read-only board. Pages runs
+no server — but it can serve a page that runs **Python in the browser** via
+Pyodide, which gets there.
+
+An earlier assumption that this was impossible was wrong, and the reason
+matters: **`pyproj` is in `requirements.txt` but imported nowhere in `app/`.**
+The only native dependency actually used is `shapely`, which has a Pyodide
+wheel. Verify that before planning anything else.
+
+Shape of it: Pyodide runs the real `app/rules`, `app/features`, `app/geo`;
+SQLite persists to the Origin Private File System; weather arrives as JSON
+baked in by the existing Actions cron; installs as a PWA.
+
+Costs, which the owner has been told: ~10 MB first load; data lives on one
+device and is lost if site data is cleared; no sync between phone and laptop.
+
+**Start with a spike, not a port.** Load Pyodide + shapely on a Pages URL and
+prove the grid scorer runs at acceptable speed on the owner's phone. If it is
+slow the approach dies for an hour's work instead of a session's. Write the ADR
+after the spike, not before.
+
+Do not begin the port without an export/download-the-database control. Logging
+a real season into storage the browser can evict, with no way to get it out,
+would destroy exactly what the project exists to accumulate.
+
+### Then, in roadmap order
+
+1. **Verify the real outline appears** once running somewhere with network. The
+   circle in every screenshot so far is `circle_fallback` — Overpass is
+   unreachable from the build sandbox and has never once succeeded here.
+2. ADR + implementation for terrain/tree shelter (backlog §3/§8) — still the
+   largest gap in the score.
 3. `name_ru`, and a native pass over PL/RU.
-4. Numbered migrations before the first real logged season.
-5. Then Phase 5: the calibration loop, which is the entire point of the
-   project.
+4. Numbered migrations before the first real logged season. `migrate.py` only
+   adds nullable columns — that weakness is exactly what caused the icon bug.
+5. Then phase 5: the calibration loop, which is the entire point.
+
+### One process note
+
+Rendering comparison sheets at full size is by far the most expensive thing a
+session can do. Crop to the species that changed, and show the owner a draft
+early rather than polishing three rounds first. The renders themselves are not
+optional — they are what caught the six-roach bug and the tail-first dive — but
+they can be a quarter of the size.
