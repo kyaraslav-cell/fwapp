@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.core.config import CONFIG_DIR
 from app.core.models import Lake
 from app.geo.demo_zones import approximate_outline_geojson
 from app.geo.grid import LakeGrid, build_grid, geometry_inputs
@@ -22,13 +24,40 @@ _grid_cache: dict[tuple[int, float], LakeGrid] = {}
 _fetch_cache: dict[tuple[int, float, int], list[tuple[int, int, float, float]]] = {}
 
 
-def ensure_outline(db: Session, lake: Lake) -> dict[str, Any]:
-    """Return the lake's water polygon, fetching it from OSM once and caching it.
+def outline_file(slug: str) -> Path:
+    """Where a surveyed outline lives once it has been captured to the repo."""
+    return CONFIG_DIR / "lakes" / f"{slug}.outline.geojson"
 
-    Falls back to a circle of the lake's known area when Overpass is
-    unreachable, and records which one was used so the UI can say so rather
+
+def ensure_outline(db: Session, lake: Lake) -> dict[str, Any]:
+    """Return the lake's water polygon.
+
+    Order matters, and the first step is the one that fixes a real bug. The
+    shoreline never changes, so fetching it from Overpass on every build was
+    always the wrong shape of solution - and it failed in exactly the place it
+    mattered: GitHub's runners share heavily rate-limited cloud IPs, so the
+    published site kept falling back to a CIRCLE while a developer machine with
+    ordinary network got the true polygon. Same code, two different lakes on
+    screen.
+
+    So a committed `config/lakes/<slug>.outline.geojson` wins over everything.
+    Capture it once with `python tools/save_outline.py` from a machine that can
+    reach Overpass, commit it, and every build afterwards draws the real shore
+    with no network call at all.
+
+    Order: committed file -> database cache -> Overpass -> circle. The source is
+    recorded either way so the UI can say which one you are looking at rather
     than implying the crude shape is surveyed truth.
     """
+    surveyed = outline_file(lake.slug)
+    if surveyed.is_file():
+        stored: dict[str, Any] = json.loads(surveyed.read_text(encoding="utf-8"))
+        if not lake.outline_geojson:
+            lake.outline_geojson = json.dumps(stored)
+            db.flush()
+        lake.outline_source = "osm_committed"
+        return stored
+
     if lake.outline_geojson:
         outline: dict[str, Any] = json.loads(lake.outline_geojson)
         return outline
