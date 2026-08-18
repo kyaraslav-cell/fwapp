@@ -157,6 +157,12 @@ SPA framework, no external message queue, no separate database server.
 If you believe a dependency is needed, add it to `docs/adr/` as a decision record
 with the justification first.
 
+## Answering the owner
+
+Short. Three things only: **what you did**, **what you could not do**, **what is
+left**. No preamble, no restating the request, no narrating the journey. Detail
+belongs in the commit message and the docs, not in the reply.
+
 ## Style
 
 - Type hints everywhere. `mypy --strict` on `app/core/` and `app/rules/`.

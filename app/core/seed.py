@@ -22,6 +22,12 @@ def ensure_lake_seeded(db: Session) -> Lake:
     cfg = load_lake_config()
     existing = db.execute(select(Lake).where(Lake.slug == cfg["slug"])).scalar_one_or_none()
     if existing is not None:
+        # Backfill for databases seeded before the column existed. The migration
+        # adds it as NULL, and a lake with no water type cannot be aggregated
+        # safely, so it is filled from config rather than left to default.
+        if existing.water_type is None and cfg.get("water_type"):
+            existing.water_type = cfg["water_type"]
+            db.flush()
         _ensure_demo_zones_seeded(db, existing)
         return existing
 
@@ -34,6 +40,7 @@ def ensure_lake_seeded(db: Session) -> Lake:
         mean_depth_m=cfg.get("geometry", {}).get("mean_depth_m"),
         max_depth_m=cfg.get("geometry", {}).get("max_depth_m"),
         timezone=cfg.get("timezone", "Europe/Warsaw"),
+        water_type=cfg.get("water_type"),
         metar_station=cfg.get("weather", {}).get("secondary", {}).get("station"),
         metar_distance_km=cfg.get("weather", {}).get("secondary", {}).get("distance_km"),
         created_at=iso(utcnow()),

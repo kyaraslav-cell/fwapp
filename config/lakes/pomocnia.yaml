@@ -92,6 +92,10 @@ water_temp_model:
   spinup_days: 60
   calibrated: false
 
+# pzw | commercial. Pomocnia is PZW Okreg Mazowiecki water (see `permits`
+# below), so closed seasons and size limits apply and the fish are wild.
+water_type: pzw
+
 access:
   facility: "stanica wedkarska"
   beds: 64

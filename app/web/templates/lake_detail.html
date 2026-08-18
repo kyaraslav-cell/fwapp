@@ -69,6 +69,18 @@
 
 <div class="section-label" style="margin-top: 20px;">{{ t('lake.where_to_fish') }}</div>
 
+{# Water type is a switch, not a label: it decides whether CPUE from this water
+   may be averaged with another's, and which zone weights apply. Two options, so
+   a single toggling button rather than a select. #}
+<form class="water-type" method="post" action="/lake/{{ lake.slug }}/water-type">
+  <input type="hidden" name="water_type"
+         value="{{ 'commercial' if water_type == 'pzw' else 'pzw' }}">
+  <button type="submit" class="water-type-chip" data-type="{{ water_type or 'unset' }}"
+          title="{{ t('lake.water_type_switch') }}">
+    {{ t('water_type.' ~ (water_type or 'unset')) }}
+  </button>
+</form>
+
 <div class="season-line">
   {{ t('lake.assuming') }} <strong>{{ t('phase.' ~ season.phase) }}</strong>
   {# The caveat travels with the phase rather than being a fixed string: under
@@ -201,11 +213,13 @@ try {
 // the pin on a real swim a guess.
 //
 // Pixels are now fully opaque and the LAYER alone carries the transparency, so
-// there is one number to reason about. And while the pin is actually in the
-// angler's hand the overlay steps further back: at that moment the score
-// matters less than the reeds, the bank and the clear water you are aiming
-// for.
-const HEAT_OPACITY = 0.42;
+// there is one number to reason about. 0.58 restores the original strength -
+// dropping it to 0.42 washed the ramp out and the map read as stale.
+//
+// The transparency the angler actually needs is momentary: while the pin is in
+// their hand the overlay steps right back, because at that instant the reeds
+// and the bank matter more than the score. It returns on release.
+const HEAT_OPACITY = 0.58;
 const HEAT_OPACITY_PLACING = 0.15;
 
 function setHeatOpacity(value) {

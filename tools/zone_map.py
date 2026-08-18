@@ -23,8 +23,8 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from PIL import Image, ImageDraw  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from PIL import Image, ImageDraw  # noqa: E402
 
 from app.core.db import session_scope  # noqa: E402
 from app.core.models import Lake, WeatherHourly  # noqa: E402
@@ -59,7 +59,10 @@ def seed_weather(db, lake: Lake, hours: int = 120, hi: float = 24.0, lo: float =
 
 def ramp(value: float) -> tuple[int, int, int]:
     """Red -> orange -> yellow -> green, matching the app's traffic-light rule."""
-    stops = [(0.0, (208, 74, 58)), (0.33, (226, 140, 62)), (0.66, (226, 205, 74)), (1.0, (74, 176, 118))]
+    stops = [
+        (0.0, (208, 74, 58)), (0.33, (226, 140, 62)),
+        (0.66, (226, 205, 74)), (1.0, (74, 176, 118)),
+    ]
     for (a, ca), (b, cb) in zip(stops, stops[1:], strict=False):
         if value <= b:
             f = 0.0 if b == a else (value - a) / (b - a)

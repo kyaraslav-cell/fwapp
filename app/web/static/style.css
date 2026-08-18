@@ -1107,3 +1107,30 @@ details.card[open] summary::before { content: "－ "; }
   margin-left: 5px;
   vertical-align: middle;
 }
+
+/* Water type switch. Two states with distinct colour, because the difference is
+   not decorative - it decides whether this water's catch rate may be averaged
+   with another's at all. `unset` is deliberately drab: an unclassified water
+   cannot be aggregated, and it should look unfinished until someone says which
+   it is. */
+.water-type { margin: 0 0 8px; }
+.water-type-chip {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 12px;
+  cursor: pointer;
+  background: var(--surface-alt);
+  color: var(--primary-text);
+}
+.water-type-chip[data-type="commercial"] {
+  background: var(--accent-coral);
+  color: var(--accent-coral-text);
+}
+.water-type-chip[data-type="unset"] {
+  background: transparent;
+  color: var(--muted);
+  border-style: dashed;
+}

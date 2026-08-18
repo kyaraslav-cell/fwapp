@@ -431,6 +431,20 @@ zone_score:
     # makes the map show a windward half and a lee half rather than a target.
     w_exposure: 0.25
 
+  # PER WATER TYPE. On a commercial fishery the wind's food-stacking term is
+  # competing with a feed pipe and a baited swim, so it earns less weight and
+  # the margin earns more - the fish are where the food goes in, not where the
+  # wind puts it. Oxygen and temperature are physics and do not care who owns
+  # the water, so they are untouched.
+  #
+  # src: ai_provisional. No commercial water has been logged yet, so nothing
+  # here has been tested against a catch.
+  water_type_weights:
+    commercial:
+      w_food:     0.05
+      w_exposure: 0.10
+      w_margin:   0.25
+
   # RENORMALISE OVER THE TERMS THAT ACTUALLY VARY.
   #
   # A term that is identical in every cell carries no information about where

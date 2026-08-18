@@ -59,6 +59,11 @@ These came from the owner directly and are not negotiable without asking.
 9. **The owner will supply the real formulas later.** Until then a provisional
    AI-authored one is explicitly permitted — see §4.
 10. **Conditions and map must stay reachable during an active session.**
+11. **Replies are short.** What was done, what could not be done, what is left.
+    Nothing else — the reasoning goes in the commit and the docs.
+12. **Do not deploy on every change.** Push to the working branch and leave it;
+    merging to the default branch rebuilds the site and costs credits. Merge
+    only when asked.
 
 ---
 
