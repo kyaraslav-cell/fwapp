@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.models import Catch, FishSession, Lake, Prediction
 from app.core.time import iso, parse_iso, utcnow
+from app.notebook.water_type import assert_comparable
 
 SPECIES_PRIMARY = ["roach", "bream", "rudd", "ide"]
 SPECIES_SECONDARY = ["carp", "crucian"]
@@ -159,6 +160,23 @@ def active_session(db: Session, lake: Lake) -> FishSession | None:
         .order_by(FishSession.started_at.desc())
         .limit(1)
     ).scalar_one_or_none()
+
+
+def mean_cpue(summaries: list[SessionSummary], water_types: list[str | None]) -> float | None:
+    """Mean fish per hour across sessions, or a refusal if the waters differ.
+
+    Blank sessions are included deliberately - a zero is data (law 3), and
+    filtering them would inflate every average the project produces.
+
+    Raises IncomparableWatersError when the sessions span more than one water
+    type, or any water whose type was never recorded. Averaging a stocked
+    commercial water against a wild PZW lake produces a number that looks
+    perfectly reasonable and means nothing.
+    """
+    assert_comparable(water_types)
+    if not summaries:
+        return None
+    return round(sum(s.cpue for s in summaries) / len(summaries), 2)
 
 
 def lake_stats(db: Session, lake: Lake) -> tuple[int, str | None]:

@@ -23,6 +23,7 @@ place_new:
   back: ← Back to places
 
 lake:
+  water_type_switch: Switch PZW / commercial
   session_in_progress: Session in progress
   started: started
   back_to_logging: Back to logging →
@@ -134,3 +135,8 @@ phase:
 season_caveat: >
   Assumed from the date, not measured. Water temperature drives the real
   phase — a cold May or a warm April will fool this.
+
+water_type:
+  pzw: PZW water
+  commercial: Commercial fishery
+  unset: Water type not set

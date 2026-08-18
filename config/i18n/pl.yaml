@@ -23,6 +23,7 @@ place_new:
   back: ← Powrót do łowisk
 
 lake:
+  water_type_switch: Przełącz PZW / komercyjne
   session_in_progress: Sesja w toku
   started: start
   back_to_logging: Wróć do zapisu →
@@ -134,3 +135,8 @@ phase:
 season_caveat: >
   Przyjęte z daty, nie zmierzone. O prawdziwej fazie decyduje temperatura wody
   — zimny maj albo ciepły kwiecień zmylą to założenie.
+
+water_type:
+  pzw: Woda PZW
+  commercial: Łowisko komercyjne
+  unset: Typ wody nieustawiony

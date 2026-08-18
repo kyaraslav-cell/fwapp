@@ -13,6 +13,7 @@ from app.core.time import parse_iso, to_display, utcnow
 from app.features.season import derive_season
 from app.geo import service as geo_service
 from app.ingest.open_meteo import ingest_forecast
+from app.notebook import water_type as water_type_mod
 from app.notebook.sessions import METHODS, active_session, lake_stats, start_session
 from app.predict.daily import generate_predictions, latest_prediction
 from app.rules.loader import load_active_ruleset
@@ -130,6 +131,9 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
                 }
             ),
             "default_wind": default_wind if default_wind is not None else "null",
+            "water_type": lake.water_type,
+            "water_type_label": water_type_mod.label(lake.water_type),
+            "water_type_options": water_type_mod.KNOWN,
             "zone_provenance": zone_cfg["provenance"],
             "display_cfg": json.dumps(zone_cfg["display"]),
             "methods": METHODS,
@@ -205,6 +209,21 @@ def lake_grid(
             "cells": [[r, c, v] for r, c, v in scored],
         }
     )
+
+
+@router.post("/lake/{slug}/water-type")
+def set_water_type(slug: str, water_type: str = Form(""), db: Session = Depends(get_db)):
+    """Switch a water between PZW and commercial.
+
+    Stored rather than inferred because it changes what the numbers MEAN, not
+    just how they look: CPUE is never pooled across the two, and the zone
+    weights differ. An unrecognised value clears it back to unset, which the
+    aggregate guard treats as "refuse to average" rather than as a default.
+    """
+    lake = get_lake_by_slug(db, slug)
+    lake.water_type = water_type_mod.normalise(water_type)
+    db.flush()
+    return RedirectResponse(url=f"/lake/{slug}", status_code=303)
 
 
 @router.post("/lake/{slug}/refresh")

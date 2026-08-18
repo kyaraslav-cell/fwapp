@@ -21,6 +21,12 @@ class Lake(Base):
     max_depth_m: Mapped[float | None] = mapped_column(Float)
     outline_geojson: Mapped[str | None] = mapped_column(Text)
     outline_source: Mapped[str | None] = mapped_column(String)  # osm|circle_fallback
+    # pzw | commercial. NOT cosmetic: it is the segmentation key for every
+    # CPUE aggregate. A stocked commercial water and a PZW lake produce fish
+    # per hour on completely different scales, so pooling them into one
+    # statistic would corrupt the only measurement the project exists to make
+    # (law 3). See app/notebook/water_type.py.
+    water_type: Mapped[str | None] = mapped_column(String)
     timezone: Mapped[str] = mapped_column(String, nullable=False, default="Europe/Warsaw")
     metar_station: Mapped[str | None] = mapped_column(String)
     metar_distance_km: Mapped[float | None] = mapped_column(Float)
