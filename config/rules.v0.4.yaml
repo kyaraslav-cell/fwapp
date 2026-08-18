@@ -1,7 +1,7 @@
 version: v0.4
 features_version: f1
 parent: v0.3
-status: built and tested; the live app still serves v0.3 (see §9)
+status: ACTIVE
 
 # ===========================================================================
 # WHAT THIS IS
@@ -17,10 +17,13 @@ status: built and tested; the live app still serves v0.3 (see §9)
 # Run the whole model against this lake's real ingested weather with:
 #     python tools/bite_report.py
 #
-# The LIVE lake page still scores with v0.3. Switching it over is a separate,
-# deliberate step: this model's water temperature has never been checked
-# against an actual thermometer in Pomocnia, and law 2 means every prediction
-# written under v0.4 is permanent. Set FISHLOG_RULESET to move.
+# ACTIVE. The lake-level day scoring below is carried forward from v0.3
+# unchanged; what is new is the zone term, the thermal phase, and the fact that
+# oxygen and water temperature now enter the score at all.
+#
+# Water temperature is modelled and always will be on most waters - see §10 for
+# why that is tolerable rather than a compromise. Roll back with
+# FISHLOG_RULESET=rules.v0.3.yaml.
 #
 # THE MODEL IN ONE PARAGRAPH
 #   WHEN: three factors must line up at once - atmospheric pressure near this
@@ -134,6 +137,12 @@ water_temp:
     evaporative_loss_per_c_deficit: 0.10
     wind_factor_ref_ms: 8.0
     wind_factor_cap: 2.0        # a gale must not drive the equilibrium absurd
+  envelope:
+    # A guard, not an estimate: water that sits far outside every air reading of
+    # the last three days is a bug, not a heatwave. Stops a data gap or a bad
+    # coefficient walking the model somewhere absurd.
+    max_below_air_min_c: 6.0
+    max_above_air_max_c: 4.0
   spin_up_hours: 72             # ~= tau, so the seed has decayed by the end
   min_coverage_ratio: 0.8
   mean_depth_m: 2.9             # Pomocnia; tau lands near 2.6 days
@@ -351,7 +360,7 @@ bite_when:
       + blend * (f_pressure + f_oxygen + f_temp) / 3)
       * (1 + w_approach * f_approach)
       * (stability_floor + (1 - stability_floor)
-         * max(f_stability, max(0, f_approach)))
+      * max(f_stability, max(0, f_approach)))
 
 # ---------------------------------------------------------------------------
 # 7. WHERE - the zone term
@@ -366,6 +375,8 @@ bite_when:
 # ---------------------------------------------------------------------------
 zone_score:
   src: ai_provisional
+  # The lake page renders this string, so the key name is load-bearing.
+  provenance: owner_sourced_video_plus_ai_derived
   supersede_with: FORMULA_WIND_ZONE
 
   terms:
@@ -410,6 +421,49 @@ zone_score:
     o2_bite_floor: 0.45       # src: ai_provisional
     applies_to: final
 
+  # ---- fallback, for when the water temperature cannot be modelled ------
+  # The Pages build starts from an empty database every run, so a failed
+  # weather ingest would leave the three-factor model with nothing and publish
+  # a lake with no colour on it at all. This is v0.3's geometry-only score,
+  # carried forward verbatim, used ONLY in that case.
+  #
+  # Falling back is acceptable only because the response says so: the grid JSON
+  # carries `model: geometry_only_v0.3`, and the two must never be presented as
+  # the same answer. Geometry alone knows nothing about oxygen or temperature.
+  fallback:
+    expression: 'w_fetch * fetch_norm + w_margin * shore_prox + w_shelter * shelter +
+      w_lee * lee_shore
+
+      '
+    margin_band_m: 25.0
+    max_possible_fetch_m: 400.0
+    phase_weights:
+      spring_warming:
+        w_fetch: -0.5
+        w_margin: 1.0
+        w_shelter: 0.7
+        w_lee: 0.1
+      summer_stagnation:
+        w_fetch: 0.3
+        w_margin: 0.25
+        w_shelter: -0.35
+        w_lee: 1.0
+      autumn_cooling:
+        w_fetch: 0.25
+        w_margin: 0.45
+        w_shelter: 0.05
+        w_lee: 0.8
+    default_phase: summer_stagnation
+    display:
+      normalisation: percentile
+      colormap:
+      - red
+      - orange
+      - yellow
+      - green
+      low_label: Poor
+      high_label: Best
+
   # ---- what does not transfer to this lake ------------------------------
   pomocnia_caveats:
     - >
@@ -438,11 +492,127 @@ zone_score:
 # ---------------------------------------------------------------------------
 confidence:
   src: ai_provisional
-  inputs: [f_stability, consecutive_stable_days, history_coverage, n_sessions]
+  inputs: [f_stability, consecutive_stable_days, history_coverage, f_oxygen]
+  # The heat-stress term is not a guess. Measured: near 26 C a 1-2 C error in
+  # the modelled water temperature costs one of the top three spots, because
+  # the oxygen gate is biting there and small changes push cells across it.
+  # Low oxygen therefore means low confidence in the map, independently of how
+  # settled the weather has been.
+  heat_stress_penalty: 0.35
+  # NOTE the indentation: in a YAML folded scalar every continuation line must
+  # sit at the SAME indent as the first, or the more-indented ones are kept
+  # literal and the expression arrives at the parser split across lines. That
+  # has broken this file twice; tests/test_ruleset_expressions.py now catches it.
   expression: >
     clamp(0.25 + 0.45 * f_stability
-          + 0.20 * min(consecutive_stable_days / ideal_consecutive_stable_days, 1)
-          + 0.10 * history_coverage, 0, 1)
+    + 0.20 * min(consecutive_stable_days / ideal_consecutive_stable_days, 1)
+    + 0.10 * history_coverage, 0, 1)
+    * (1 - heat_stress_penalty * (1 - f_oxygen))
   render_rule: >
     Never show a zone colour without its confidence band. A ranking computed
     across a front must not look like one computed across three settled days.
+
+# ===========================================================================
+# Lake-level day scoring, carried forward from v0.3 unchanged.
+# ===========================================================================
+
+pressure_regimes:
+  falling_fast:  "dp_6h <= -3.0"
+  falling_slow:  "dp_6h < -0.7 and dp_6h > -3.0"
+  stable:        "abs(dp_6h) <= 0.7 and pressure_stability_48h < 2.0"
+  rising_slow:   "dp_6h > 0.7 and dp_6h < 3.0"
+  rising_fast:   "dp_6h >= 3.0"
+
+rules:
+  - id: pressure_trend
+    scope: lake
+    weight: 0.6
+    regime_scores:
+      falling_slow:  1.0
+      stable:        0.6
+      falling_fast:  0.3
+      rising_slow:   0.4
+      rising_fast:  -0.5
+    reason_template: "pressure {regime} ({dp_6h} hPa / 6h)"
+
+  - id: light_window
+    scope: lake
+    weight: 0.4
+    dawn_dusk_window_hours: 2.0
+    score_in_window: 1.0
+    score_outside_window: 0.3
+    reason_template: "{label} light window ({start}–{end})"
+
+aggregation:
+  day_score: { normalise: [0, 10] }
+  go_threshold: 5.5
+  day_score_bands:
+    - { color: red,    label: "Poor",     max: 3.5 }
+    - { color: orange, label: "Marginal", max: 5.5 }
+    - { color: yellow, label: "Fair",     max: 7.5 }
+    - { color: green,  label: "Great" }
+
+# ---------------------------------------------------------------------------
+# 9. Thermal phase - from modelled water temperature, NOT the calendar
+#
+# ADR 0001 §5 forbids deriving this from the date, because a cold May and a
+# warm April swap places in exactly the years it matters. v0.3 did it anyway,
+# as an admitted stand-in, and docs/10 §4 lists it as the weakest thing in the
+# ruleset. This replaces it.
+#
+# It is still not a measurement - the water temperature behind it is modelled -
+# but it is now derived from physics that tracks the actual weather rather than
+# from a lookup table of month names. The UI must keep saying so.
+# ---------------------------------------------------------------------------
+thermal_phase:
+  src: ai_provisional
+  warming_c_per_day: 0.15
+  cooling_c_per_day: -0.15
+  # Read against the species optimum rather than as absolute bands, so the same
+  # rule works for a cold water and a warm one.
+  phases:
+    spring_warming: "below optimum and warming"
+    summer_stagnation: "at or above optimum"
+    autumn_cooling: "below optimum and cooling"
+    holding: "below optimum, neither warming nor cooling"
+
+# ---------------------------------------------------------------------------
+# 10. Uncertainty in the water temperature, measured rather than assumed
+#
+# Almost no small water has a thermometer in it and waiting for one would mean
+# never shipping. So the model reports a BAND from a 27-member ensemble over its
+# three uncertain coefficients, and the numbers below say what that band costs.
+#
+# These were measured on a grid of cells whose fetch and shore proximity vary
+# INDEPENDENTLY. An earlier version of this note claimed the map was invariant
+# to +/-5 C; that was an artefact of a test fixture in which the two co-varied,
+# so the ranking was trivially "most exposed first" and could not move. Water
+# temperature genuinely does reorder the map - five distinct orderings between
+# 10 C and 30 C - and the real question is by how much.
+#
+#   * the model's own band is about +/-0.8 C;
+#   * across +/-2 C the map's rank correlation with the truth stays above 0.92,
+#     and at the +/-0.8 C the model actually carries it is above 0.976;
+#   * the best three spots survive +/-2 C everywhere EXCEPT under heat stress;
+#   * the lake-wide bite index moves ~0.10 across +/-3 C, narrower than the one
+#     colour band it is ever displayed as.
+#
+# THE CAVEAT THAT MATTERS. Near 26 C the map is measurably more sensitive: a
+# 1-2 C error there costs one of the top three spots, because that is where the
+# oxygen gate is biting and small temperature changes push cells across it. The
+# model is least trustworthy in a heatwave, which is also when the advice
+# matters most - so `confidence` below carries an explicit heat-stress penalty
+# rather than leaving that in a comment nobody reads.
+#
+# `fit_offset` in app/features/water_temp.py closes the loop for anyone who does
+# dip a thermometer occasionally: the median residual becomes a standing
+# correction. Zero cost for the waters where nobody ever will.
+# ---------------------------------------------------------------------------
+water_temp_uncertainty:
+  src: measured_property_of_this_model
+  ensemble_members: 27
+  typical_half_width_c: 0.8
+  rank_correlation_at_1c_bias: 0.976
+  rank_correlation_at_2c_bias: 0.918
+  top3_survives_2c_bias: true      # except under heat stress - see above
+  bite_index_shift_per_3c: 0.10

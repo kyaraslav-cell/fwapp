@@ -178,12 +178,19 @@ def confidence(
     stable_days: int,
     history_coverage: float,
     ruleset: dict[str, Any],
+    f_oxygen: float = 1.0,
 ) -> float | None:
     """Pure. How much this estimate deserves to be believed (law 5).
 
     Deliberately separate from the score. A settled three days makes the same
     number worth more, because the model is driven by a 72-hour mean and that
     mean means less when the window was chaotic.
+
+    `f_oxygen` carries a measured fact rather than a hunch: near the oxygen
+    gate, a 1-2 C error in the modelled water temperature reshuffles the top of
+    the map, so a heat-stressed lake is one this model knows less about. That
+    the least trustworthy day is also the day the angler most wants an answer
+    is uncomfortable, and saying so is the only honest option.
     """
     if stability is None:
         return None
@@ -198,6 +205,8 @@ def confidence(
                     "consecutive_stable_days": float(stable_days),
                     "ideal_consecutive_stable_days": max(1.0, ideal),
                     "history_coverage": _clamp01(history_coverage),
+                    "f_oxygen": _clamp01(f_oxygen),
+                    "heat_stress_penalty": float(cfg["heat_stress_penalty"]),
                 },
             )
         )
@@ -255,7 +264,9 @@ def assess(
     limiting = min(values, key=lambda name: values[name])
     return BiteAssessment(
         index=index,
-        confidence=confidence(stability, stable_days, history_coverage, ruleset),
+        confidence=confidence(
+            stability, stable_days, history_coverage, ruleset, values["oxygen"]
+        ),
         factors=factors,
         limiting=limiting,
         unavailable=(),

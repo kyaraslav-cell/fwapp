@@ -94,7 +94,16 @@ def build_payload(slug: str, wind_dir: float, ensure_app: bool = True) -> dict[s
         inputs = geo_service.get_geometry_inputs(lake, outline, grid, wind_dir)
 
     ruleset = load_active_ruleset()
-    phase = ruleset["zone_score"]["default_phase"]
+    # The spike proves that the browser can run OUR geometry and OUR scoring
+    # expression, which is the v0.3 geometry model - carried forward in v0.4 as
+    # `zone_score.fallback`. It deliberately does not ship the three-factor
+    # model: that needs a modelled water temperature, and the question the
+    # spike answers is about shapely in a browser, not about limnology.
+    zone_cfg = ruleset["zone_score"]
+    if "fallback" in zone_cfg:
+        zone_cfg = zone_cfg["fallback"]
+        ruleset = {**ruleset, "zone_score": zone_cfg}
+    phase = zone_cfg["default_phase"]
     scored, phase_used = score_cells(ruleset, phase, inputs)
 
     return {

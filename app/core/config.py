@@ -27,7 +27,12 @@ def get_settings() -> Settings:
     return Settings(
         db_path=db_path,
         media_dir=media_dir,
-        ruleset_path=CONFIG_DIR / "rules.v0.3.yaml",
+        # ACTIVE RULESET. v0.4 adds oxygen and modelled water temperature to
+        # the score and derives thermal phase from them instead of the
+        # calendar. Roll back with FISHLOG_RULESET=rules.v0.3.yaml - law 2
+        # keeps every prediction stamped with the version that wrote it, so
+        # switching back and forth destroys nothing.
+        ruleset_path=CONFIG_DIR / os.environ.get("FISHLOG_RULESET", "rules.v0.4.yaml"),
         lake_config_path=CONFIG_DIR / "lakes" / "pomocnia.yaml",
         host=os.environ.get("FISHLOG_HOST", "0.0.0.0"),
         port=int(os.environ.get("FISHLOG_PORT", "8000")),
