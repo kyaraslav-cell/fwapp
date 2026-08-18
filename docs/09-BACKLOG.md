@@ -120,6 +120,12 @@ Every term in `zone_score` is open-water geometry; a bank with a tall tree line
 to windward is scored as exposed as one with none. Until that lands, the
 overlay systematically over-rates sheltered corners in summer.
 
+## 12. Water type: PZW vs commercial · DONE (first pass)
+
+`water_type` on the lake, filter on the places list, CPUE guarded against being
+pooled across the two. Closed seasons and size limits are NOT encoded — per
+okręg, needs research; `is_regulated()` marks the hook.
+
 ## 10. Live zone scores on the published site · SPIKED, undecided
 
 The Pages build answers only twelve wind directions because it has to pre-render
