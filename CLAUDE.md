@@ -164,6 +164,9 @@ transcript is the least durable thing in this project and the only place the
 *reasoning* lives — the code survives, the reason it looks like that does not.
 `session-end` moves that reasoning to `docs/handoff/` before compaction eats it.
 
+The owner cannot download files. Anything they need to read goes into the
+repository, not into an attachment.
+
 ## Answering the owner
 
 Short. Three things only: **what you did**, **what you could not do**, **what is

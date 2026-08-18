@@ -70,7 +70,11 @@ These came from the owner directly and are not negotiable without asking.
 10. **Conditions and map must stay reachable during an active session.**
 11. **Replies are short.** What was done, what could not be done, what is left.
     Nothing else — the reasoning goes in the commit and the docs.
-12. **Merge and deploy automatically.** Every finished change goes to the
+12. **The owner cannot download files.** Never deliver anything as a file to
+    save — no `.skill` packages, no attachments, no "click to install". Anything
+    that needs to reach them goes into the repository and is read on GitHub, or
+    is shown inline. Images sent for review are fine; files to be saved are not.
+13. **Merge and deploy automatically.** Every finished change goes to the
     working branch, then straight into the default branch, and the site
     rebuilds. No waiting to be asked. (Superseded the earlier rule of merging
     only on request — the owner changed it.)
