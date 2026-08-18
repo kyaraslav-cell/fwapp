@@ -61,9 +61,10 @@ These came from the owner directly and are not negotiable without asking.
 10. **Conditions and map must stay reachable during an active session.**
 11. **Replies are short.** What was done, what could not be done, what is left.
     Nothing else — the reasoning goes in the commit and the docs.
-12. **Do not deploy on every change.** Push to the working branch and leave it;
-    merging to the default branch rebuilds the site and costs credits. Merge
-    only when asked.
+12. **Merge and deploy automatically.** Every finished change goes to the
+    working branch, then straight into the default branch, and the site
+    rebuilds. No waiting to be asked. (Superseded the earlier rule of merging
+    only on request — the owner changed it.)
 
 ---
 
