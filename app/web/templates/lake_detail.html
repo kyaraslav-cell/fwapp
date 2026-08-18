@@ -71,7 +71,10 @@
 
 <div class="season-line">
   {{ t('lake.assuming') }} <strong>{{ t('phase.' ~ season.phase) }}</strong>
-  <span class="season-caveat">— {{ t('season_caveat') }}</span>
+  {# The caveat travels with the phase rather than being a fixed string: under
+     v0.4 it names the modelled water temperature and its trend, and only the
+     v0.3 fallback still says "assumed from the date". #}
+  <span class="season-caveat">— {{ season.caveat or t('season_caveat') }}</span>
 </div>
 
 <div class="pin-dock">

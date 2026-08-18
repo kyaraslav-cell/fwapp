@@ -125,6 +125,8 @@ history:
   min: min
 
 phase:
+  holding: holding steady
+  unknown: not enough data
   spring_warming: spring warming
   summer_stagnation: summer stagnation
   autumn_cooling: autumn cooling

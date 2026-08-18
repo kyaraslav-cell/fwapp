@@ -125,6 +125,8 @@ history:
   min: мин
 
 phase:
+  holding: без изменений
+  unknown: недостаточно данных
   spring_warming: весеннее прогревание
   summer_stagnation: летняя стагнация
   autumn_cooling: осеннее охлаждение

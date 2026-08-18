@@ -292,3 +292,85 @@ def test_wind_direction_reverses_which_bank_is_best(ruleset: dict[str, Any]) -> 
         "the exposed bank's advantage must shrink or reverse when the lake is "
         "moving away from the optimum"
     )
+
+
+# --------------------------------------------------------------------------
+# How much the map depends on a water temperature nobody can measure
+# --------------------------------------------------------------------------
+
+
+def _spread_cells() -> list[bite.ZoneInputs]:
+    """Fetch and shore proximity varying INDEPENDENTLY.
+
+    This matters. An earlier version of this fixture let the two co-vary, which
+    made the ranking trivially "most exposed first" - it could not move, and
+    the invariance result read off it was meaningless.
+    """
+    cells: list[bite.ZoneInputs] = []
+    i = 0
+    for f in (0.9, 0.6, 0.3, 0.05):
+        for s in (0.9, 0.6, 0.3, 0.05):
+            cells.append(bite.ZoneInputs(0, i, f, s, f * s, s))
+            i += 1
+    return cells
+
+
+def _map_scores(ruleset: dict[str, Any], water_c: float) -> dict[int, float]:
+    cells = _spread_cells()
+    o2 = {
+        (c.row, c.col): ox.estimate(water_c, 5.0, c.fetch_norm, ruleset["oxygen"])
+        for c in cells
+    }
+    scored = bite.score_zones(ruleset, cells, o2, water_c, water_c - 1.5, 26.8)
+    return {col: v for _, col, v in scored}
+
+
+def _spearman(a: dict[int, float], b: dict[int, float]) -> float:
+    ka = sorted(a, key=lambda k: -a[k])
+    kb = sorted(b, key=lambda k: -b[k])
+    ra = {k: i for i, k in enumerate(ka)}
+    rb = {k: i for i, k in enumerate(kb)}
+    n = len(ra)
+    d2 = sum((ra[k] - rb[k]) ** 2 for k in ra)
+    return 1 - 6 * d2 / (n * (n * n - 1))
+
+
+def test_water_temperature_actually_moves_the_map(ruleset: dict[str, Any]) -> None:
+    """If it did not, the thermal term would be decoration.
+
+    The counterpart to the tolerance test below: before asking how much error
+    the map absorbs, check the input matters at all.
+    """
+    orders = {
+        tuple(sorted(_map_scores(ruleset, t), key=lambda k: -_map_scores(ruleset, t)[k]))
+        for t in (10.0, 18.0, 26.0, 30.0)
+    }
+    assert len(orders) > 1, "water temperature must be able to reorder the zones"
+
+
+@pytest.mark.parametrize("truth", [14.0, 18.0, 22.0])
+def test_map_survives_the_models_own_uncertainty(
+    ruleset: dict[str, Any], truth: float
+) -> None:
+    """The band is about +/-0.8 C; the map has to hold across it.
+
+    Not a claim of invariance - the ordering does shift. The claim is that it
+    shifts less than the angler could notice, and the metric is rank
+    correlation rather than exact permutation equality, because a swap in the
+    middle of the pack changes nothing anyone would act on.
+    """
+    base = _map_scores(ruleset, truth)
+    for bias in (-1.0, 1.0):
+        assert _spearman(base, _map_scores(ruleset, truth + bias)) > 0.95
+
+
+def test_heat_stress_lowers_confidence(ruleset: dict[str, Any]) -> None:
+    """Measured: near the oxygen gate a 1-2 C error reshuffles the top of the map.
+
+    So a heat-stressed lake must be reported as one the model knows less about,
+    even when the weather has been perfectly settled.
+    """
+    settled_and_cool = bite.confidence(0.95, 3, 1.0, ruleset, f_oxygen=1.0)
+    settled_but_gasping = bite.confidence(0.95, 3, 1.0, ruleset, f_oxygen=0.05)
+    assert settled_and_cool is not None and settled_but_gasping is not None
+    assert settled_but_gasping < settled_and_cool

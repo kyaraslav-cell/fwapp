@@ -16,7 +16,8 @@ from app.ingest.open_meteo import ingest_forecast
 from app.notebook.sessions import METHODS, active_session, lake_stats, start_session
 from app.predict.daily import generate_predictions, latest_prediction
 from app.rules.loader import load_active_ruleset
-from app.rules.zone_score import score_cells
+from app.rules.zone_score import _percentile_normalise, score_cells
+from app.web import bite_view
 from app.web.deps import get_db, get_lake, get_lake_by_slug, templates
 from app.web.view_helpers import current_conditions, prediction_view
 from app.web.weather_table import current_reading, recent_days
@@ -96,7 +97,15 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
 
     ruleset = load_active_ruleset()
     zone_cfg = ruleset["zone_score"]
-    season = derive_season(ruleset, to_display(utcnow()).date())
+
+    # Thermal phase from modelled water temperature when the active ruleset
+    # supports it, and only then falling back to the calendar stand-in that
+    # ADR 0001 §5 forbids. Feature-detected rather than version-checked so a
+    # rollback needs no code change.
+    view = bite_view.build(db, lake, ruleset) if bite_view.supports_bite_model(ruleset) else None
+    season = view.phase if view is not None else derive_season(
+        ruleset, to_display(utcnow()).date()
+    )
 
     return templates.TemplateResponse(
         "lake_detail.html",
@@ -148,9 +157,40 @@ def lake_grid(
     inputs = geo_service.get_geometry_inputs(lake, outline, grid, wind_dir)
 
     ruleset = load_active_ruleset()
-    if not phase:
-        phase = derive_season(ruleset, to_display(utcnow()).date()).phase
-    scored, phase_used = score_cells(ruleset, phase, inputs)
+
+    if bite_view.supports_bite_model(ruleset):
+        view = bite_view.build(db, lake, ruleset)
+        raw = bite_view.zone_scores(
+            db, lake, ruleset, inputs, view,
+            float(ruleset["zone_score"].get("margin_band_m", 25.0)),
+            float(ruleset["zone_score"].get("max_possible_fetch_m", 400.0)),
+        )
+        # Percentile display is a presentation transform and is shared with
+        # v0.3 on purpose - colour still means "better than other spots on this
+        # lake today", never "good fishing".
+        scored = _percentile_normalise(raw) if raw else []
+        phase_used = view.phase.phase
+        if not scored:
+            # No water temperature, so the three-factor model has nothing to
+            # say. Fall back to the v0.3 geometry-only score rather than
+            # publish a blank lake - the Pages build starts from an empty
+            # database every run, so a failed ingest would otherwise ship a map
+            # with no colour on it at all.
+            #
+            # Falling back is only acceptable because the answer SAYS it fell
+            # back: `model` names which one produced these cells, and the page
+            # must not present the two as the same thing.
+            legacy = {"zone_score": ruleset["zone_score"]["fallback"]}
+            fallback_phase = derive_season(legacy, to_display(utcnow()).date()).phase
+            scored, phase_used = score_cells(legacy, fallback_phase, inputs)
+            model_used = "geometry_only_v0.3"
+        else:
+            model_used = "three_factor_v0.4"
+    else:
+        if not phase:
+            phase = derive_season(ruleset, to_display(utcnow()).date()).phase
+        scored, phase_used = score_cells(ruleset, phase, inputs)
+        model_used = "geometry_only_v0.3"
 
     return JSONResponse(
         {
@@ -161,6 +201,7 @@ def lake_grid(
             "n_cols": grid.n_cols,
             "wind_dir": wind_dir,
             "phase": phase_used,
+            "model": model_used,
             "cells": [[r, c, v] for r, c, v in scored],
         }
     )

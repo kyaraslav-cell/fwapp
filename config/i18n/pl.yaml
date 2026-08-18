@@ -125,6 +125,8 @@ history:
   min: min
 
 phase:
+  holding: stabilizacja
+  unknown: za mało danych
   spring_warming: wiosenne ocieplanie
   summer_stagnation: letnia stagnacja
   autumn_cooling: jesienne wychładzanie
