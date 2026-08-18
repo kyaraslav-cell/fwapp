@@ -1,0 +1,448 @@
+version: v0.4
+features_version: f1
+parent: v0.3
+status: built and tested; the live app still serves v0.3 (see §9)
+
+# ===========================================================================
+# WHAT THIS IS
+#
+# The three-factor bite model from the owner-supplied video, written as rules.
+# Source transcript, verbatim and in Russian:
+#   docs/sources/2026-08-carp-three-factor-video-ru.md
+# Decisions, adaptations and provenance:
+#   docs/adr/0003-three-factor-bite-model.md
+#
+# `features_version: f1` names app/features/water_temp.py, oxygen.py and
+# stability.py, which now exist, and app/rules/bite.py which combines them.
+# Run the whole model against this lake's real ingested weather with:
+#     python tools/bite_report.py
+#
+# The LIVE lake page still scores with v0.3. Switching it over is a separate,
+# deliberate step: this model's water temperature has never been checked
+# against an actual thermometer in Pomocnia, and law 2 means every prediction
+# written under v0.4 is permanent. Set FISHLOG_RULESET to move.
+#
+# THE MODEL IN ONE PARAGRAPH
+#   WHEN: three factors must line up at once - atmospheric pressure near this
+#   water body's own norm, enough dissolved oxygen, and a water temperature the
+#   species can feed at. Any one of them being wrong is enough to kill the bite,
+#   so they combine as a limiter, not a sum.
+#   WHERE: pressure is identical everywhere on a 9 ha lake, so it cannot tell
+#   you where to stand and is excluded from the zone term. Only oxygen and water
+#   temperature vary across the lake, and on this water the thing that varies
+#   them is wind pushing onto shallow banks - shallow water mixes and changes
+#   temperature faster, and cooler water holds more oxygen.
+#
+# PROVENANCE TAGS on every coefficient below:
+#   src: video           stated in the transcript, cite the timestamp
+#   src: physics         arithmetic or chemistry, not an angling opinion
+#   src: ai_provisional  AI-authored hypothesis, may be overridden freely
+#   src: PENDING_OWNER   deliberately unfilled - do NOT guess (CLAUDE.md law 1)
+# ===========================================================================
+
+provenance: owner_sourced_video_plus_ai_derived
+supersede_with: FORMULA_WIND_ZONE
+
+# ---------------------------------------------------------------------------
+# 1. The pressure norm - per water body, MEASURED, never guessed
+#
+# Video 1:36: "на каждом водоёме она своя, и общей для всех её нет. А есть
+# простая формула, как её можно посчитать" - and then it never states the
+# formula. That is the paid upsell in episode 9.
+#
+# So the norm is not taken from the video. It is computed from this lake's own
+# observed pressure history, which Open-Meteo's ERA5 archive supplies for free
+# at the lake's own coordinates. A long-run central tendency IS the norm; no
+# angling judgement is involved, which is exactly why it is safe to compute.
+#
+# Note the units trap: the video's "750 мм рт. ст." is a STATION reading at
+# that lake's altitude (= 1000 hPa). weather_hourly stores pressure_msl, which
+# is sea-level reduced. Never compare the two directly.
+# ---------------------------------------------------------------------------
+pressure_norm:
+  src: physics
+  method: median              # median, not mean: resistant to storm outliers
+  source_field: pressure_msl
+  window_days: 1095           # three years of ERA5 at this grid point
+  min_samples_hours: 8760     # under a year of history -> term unavailable
+  on_insufficient_history: unavailable   # law 4: no data is not a licence to invent one
+  recompute_every_days: 30
+
+# ---------------------------------------------------------------------------
+# 2. Stability over the previous days - the owner's explicit requirement
+#
+# "Best conditions for calculation are when they are stable; if the weather is
+# stable for a couple of days it is ideal."
+#
+# This is physically well founded rather than a preference: a lake with a mean
+# depth under 3 m has a thermal time constant of roughly one to three days, so
+# THE LAST ~72 HOURS OF AIR TEMPERATURE *ARE* THE WATER TEMPERATURE SIGNAL.
+# A 3-day lookback is not an arbitrary window, it is this lake's memory.
+#
+# Stability does two separate jobs, and conflating them would be a mistake:
+#   a) it raises the score, because a settled fish is a feeding fish;
+#   b) it raises CONFIDENCE, because a model driven by a 72 h mean is simply
+#      more trustworthy when those 72 h were not chaotic (law 5).
+# ---------------------------------------------------------------------------
+stability:
+  src: ai_provisional
+  lookback_hours: 72          # owner: "at least 3 days"
+  min_coverage_ratio: 0.8     # under 80% of hours present -> unavailable, not filled in
+
+  # Ranges over the lookback at which stability is considered fully lost.
+  pressure_range_full_hpa: 12.0
+  air_temp_range_full_c: 14.0
+  wind_dir_spread_full_deg: 140.0
+
+  # A "stable day" for the consecutive-day counter.
+  stable_day:
+    pressure_range_hpa_max: 4.0
+    air_temp_range_c_max: 8.0
+  ideal_consecutive_stable_days: 2   # owner: "a couple of days is ideal"
+
+  # Instability damps the score but never zeroes it - a fish still eats in a
+  # front, it just eats less predictably.
+  score_floor: 0.55
+
+  expression: >
+    clamp(1 - p_range_72h / pressure_range_full_hpa, 0, 1)
+    * clamp(1 - t_air_range_72h / air_temp_range_full_c, 0, 1)
+
+# ---------------------------------------------------------------------------
+# 3. Water temperature - the missing Layer 2, as a lumped model
+#
+# Video 2:12: "А что влияет на температуру воды? Ну точно ветер. Северный
+# холодный охлаждает, южный тёплый нагревает."
+#
+# Modelled, not measured, and it must say so in the UI. This finally replaces
+# the calendar-month thermal phase that ADR 0001 §5 forbids and that
+# docs/10 §4 flags as the weakest point in v0.3.
+# ---------------------------------------------------------------------------
+water_temp:
+  src: physics
+  model: lumped_capacitance
+  # dT/dt = (T_eq - T) / tau
+  tau_days_per_metre: 0.9     # depth-scaled; ~2.6 days at Pomocnia's ~2.9 m mean
+  equilibrium:
+    # T_eq tracks air temperature, lifted by absorbed sunlight and pulled down
+    # by evaporation into dry air, with wind speeding the evaporation up. Four
+    # inputs, all already ingested hourly, and deliberately few free
+    # parameters: every extra coefficient is another thing that can be wrong in
+    # a way nobody notices.
+    air_weight: 1.0
+    shortwave_gain_c_per_kwm2: 2.5
+    evaporative_loss_per_c_deficit: 0.10
+    wind_factor_ref_ms: 8.0
+    wind_factor_cap: 2.0        # a gale must not drive the equilibrium absurd
+  spin_up_hours: 72             # ~= tau, so the seed has decayed by the end
+  min_coverage_ratio: 0.8
+  mean_depth_m: 2.9             # Pomocnia; tau lands near 2.6 days
+  init_from: air_temp_mean_72h
+  is_measured: false          # NEVER flip this without a thermometer in the lake
+
+# ---------------------------------------------------------------------------
+# 4. Oxygen
+#
+# Video 1:43: "когда кислорода хватает, карп оживает и начинает питаться.
+# Когда мало, он задыхается и перестаёт клевать."
+# Video 3:31: "чем прохладнее вода, тем больше кислорода."
+#
+# Saturation is chemistry and is computed, not asserted. What counts as
+# "enough" for a feeding fish is biology, and the video gives no number.
+# ---------------------------------------------------------------------------
+oxygen:
+  saturation:
+    src: physics
+    # Benson-Krause / APHA freshwater DO saturation, mg/L at 1 atm.
+    expression: >
+      14.652 - 0.41022 * t_water + 0.007991 * t_water ** 2
+      - 0.000077774 * t_water ** 3
+
+  reaeration:
+    src: physics
+    # Wind reaeration rises with the square of wind speed and with the fetch
+    # the wind has crossed to reach the spot. This is the term that makes the
+    # windward bank different from the lee one.
+    expression: "clamp(fetch_norm * (wind_u / wind_ref_ms) ** 2, 0, 1)"
+    wind_ref_ms: 6.0
+    max_boost: 0.35
+
+  respiration:
+    src: ai_provisional
+    # WITHOUT THIS THE MODEL RECOMMENDS HEATWAVES. Saturation is the ceiling,
+    # not the water's actual oxygen: in a shallow productive lake, respiration
+    # (plants at night, sediment, bacteria) rises steeply with temperature
+    # while the saturation ceiling only sags gently. Using saturation alone
+    # over-reads oxygen exactly when the video says it collapses.
+    # Standard limnological form: a Q10 rate multiplier on a reference load.
+    expression: "r20_mgl * q10 ** ((t_water - 20) / 10)"
+    r20_mgl: 2.0        # net respiration load at 20 C, mg/L
+    q10: 2.3
+    sensitivity_warning: >
+      The answer moves a lot with r20_mgl. It is the single least defensible
+      number here and the first thing to calibrate against real catches.
+
+  actual:
+    src: physics
+    expression: "o2_saturation - o2_respiration"
+
+  thresholds:
+    src: PENDING_OWNER
+    # mg/L below which a fish stops feeding, and above which oxygen stops being
+    # the limiting factor. The video says "enough" and "not enough" and never
+    # quantifies either. DO NOT GUESS - see CLAUDE.md law 1.
+    stops_feeding_mgl: null
+    not_limiting_mgl: null
+    # Provisional stand-ins so the shape can be tested against a fixture; the
+    # evaluator must refuse to score for real while `src` is PENDING_OWNER.
+    provisional_stops_feeding_mgl: 5.0
+    provisional_not_limiting_mgl: 8.5
+
+# ---------------------------------------------------------------------------
+# 5. Species response to water temperature
+#
+# The video is about CARP. This project's primary species are roach, bream,
+# rudd and ide, and it gives no figure for any of them. The one number it does
+# state is for grass carp, which is not even in scope for scoring.
+# ---------------------------------------------------------------------------
+species_response:
+  # Water temperature at which feeding/growth is maximal. Sourced from
+  # literature at the owner's instruction; every entry carries its source and a
+  # confidence tier, because two of these are much weaker than the others.
+  #
+  # `t_zero_c` is the temperature at which cyprinid feeding effectively ceases.
+  t_zero_c: 4.0               # src: ai_provisional
+
+  roach:                      # płoć - Rutilus rutilus
+    src: literature
+    confidence: high
+    t_opt_c: 26.8
+    ref: >
+      Thermal-gradient preference 26.8 +/- 0.9 C, reported as lying within the
+      optimum range for feeding, growth and conversion efficiency (Oecologia,
+      fasting/refeeding study). Tolerance ~4-31 C. Starved fish select 22.8 C
+      at night.
+    pl_practice_onset_c: 14.0  # Polish angling sources: feeds from 14 C, bait from 18 C
+
+  bream:                      # leszcz - Abramis brama
+    src: literature
+    confidence: high
+    t_opt_c: 27.9
+    ref: >
+      Instantaneous growth rate rose from 13.5 C to a maximum at 27.9 C and
+      fell above it; controlled-rearing optimum quoted as 25-30 C.
+    pl_practice_onset_c: 19.0  # Polish angling sources: feeding starts ~19 C, late April
+
+  crucian_carp:               # karaś - Carassius carassius
+    src: literature
+    confidence: high
+    t_opt_c: 27.0
+    ref: >
+      Thermal optimum 27 C; exceptionally eurythermal, 0-38 C.
+    anoxia_note: >
+      IMPORTANT INTERACTION WITH THE OXYGEN GATE. Crucian carp survives anoxia
+      for months near 0 C but only a day or two at 25 C - the tolerance
+      collapses as it warms. So its famous ability to live where nothing else
+      can does NOT rescue it in a summer heatwave, which is the only time this
+      lake goes hypoxic. Do not weaken the oxygen gate for this species.
+
+  carp:                       # karp - Cyprinus carpio
+    src: literature
+    confidence: high
+    t_opt_c: 26.0
+    ref: >
+      Optimum growth range 24-28 C; highest juvenile feeding rate measured at
+      24 C.
+
+  rudd:                       # wzdręga - Scardinius erythrophthalmus
+    src: literature
+    confidence: LOW
+    t_opt_c: 24.0
+    ref: >
+      WEAK. No feeding-optimum experiment found. Sources are invasive-species
+      and aquarium profiles and they disagree: "prefers 2-22 C" (a tolerance
+      range, not an optimum), "tolerates 26 C without damage", spawns above
+      16 C. The one mechanistic figure: rudd take macrophytes above 20 C and
+      avoid them below 20 C. 24.0 is an interpolation and should be replaced.
+
+  ide:                        # jaź - Leuciscus idus
+    src: literature
+    confidence: LOW
+    t_opt_c: 20.0
+    ref: >
+      WEAK. Only pond-keeping and ornamental sources found, giving preference
+      4-20 C and 10-21 C, survival 1-32 C. Consistently cooler than the other
+      five, which is plausible for a more rheophilic species, but no feeding
+      experiment backs the number.
+
+  # HONEST FINDING, recorded so nobody spends time chasing it: the four primary
+  # species sit within ~1 C of each other (26.8, 27.9, 24.0, 20.0) and share a
+  # feeding floor. On this lake the temperature term will barely separate them.
+  # Species differentiation will have to come from depth, habitat and bait -
+  # not from the thermometer.
+
+# ---------------------------------------------------------------------------
+# 6. WHEN - the lake-level bite window
+#
+# Video 4:20: "Все три условия совпали одновременно." All three at once, so a
+# limiter (Liebig), not a weighted sum: one bad factor is enough. `blend`
+# softens a pure min() so that two excellent factors still count for something.
+# ---------------------------------------------------------------------------
+bite_when:
+  src: ai_provisional
+
+  pressure_comfort:
+    # Video 1:16-1:31: away from the norm in EITHER direction the swim bladder
+    # is loaded and the fish does not feed.
+    expression: "clamp(1 - abs(p_now - p_norm) / p_dev_full_hpa, 0, 1)"
+    p_dev_full_hpa: 14.0      # src: ai_provisional - the video gives no width
+
+  pressure_approach:
+    # Video 3:05: "давление падает к норме ... активность будет расти."
+    # Direction matters as well as distance: converging on the norm is a rising
+    # bite even while still off it.
+    expression: >
+      clamp((abs(p_dev_24h_ago) - abs(p_now - p_norm)) / p_approach_full_hpa, -1, 1)
+    p_approach_full_hpa: 6.0
+    weight: 0.25
+
+  oxygen_term:
+    expression: "clamp((o2_sat - o2_stops) / (o2_not_limiting - o2_stops), 0, 1)"
+
+  temperature_term:
+    # ASCENDING LIMB ONLY, deliberately. A symmetric curve around the growth
+    # optimum would model the heat collapse a second time, when `oxygen` above
+    # already models it mechanistically - and double-counting it pushed the
+    # peak to 26 C, which is precisely the condition the source says kills the
+    # bite. Feeding rate rises with temperature toward the optimum; what takes
+    # it away again is oxygen, not the thermometer.
+    expression: "clamp((t_water - t_zero_c) / (t_opt - t_zero_c), 0, 1)"
+
+  combine:
+    blend: 0.35
+    # Instability damps the score to this floor, never to zero: a fish still
+    # feeds in a front, it just feeds less predictably. Mirrors
+    # `stability.score_floor` and is repeated here because the expression below
+    # is evaluated with this block's own names.
+    stability_floor: 0.55
+
+    # SETTLED *OR* IMPROVING. Two defensible ideas collide here and the
+    # resolution matters, so it is written down rather than tuned away.
+    #
+    # The owner's requirement is that a settled spell is the ideal case, which
+    # is true: a fish that has had three quiet days is a fish in a routine.
+    # But the source video's winning session happened during a CHANGE - a
+    # heatwave breaking, pressure falling back toward the norm - and a pure
+    # stability multiplier scores that as unsettled and marks it down. Replayed
+    # against the video's own week, it made Saturday and Sunday score WORSE
+    # than Friday even as the water cooled and the oxygen came back, which is
+    # the opposite of what the angler found.
+    #
+    # Both are right about different things. A day is worth fishing when the
+    # weather has settled OR when it is moving toward the norm; it is a poor
+    # day when it is neither. So the damping takes whichever applies, and only
+    # a day that is unsettled AND drifting away from the norm gets the haircut.
+    #
+    # Stability alone still drives CONFIDENCE - see §8. That separation is the
+    # point: a transition can be a good day to fish and still be a day the
+    # model deserves less trust on.
+    expression: >
+      ((1 - blend) * min(min(f_pressure, f_oxygen), f_temp)
+      + blend * (f_pressure + f_oxygen + f_temp) / 3)
+      * (1 + w_approach * f_approach)
+      * (stability_floor + (1 - stability_floor)
+         * max(f_stability, max(0, f_approach)))
+
+# ---------------------------------------------------------------------------
+# 7. WHERE - the zone term
+#
+# Video 2:43: "давление на водоёме на всём будет одинаковое. А вот температура
+# воды и содержание кислорода на разных глубинах и в разных местах будет
+# разная."
+#
+# So PRESSURE IS DELIBERATELY ABSENT from this block. It is a lake-wide
+# constant and putting it here would add a number to every cell equally,
+# changing nothing and pretending to.
+# ---------------------------------------------------------------------------
+zone_score:
+  src: ai_provisional
+  supersede_with: FORMULA_WIND_ZONE
+
+  terms:
+    # How fast this cell's water tracks the air: wind-mixed and shallow water
+    # leads the lake, sheltered deep water lags it.
+    lead:
+      expression: "clamp(mix_index * shallow_proxy, 0, 1)"
+
+    # Whether leading is an advantage depends on which way the lake is heading.
+    # Video's case: a heatwave breaking, so the fastest-cooling bank was best.
+    # Reverse the trend and the same bank is the wrong one - which is why this
+    # is a signed direction and not a fixed preference for windward banks.
+    thermal_direction:
+      # SIGN: `t_water_24h` is the past, `t_water` is now, so the distance
+      # that shrank must come FIRST. Written the other way round this reads
+      # +1 for a lake drifting away from the species optimum, and would send
+      # the angler to the fastest-warming bank in a heatwave. A test pins it.
+      expression: >
+        clamp((abs(t_water_24h - t_opt) - abs(t_water - t_opt)) / t_dir_full_c, -1, 1)
+      t_dir_full_c: 2.0
+
+    oxygen_zone:
+      expression: "clamp(f_oxygen + o2_max_boost * mix_index, 0, 1)"
+
+  weights:
+    w_o2:     0.45
+    w_temp:   0.30
+    w_food:   0.15   # lee_shore, carried forward from v0.3
+    w_margin: 0.10   # shore_prox, carried forward from v0.3
+
+  expression: >
+    w_o2 * oxygen_zone + w_temp * (lead * thermal_direction)
+    + w_food * lee_shore + w_margin * shore_prox
+
+  # ---- presence is not the same as a bite -------------------------------
+  # Video 4:47-5:17: the carp DID move to the deep water by the dam, and did
+  # not feed once it got there. A map of where fish are is not a map of where
+  # they bite, and this gate is the difference.
+  activity_gate:
+    src: video
+    expression: "clamp(oxygen_zone / o2_bite_floor, 0, 1)"
+    o2_bite_floor: 0.45       # src: ai_provisional
+    applies_to: final
+
+  # ---- what does not transfer to this lake ------------------------------
+  pomocnia_caveats:
+    - >
+      The video's water is a dammed river: deep at the dam, shallow at the
+      tail, so fish had somewhere to hide from the heat. Pomocnia is 9 ha with
+      a mean depth under 3 m and no comparable refuge, so `shallow_proxy` has
+      very little dynamic range here and the activity gate will rarely fire.
+      In a real heatwave the whole lake goes hypoxic together and the honest
+      answer is "do not go", not "go to the deep end".
+    - >
+      `shallow_proxy` is DISTANCE TO SHORE, not depth. There is no bathymetry
+      for this lake. It is a proxy and the UI must not present it as a survey.
+    - >
+      340 m of maximum fetch means the wind mixes this whole lake quickly. The
+      windward/lee distinction is real but much weaker than on the video's
+      water.
+
+  display:
+    normalisation: percentile
+    colormap: [red, orange, yellow, green]
+    low_label: "Poor"
+    high_label: "Best"
+
+# ---------------------------------------------------------------------------
+# 8. Confidence - law 5, and the owner's stability requirement, together
+# ---------------------------------------------------------------------------
+confidence:
+  src: ai_provisional
+  inputs: [f_stability, consecutive_stable_days, history_coverage, n_sessions]
+  expression: >
+    clamp(0.25 + 0.45 * f_stability
+          + 0.20 * min(consecutive_stable_days / ideal_consecutive_stable_days, 1)
+          + 0.10 * history_coverage, 0, 1)
+  render_rule: >
+    Never show a zone colour without its confidence band. A ranking computed
+    across a front must not look like one computed across three settled days.

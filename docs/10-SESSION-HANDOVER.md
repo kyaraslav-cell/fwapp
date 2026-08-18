@@ -34,6 +34,9 @@ rm -f fishlog.db*        # after any schema change
 make check && make dev
 ```
 
+**Put it on a URL:** the published Pages site is the read-only half only —
+sessions, catches and history need a process and a disk. See §9.
+
 ---
 
 ## 2. Standing rules from the owner (this session)
@@ -209,3 +212,63 @@ docs/12-SPIKE-PYODIDE.md      can a browser run our geometry? the measurements
 4. Numbered migrations before the first real logged season.
 5. Then Phase 5: the calibration loop, which is the entire point of the
    project.
+
+---
+
+## 9. Where it runs — hosting the full app
+
+The published Pages site (`docs/11`) is **half** the app: it reads. Sessions,
+catch logging, history and CPUE all write, so they need a process and a disk,
+and they are on no URL today. This section is the standing answer to "why can't
+I log a fish on the published site".
+
+**Constraint that decides everything:** the SQLite file must survive restarts
+and redeploys. Law 2 makes `prediction` rows immutable evidence and the whole
+calibration loop is built on a season of accumulated sessions — a host that
+resets its storage does not lose "some cache", it destroys the project's only
+asset. Any host without a persistent volume is disqualified, free or not.
+
+### The decision: own the machine, rent nothing
+
+```bash
+docker compose up -d        # the full app, port 8000, SQLite on a named volume
+tailscale funnel 8000       # a stable public https://<machine>.<tailnet>.ts.net
+```
+
+Free for personal use, no domain to buy, no ports forwarded on the router, no
+certificate to renew — Tailscale terminates HTTPS and relays in. The database
+stays on hardware the owner owns, so backup is what `docs/05` already says it
+is: copy the file.
+
+**The honest trade:** the app is reachable only while that machine is awake.
+"Always-on" in `docs/01` then means "that box stays on" — an old laptop with the
+lid-close action set to nothing, or a Pi. Nothing else here is free *and*
+persistent *and* zero-maintenance; this one trades a few watts for all three.
+
+### Fallback, if no machine can stay on
+
+**Oracle Cloud Always Free** — an Ampere ARM VM, free for the account's
+lifetime, with block storage. Same `docker compose up -d`, plus Caddy for
+HTTPS. Costs that are not money: a card for identity verification at signup,
+ARM capacity that is frequently unavailable in a given region, an idle-reclaim
+policy to watch, and a VM to patch. As of 2026 the free ARM allocation was
+halved to 2 OCPU / 12 GB — still far more than this app needs.
+
+### Why not what `docs/05-ARCHITECTURE.md` says
+
+That file's deployment line — *"a free tier on Fly.io / Railway"* — was written
+against offers that no longer exist. `docs/01..08` are kept as the original
+spec, so it is corrected here rather than edited there:
+
+| Host | State in 2026 | Verdict |
+|---|---|---|
+| Fly.io | free allowance ended 2024; new accounts get a 2-VM-hour / 7-day trial. Always-on `shared-cpu-1x` ≈ $2/mo, volumes $0.15/GB/mo **billed even when stopped** | cheap, not free |
+| Railway | free tier ended; trial credit only | not free |
+| Render | free web services sleep on idle and have **no** persistent disk | disqualified — would wipe the notebook |
+
+### Still owed by any host
+
+`docs/05` requires a **healthcheck endpoint exposing the last successful ingest
+time**, so that a silently dead ingest is loud instead of serving stale
+predictions as current. It does not exist yet — there is no `/health` route in
+`app/web/`. Build it before this runs unattended.
