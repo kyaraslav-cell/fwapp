@@ -7,6 +7,8 @@ nav:
 
 home:
   filter_all: Wszystkie
+  filter_pzw: PZW
+  filter_commercial: Komercyjne
   filter_label: Typ wody
   filter_empty: Brak wód tego typu.
   section: Twoje łowiska

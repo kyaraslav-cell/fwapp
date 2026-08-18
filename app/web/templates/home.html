@@ -6,12 +6,30 @@
 {# Filter only, and only here. A PZW water and a commercial fishery are
    different measurements - CPUE is never averaged across them - so the choice
    belongs at the point where you pick where to go, not once you are standing
-   on the bank. #}
-<div class="filter-row" role="group" aria-label="{{ t('home.filter_label') }}">
-  <a class="filter-chip{{ ' is-active' if not water_filter }}" href="/">{{ t('home.filter_all') }}</a>
-  {% for kind in ['pzw', 'commercial'] %}
-    <a class="filter-chip{{ ' is-active' if water_filter == kind }}"
-       href="/?water={{ kind }}">{{ t('water_type.' ~ kind) }}</a>
+   on the bank.
+
+   Drawn as one segmented switch - the same control the language picker uses -
+   rather than a row of separate pills. The options are mutually exclusive and
+   exactly one is always on, which is what a switch says and what three loose
+   buttons do not. The thumb slides on tap (see the script below) so the
+   control answers before the page reloads. #}
+{# Short labels on purpose: "Commercial fishery" wraps onto two lines inside a
+   three-way switch in all three languages. The full name still appears on each
+   place card, where there is room for it. #}
+{% set filter_options = [
+     ('', t('home.filter_all')),
+     ('pzw', t('home.filter_pzw')),
+     ('commercial', t('home.filter_commercial')),
+   ] %}
+{% set active_kind = water_filter or '' %}
+{% set active_index = {'': 0, 'pzw': 1, 'commercial': 2}.get(active_kind, 0) %}
+<div class="switch" role="group" aria-label="{{ t('home.filter_label') }}"
+     style="--switch-count: {{ filter_options | length }}; --switch-index: {{ active_index }};">
+  <span class="switch-thumb" aria-hidden="true"></span>
+  {% for kind, label in filter_options %}
+  <a class="switch-option{{ ' is-active' if active_kind == kind }}"
+     href="{{ '/?water=' ~ kind if kind else '/' }}"
+     {% if active_kind == kind %}aria-current="true"{% endif %}>{{ label }}</a>
   {% endfor %}
 </div>
 
@@ -39,4 +57,22 @@
 {% endfor %}
 
 <a href="/places/new" class="btn btn-ghost" style="margin-top: 8px;">{{ t('home.new_place') }}</a>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+// The thumb moves the moment the switch is tapped, not when the reloaded page
+// arrives. Without this the control sits dead for the length of a request and
+// stops reading as a switch. Progressive: with no JS the server still renders
+// the thumb under the active option.
+document.querySelectorAll('.switch').forEach(function (sw) {
+  var options = Array.prototype.slice.call(sw.querySelectorAll('.switch-option'));
+  sw.addEventListener('click', function (e) {
+    var hit = e.target.closest('.switch-option');
+    if (!hit) return;
+    sw.style.setProperty('--switch-index', options.indexOf(hit));
+    options.forEach(function (o) { o.classList.toggle('is-active', o === hit); });
+  });
+});
+</script>
 {% endblock %}

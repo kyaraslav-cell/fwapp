@@ -7,6 +7,8 @@ nav:
 
 home:
   filter_all: Все
+  filter_pzw: PZW
+  filter_commercial: Коммерческие
   filter_label: Тип водоёма
   filter_empty: Водоёмов такого типа пока нет.
   section: Ваши места ловли

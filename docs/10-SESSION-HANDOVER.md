@@ -212,6 +212,7 @@ app/features/                 pressure, solar, wind, season
 tools/animation_filmstrip.py  pin a CSS animation to exact progress %, tile it
 tools/splash_filmstrip.py     drive the real JS splash and photograph it
 tools/icon_sheet.py           render icons; --compare puts git's set beside it
+tools/switch_sheet.py         the water-type switch in every state x language; --strip films the thumb
 tools/build_static.py         render the read-only site for GitHub Pages
 tools/build_spike.py          the Pyodide spike page and its payload
 tools/spike_check.py          drive the spike in a real browser, or as a control

@@ -7,6 +7,8 @@ nav:
 
 home:
   filter_all: All
+  filter_pzw: PZW
+  filter_commercial: Commercial
   filter_label: Water type
   filter_empty: No waters of that kind yet.
   section: Your fishing places

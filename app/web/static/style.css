@@ -1108,33 +1108,82 @@ details.card[open] summary::before { content: "－ "; }
   vertical-align: middle;
 }
 
-/* Water-type filter on the places list. Same pastel language as the rest of
-   the buttons - a quiet row of pills, not a control panel. It appears on the
-   main menu only: once a water is chosen the distinction is settled, and it
-   has no business following the angler into a session. */
-.filter-row {
-  display: flex;
-  gap: 6px;
+/* Segmented switch. One track, one thumb, exactly one option on - the same
+   control as the language picker in the topbar, scaled up to a full-width row.
+   Used for the water-type filter on the places list: a PZW water and a
+   commercial fishery are alternatives, and a switch says that where three
+   separate pills only said "here are three buttons".
+
+   The thumb is positioned from --switch-index (0-based) over --switch-count
+   equal columns, so the same CSS serves any number of options and the slide is
+   a single transition rather than a class swap per segment. */
+.switch {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--switch-count, 3), 1fr);
+  align-items: stretch;
+  gap: 0;
   margin: 0 0 14px;
-  flex-wrap: wrap;
+  padding: var(--switch-pad, 3px);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  /* Nothing inside is selectable text - it is a control, and a long-press that
+     highlights "Commercial fishery" is never what was meant. */
+  user-select: none;
+  -webkit-user-select: none;
 }
-.filter-chip {
+
+.switch-thumb {
+  position: absolute;
+  top: var(--switch-pad, 3px);
+  bottom: var(--switch-pad, 3px);
+  left: var(--switch-pad, 3px);
+  width: calc((100% - 2 * var(--switch-pad, 3px)) / var(--switch-count, 3));
+  transform: translateX(calc(var(--switch-index, 0) * 100%));
+  background: var(--surface);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+}
+
+.switch-option {
+  position: relative;   /* above the thumb */
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 6px 8px;
   font-size: 0.82rem;
   font-weight: 600;
+  line-height: 1.15;
+  /* A long translation must never break out of the track - it gets clipped
+     instead, and the aria-label still names the control. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
   text-decoration: none;
-  padding: 5px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
   color: var(--muted);
-  transition: background 0.15s ease, color 0.15s ease;
+  border-radius: 999px;
+  transition: color 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
 }
-.filter-chip:hover { background: var(--surface-alt); color: var(--primary-text); }
-.filter-chip.is-active {
-  background: var(--primary);
-  border-color: var(--primary-strong);
-  color: #ffffff;
+
+.switch-option:hover { text-decoration: none; color: var(--primary-strong); }
+.switch-option.is-active { color: var(--primary-text); }
+
+/* A tap that lands on the option the thumb is already under still has to feel
+   like a press. */
+.switch-option:active { transform: scale(0.97); }
+
+@media (prefers-reduced-motion: reduce) {
+  .switch-thumb { transition: none; }
+  .switch-option:active { transform: none; }
 }
+
 .empty-state {
   color: var(--muted);
   font-size: 0.9rem;
