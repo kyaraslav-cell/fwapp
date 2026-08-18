@@ -398,8 +398,20 @@ zone_score:
         clamp((abs(t_water_24h - t_opt) - abs(t_water - t_opt)) / t_dir_full_c, -1, 1)
       t_dir_full_c: 2.0
 
+    # OXYGEN ADVANTAGE, not oxygen adequacy. The first version added the
+    # mixing boost onto the lake-wide oxygen term and clamped to 1 - so on an
+    # oxygen-rich lake every cell with any fetch at all saturated at 1.0, and
+    # the largest weight in the score became a constant across the whole
+    # interior. Rendered, that is a uniform stain with a green rim, which is
+    # exactly what it produced.
+    #
+    # What varies between spots is not how much oxygen there is, it is how much
+    # MORE this spot gets from wind mixing - and that only matters when oxygen
+    # is scarce. Scaling by the lake's own deficit makes the term dominate when
+    # the lake is gasping (the source video's case) and fade to nothing when it
+    # is not, which is when food and margin should be drawing the map instead.
     oxygen_zone:
-      expression: "clamp(f_oxygen + o2_max_boost * mix_index, 0, 1)"
+      expression: "clamp(mix_index * (1 - f_oxygen), 0, 1)"
 
   weights:
     w_o2:     0.45
@@ -407,9 +419,39 @@ zone_score:
     w_food:   0.15   # lee_shore, carried forward from v0.3
     w_margin: 0.10   # shore_prox, carried forward from v0.3
 
+    # WIND EXPOSURE, standing on its own. v0.3 carried fetch as a first-class
+    # term; v0.4 initially folded it into oxygen and into the thermal lead,
+    # and both of those fade to nothing on a settled, oxygen-rich day. The wind
+    # signal - the source video's whole mechanism - then vanished exactly when
+    # nothing else was varying either, and the lake rendered as concentric
+    # rings with no direction in it at all.
+    #
+    # Wind stacks drifting food against a bank whether or not the lake is short
+    # of oxygen, so this term does not depend on either. Rendered, it is what
+    # makes the map show a windward half and a lee half rather than a target.
+    w_exposure: 0.25
+
+  # RENORMALISE OVER THE TERMS THAT ACTUALLY VARY.
+  #
+  # A term that is identical in every cell carries no information about where
+  # to stand, but it still consumes its share of the weight - and on a settled
+  # oxygen-rich day BOTH the oxygen and thermal terms go flat, which left 0.25
+  # of the weight to draw the entire map. The result was a lake rendered as one
+  # colour, which is the exact failure docs/09 §4 recorded against v0.2.
+  #
+  # So any term whose spread across the cells is below `dead_term_spread` is
+  # dropped and the rest are rescaled to sum to one. The map then always spends
+  # its full range on whatever real information exists today.
+  #
+  # This is NOT a licence to manufacture contrast: if every term is flat, the
+  # honest answer is that this lake has no differentiation today, and the
+  # response says so instead of inventing a pattern.
+  renormalise_live_terms: true
+  dead_term_spread: 0.02
+
   expression: >
     w_o2 * oxygen_zone + w_temp * (lead * thermal_direction)
-    + w_food * lee_shore + w_margin * shore_prox
+    + w_food * lee_shore + w_margin * shore_prox + w_exposure * fetch_norm
 
   # ---- presence is not the same as a bite -------------------------------
   # Video 4:47-5:17: the carp DID move to the deep water by the dam, and did

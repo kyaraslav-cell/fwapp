@@ -308,13 +308,15 @@ def score_zones(
         )
     )
 
-    out: list[tuple[int, int, float]] = []
+    # Every term for every cell first, because the weights cannot be decided
+    # until we know which terms actually vary across this lake today.
+    rows: list[tuple[int, int, dict[str, float], float]] = []
     for cell in cells:
         estimate = oxygen_by_cell.get((cell.row, cell.col))
         if estimate is None:
             continue
-        o2_zone = oxygen_term(estimate.dissolved_mgl, thresholds)
-        if o2_zone is None:
+        adequacy = oxygen_term(estimate.dissolved_mgl, thresholds)
+        if adequacy is None:
             continue
 
         lead = _clamp01(
@@ -325,32 +327,93 @@ def score_zones(
                 )
             )
         )
-        core = float(
-            safe_eval(
-                cfg["expression"],
-                {
-                    "oxygen_zone": o2_zone,
-                    "lead": lead,
-                    "thermal_direction": direction,
-                    "lee_shore": cell.lee_shore,
-                    "shore_prox": cell.shore_prox,
-                    "w_o2": float(weights["w_o2"]),
-                    "w_temp": float(weights["w_temp"]),
-                    "w_food": float(weights["w_food"]),
-                    "w_margin": float(weights["w_margin"]),
-                },
-            )
-        )
-        # Presence is not a bite: below the oxygen floor the fish may well be
-        # sitting there and will not feed, so the score collapses rather than
-        # sending the angler to a refuge.
-        gated = core * _clamp01(
+        o2_zone = _clamp01(
             float(
                 safe_eval(
-                    gate["expression"],
-                    {"oxygen_zone": o2_zone, "o2_bite_floor": float(gate["o2_bite_floor"])},
+                    terms["oxygen_zone"]["expression"],
+                    {"mix_index": cell.fetch_norm, "f_oxygen": adequacy},
                 )
             )
         )
-        out.append((cell.row, cell.col, gated))
+        rows.append(
+            (
+                cell.row,
+                cell.col,
+                {
+                    "w_o2": o2_zone,
+                    "w_temp": lead * direction,
+                    "w_food": cell.lee_shore,
+                    "w_margin": cell.shore_prox,
+                    "w_exposure": cell.fetch_norm,
+                },
+                adequacy,
+            )
+        )
+
+    if not rows:
+        return []
+
+    live = _live_weights(rows, weights, cfg)
+    if live is None:
+        # Every term is flat: this lake genuinely offers no differentiation
+        # today. Returning nothing is the honest answer - manufacturing
+        # contrast out of noise would draw a map of rounding error.
+        return []
+
+    out: list[tuple[int, int, float]] = []
+    for row, col, values, adequacy in rows:
+        core = sum(weight * values[name] for name, weight in live.items())
+        # Presence is not a bite: below the oxygen floor the fish may well be
+        # sitting there and will not feed, so the score collapses rather than
+        # sending the angler to a refuge.
+        out.append(
+            (
+                row,
+                col,
+                core
+                * _clamp01(
+                    float(
+                        safe_eval(
+                            gate["expression"],
+                            {
+                                "oxygen_zone": adequacy,
+                                "o2_bite_floor": float(gate["o2_bite_floor"]),
+                            },
+                        )
+                    )
+                ),
+            )
+        )
     return out
+
+
+def _live_weights(
+    rows: list[tuple[int, int, dict[str, float], float]],
+    weights: dict[str, Any],
+    cfg: dict[str, Any],
+) -> dict[str, float] | None:
+    """Drop terms that are identical everywhere, rescale the rest to sum to one.
+
+    A term with no spread across the cells says nothing about where to stand,
+    but it still eats its share of the weight. On a settled, oxygen-rich day
+    both the oxygen and thermal terms go flat at once, which left a quarter of
+    the weight to draw the whole map - and rendered as one uniform colour with
+    a green rim.
+
+    Returns None when nothing varies at all, which is a real state and not an
+    error: some days a small round lake simply is the same everywhere.
+    """
+    if not cfg.get("renormalise_live_terms", False):
+        return {name: float(weights[name]) for name in weights}
+
+    floor = float(cfg.get("dead_term_spread", 0.02))
+    live: dict[str, float] = {}
+    for name in weights:
+        series = [values[name] for _, _, values, _ in rows]
+        if max(series) - min(series) >= floor:
+            live[name] = float(weights[name])
+
+    total = sum(live.values())
+    if not live or total <= 0:
+        return None
+    return {name: weight / total for name, weight in live.items()}
