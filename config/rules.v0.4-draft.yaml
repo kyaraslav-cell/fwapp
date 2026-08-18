@@ -156,6 +156,25 @@ oxygen:
     wind_ref_ms: 6.0
     max_boost: 0.35
 
+  respiration:
+    src: ai_provisional
+    # WITHOUT THIS THE MODEL RECOMMENDS HEATWAVES. Saturation is the ceiling,
+    # not the water's actual oxygen: in a shallow productive lake, respiration
+    # (plants at night, sediment, bacteria) rises steeply with temperature
+    # while the saturation ceiling only sags gently. Using saturation alone
+    # over-reads oxygen exactly when the video says it collapses.
+    # Standard limnological form: a Q10 rate multiplier on a reference load.
+    expression: "r20_mgl * q10 ** ((t_water - 20) / 10)"
+    r20_mgl: 2.0        # net respiration load at 20 C, mg/L
+    q10: 2.3
+    sensitivity_warning: >
+      The answer moves a lot with r20_mgl. It is the single least defensible
+      number here and the first thing to calibrate against real catches.
+
+  actual:
+    src: physics
+    expression: "o2_saturation - o2_respiration"
+
   thresholds:
     src: PENDING_OWNER
     # mg/L below which a fish stops feeding, and above which oxygen stops being
@@ -176,19 +195,80 @@ oxygen:
 # state is for grass carp, which is not even in scope for scoring.
 # ---------------------------------------------------------------------------
 species_response:
-  grass_carp:
-    src: video                # 5:21 "Оптимальная температура ... 25-30°"
-    t_opt_c: [25.0, 30.0]
-    note: out of scoring scope; recorded because it is the video's own evidence
-  carp:
-    src: video_implied        # 5:28, only as "loses oxygen before amur does"
-    t_opt_c: null
-  crucian_carp: { src: PENDING_OWNER, t_opt_c: null }
-  roach:        { src: PENDING_OWNER, t_opt_c: null }
-  bream:        { src: PENDING_OWNER, t_opt_c: null }
-  rudd:         { src: PENDING_OWNER, t_opt_c: null }
-  ide:          { src: PENDING_OWNER, t_opt_c: null }
-  t_span_c: 9.0               # src: ai_provisional - width of the tolerance skirt
+  # Water temperature at which feeding/growth is maximal. Sourced from
+  # literature at the owner's instruction; every entry carries its source and a
+  # confidence tier, because two of these are much weaker than the others.
+  #
+  # `t_zero_c` is the temperature at which cyprinid feeding effectively ceases.
+  t_zero_c: 4.0               # src: ai_provisional
+
+  roach:                      # płoć - Rutilus rutilus
+    src: literature
+    confidence: high
+    t_opt_c: 26.8
+    ref: >
+      Thermal-gradient preference 26.8 +/- 0.9 C, reported as lying within the
+      optimum range for feeding, growth and conversion efficiency (Oecologia,
+      fasting/refeeding study). Tolerance ~4-31 C. Starved fish select 22.8 C
+      at night.
+    pl_practice_onset_c: 14.0  # Polish angling sources: feeds from 14 C, bait from 18 C
+
+  bream:                      # leszcz - Abramis brama
+    src: literature
+    confidence: high
+    t_opt_c: 27.9
+    ref: >
+      Instantaneous growth rate rose from 13.5 C to a maximum at 27.9 C and
+      fell above it; controlled-rearing optimum quoted as 25-30 C.
+    pl_practice_onset_c: 19.0  # Polish angling sources: feeding starts ~19 C, late April
+
+  crucian_carp:               # karaś - Carassius carassius
+    src: literature
+    confidence: high
+    t_opt_c: 27.0
+    ref: >
+      Thermal optimum 27 C; exceptionally eurythermal, 0-38 C.
+    anoxia_note: >
+      IMPORTANT INTERACTION WITH THE OXYGEN GATE. Crucian carp survives anoxia
+      for months near 0 C but only a day or two at 25 C - the tolerance
+      collapses as it warms. So its famous ability to live where nothing else
+      can does NOT rescue it in a summer heatwave, which is the only time this
+      lake goes hypoxic. Do not weaken the oxygen gate for this species.
+
+  carp:                       # karp - Cyprinus carpio
+    src: literature
+    confidence: high
+    t_opt_c: 26.0
+    ref: >
+      Optimum growth range 24-28 C; highest juvenile feeding rate measured at
+      24 C.
+
+  rudd:                       # wzdręga - Scardinius erythrophthalmus
+    src: literature
+    confidence: LOW
+    t_opt_c: 24.0
+    ref: >
+      WEAK. No feeding-optimum experiment found. Sources are invasive-species
+      and aquarium profiles and they disagree: "prefers 2-22 C" (a tolerance
+      range, not an optimum), "tolerates 26 C without damage", spawns above
+      16 C. The one mechanistic figure: rudd take macrophytes above 20 C and
+      avoid them below 20 C. 24.0 is an interpolation and should be replaced.
+
+  ide:                        # jaź - Leuciscus idus
+    src: literature
+    confidence: LOW
+    t_opt_c: 20.0
+    ref: >
+      WEAK. Only pond-keeping and ornamental sources found, giving preference
+      4-20 C and 10-21 C, survival 1-32 C. Consistently cooler than the other
+      five, which is plausible for a more rheophilic species, but no feeding
+      experiment backs the number.
+
+  # HONEST FINDING, recorded so nobody spends time chasing it: the four primary
+  # species sit within ~1 C of each other (26.8, 27.9, 24.0, 20.0) and share a
+  # feeding floor. On this lake the temperature term will barely separate them.
+  # Species differentiation will have to come from depth, habitat and bait -
+  # not from the thermometer.
 
 # ---------------------------------------------------------------------------
 # 6. WHEN - the lake-level bite window
@@ -219,7 +299,13 @@ bite_when:
     expression: "clamp((o2_sat - o2_stops) / (o2_not_limiting - o2_stops), 0, 1)"
 
   temperature_term:
-    expression: "clamp(1 - abs(t_water - t_opt) / t_span_c, 0, 1)"
+    # ASCENDING LIMB ONLY, deliberately. A symmetric curve around the growth
+    # optimum would model the heat collapse a second time, when `oxygen` above
+    # already models it mechanistically - and double-counting it pushed the
+    # peak to 26 C, which is precisely the condition the source says kills the
+    # bite. Feeding rate rises with temperature toward the optimum; what takes
+    # it away again is oxygen, not the thermometer.
+    expression: "clamp((t_water - t_zero_c) / (t_opt - t_zero_c), 0, 1)"
 
   combine:
     blend: 0.35

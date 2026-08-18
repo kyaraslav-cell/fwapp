@@ -135,9 +135,68 @@ having, and it is not *validation*, which this project only gets from its own
 calibration loop. Everything here is stamped `ai_provisional` or `video` and may
 be overridden without ceremony.
 
+## Species temperatures — sourced 2026-08-18 at the owner's instruction
+
+The owner delegated these to literature search, preferring Polish/Central
+European data. `species_response` is no longer `PENDING_OWNER`; every value
+carries its source and a confidence tier, because two of the six are much
+weaker than the rest.
+
+| Species | PL | t_opt °C | Confidence | Basis |
+|---|---|---|---|---|
+| Roach | płoć | 26.8 | high | thermal-gradient preference, stated as the optimum for feeding, growth and conversion |
+| Bream | leszcz | 27.9 | high | growth-rate peak measured across 13.5–29.9 °C |
+| Crucian carp | karaś | 27.0 | high | thermal optimum; eurythermal 0–38 °C |
+| Carp | karp | 26.0 | high | optimum growth 24–28 °C; peak juvenile feeding at 24 °C |
+| Rudd | wzdręga | 24.0 | **LOW** | no feeding experiment found; aquarium/invasive profiles disagree |
+| Ide | jaź | 20.0 | **LOW** | pond-keeping sources only; 4–20 °C and 10–21 °C preference |
+
+Polish angling practice adds feeding onsets — roach from 14 °C (bait from 18),
+bream from ~19 °C in late April. These are recorded as `pl_practice_onset_c`
+and are **not** wired into the formula: they are angling convention, not
+measurement, and mixing the two silently would defeat the point of the
+provenance tags.
+
+**Finding worth stating plainly:** the four primary species cluster inside a
+few degrees of each other and share a feeding floor. On this lake the
+temperature term will barely separate them. Species differentiation has to come
+from depth, habitat and bait — not the thermometer. That is a property of
+cyprinids in one shallow water, not a defect to be tuned away.
+
+**Crucian carp needs one guard.** Its famous anoxia tolerance collapses with
+warmth — months near 0 °C, a day or two at 25 °C. Since summer is the only time
+this lake goes hypoxic, that tolerance never applies when it would matter. The
+oxygen gate must not be weakened for it.
+
+## Two modelling errors found by running the numbers, not by reading the diff
+
+Both were caught by sweeping water temperature through the terms and looking at
+the table. Neither is visible in a diff.
+
+**1. Saturation is not oxygen — the first version recommended heatwaves.**
+`DO_sat(T)` is the *ceiling*. In a shallow productive lake, respiration (night
+plants, sediment, bacteria) climbs steeply with temperature while the ceiling
+only sags gently, so saturation over-reads oxygen exactly when the source says
+it collapses. As first written the model peaked at **26 °C** and scored 30 °C at
+0.64 — the precise conditions the video's worked example describes as killing
+the bite. Fixed by subtracting a Q10 respiration load. `r20_mgl` is the least
+defensible number in the file and the first thing to calibrate.
+
+**2. The temperature term was double-counting the heat collapse.** A symmetric
+curve around the growth optimum makes the thermometer model the summer crash a
+second time, when oxygen now models it mechanistically. Worse, it claimed roach
+will not feed at 14 °C, which is contradicted by both the physiology and Polish
+practice. The term is now the **ascending limb only** — feeding rate rises
+toward the optimum; what takes it away again is oxygen.
+
+After both fixes the model peaks at **19 °C** (20 °C with 5 m/s of wind on the
+spot), feeds respectably from 12 °C, and collapses above 24 °C. That is
+faithful to the source's own worked example, where a break from 30–32 °C down
+to 25 °C day / 14 °C night is what switched the fish back on.
+
 ## Verification done
 
-All 14 expressions in `config/rules.v0.4-draft.yaml` were executed through the
+All 16 expressions in `config/rules.v0.4-draft.yaml` were executed through the
 project's real restricted-AST evaluator with a populated context; all 14
 evaluate. One was found broken on the first run — a YAML folded-scalar
 indentation bug had split `bite_when.combine` across two lines — and fixed.
