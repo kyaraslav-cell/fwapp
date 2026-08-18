@@ -138,3 +138,38 @@ says.
 
 `/lake/{slug}` no longer redirects away during an active session, and the
 session screen links back to conditions and history.
+
+
+## 11. The map can only draw rings and a gradient · TODO — the real blocker
+
+The owner's report, looking at the live overlay: *"there are no zones at all,
+just huge stain"*. Correct, and the cause is not a bug in the score.
+
+Two faults were found and fixed (see the v0.4 notes): the oxygen term saturated
+at 1.0 across the whole interior so the largest weight was constant, and the
+wind-exposure term had been folded into oxygen and the thermal lead, both of
+which fade to nothing on a settled day. With those fixed the map shows a
+windward/lee gradient again and raw spread went 0.212 → 0.326.
+
+**But a gradient is not zones, and no amount of tuning will make it zones.**
+Every spatial input the score has is either distance-to-shore or effective
+fetch. On a convex 340 m bowl both are smooth functions of position, so the map
+can only ever be concentric rings plus a directional gradient. Patches — *this
+bay, that weedbed, the shelf by the reeds* — require data the project does not
+have:
+
+| Needed | Status |
+|---|---|
+| Bathymetry / depth contours | none. `shallow_proxy` is distance-to-shore, a documented stand-in |
+| Weed beds and their edges | none. `docs/02-DOMAIN.md` argues the weed edge is a primary holding feature |
+| Tree lines and terrain shelter | none — this is backlog §3 / §8, still untouched |
+| Inflows, springs, structure | none |
+| `bank_aspect_deg`, `tree_line_height_m` on `zone` | columns exist, unpopulated |
+
+Cheapest first step by a distance: **the owner walks the lake once and marks
+the weed edges and the deeper holes on the map.** Ten minutes of local knowledge
+would add more spatial information than any amount of further weather modelling,
+because it is the only source of the asymmetry the map is missing.
+
+Second: OSM `natural=wood` for the tree line (backlog §3, needs an ADR).
+Third: a depth survey, which for 9 ha is a morning with a marker float.

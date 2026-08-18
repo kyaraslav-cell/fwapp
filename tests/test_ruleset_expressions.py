@@ -39,6 +39,7 @@ CONTEXT: dict[str, float | int | bool] = {
     "f_stability": 0.85, "blend": 0.35, "w_approach": 0.25, "stability_floor": 0.55,
     "heat_stress_penalty": 0.35,
     "w_o2": 0.45, "w_temp": 0.30, "w_food": 0.15, "w_margin": 0.10,
+    "w_exposure": 0.25,
     "w_fetch": 0.3, "w_shelter": 0.2, "w_lee": 1.0,
     "lead": 0.2, "thermal_direction": 0.6,
     "consecutive_stable_days": 2, "ideal_consecutive_stable_days": 2,

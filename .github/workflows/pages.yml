@@ -61,6 +61,18 @@ jobs:
         continue-on-error: true
         run: python -m app.ingest.scheduler --once
 
+      - name: Backfill deep weather history
+        # The runner starts from an empty database every build, and the
+        # pressure norm will not name a value until it has 8760 hours of this
+        # lake's own record. Without this step the pressure factor is
+        # permanently unavailable and the published bite index never scores.
+        #
+        # Two years from the ERA5 archive, two requests, resumable. Law 4 again:
+        # `continue-on-error` because a missing archive is a gap to record, not
+        # a reason to block the publish or to invent a norm.
+        continue-on-error: true
+        run: python -m app.ingest.archive --years 2
+
       - name: Build static site
         # `github.event.repository.name` gives the /<repo>/ prefix that project
         # Pages are served under. A user/org page served from the domain root
