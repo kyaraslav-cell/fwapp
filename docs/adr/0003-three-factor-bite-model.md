@@ -1,7 +1,8 @@
 # ADR 0003 — The three-factor bite model, and what was not taken from it
 
-**Status:** proposed. `config/rules.v0.4-draft.yaml` is written and validated
-but **not active**; `config/rules.v0.3.yaml` still serves.
+**Status:** built and tested. `config/rules.v0.4.yaml` plus
+`app/features/{water_temp,oxygen,stability}.py` and `app/rules/bite.py`.
+The live lake page still serves v0.3 — see *Activation* below.
 **Date:** 2026-08-18
 **Source:** `docs/sources/2026-08-carp-three-factor-video-ru.md` — a Russian
 carp-fishing video supplied by the owner as screenshots, named by them as the
@@ -200,3 +201,68 @@ All 16 expressions in `config/rules.v0.4-draft.yaml` were executed through the
 project's real restricted-AST evaluator with a populated context; all 14
 evaluate. One was found broken on the first run — a YAML folded-scalar
 indentation bug had split `bite_when.combine` across two lines — and fixed.
+
+
+---
+
+## Built — 2026-08-18
+
+Four modules, all pure, `mypy --strict`, 35 tests: `app/features/water_temp.py`
+(lumped-capacitance lake, tau scaled by depth), `app/features/oxygen.py`
+(solubility, Q10 respiration, wind reaeration), `app/features/stability.py`
+(the 72-hour window and this lake's own pressure norm), and `app/rules/bite.py`
+which combines them for the lake and then per cell.
+
+### Settled *or* improving — a contradiction the replay exposed
+
+Running the model over the source video's own week found the owner's stability
+requirement fighting the video's central example. The owner is right that a
+settled spell is ideal. But the video's winning session happened during a
+**change** — a heatwave breaking, pressure falling back toward the norm — and a
+plain stability multiplier scored Saturday and Sunday *worse* than Friday even
+as the water cooled and the oxygen returned. The model was contradicting the
+source it was built from.
+
+Both are right about different things, so the damping now takes
+`max(stability, improving)`: a day is worth fishing when the weather has settled
+**or** when it is moving toward the norm, and only a day that is unsettled *and*
+drifting away takes the haircut. Stability alone still drives **confidence** —
+that separation is the point. A transition can be a good day to fish and still
+be a day the model deserves less trust on.
+
+### Replaying the source's week
+
+Heatwave Wednesday–Thursday, breaking to 25/14 from Friday, pressure easing back
+toward the norm all week, roach:
+
+| | Wed | Thu | Fri | Sat | Sun |
+|---|---|---|---|---|---|
+| modelled water °C | 25.4 | 25.4 | 24.3 | 21.8 | 19.6 |
+| dissolved O₂ mg/L | 5.75 | 5.73 | 6.18 | 7.20 | 8.02 |
+| **bite** | **0.17** | **0.27** | **0.44** | **0.51** | **0.47** |
+| limiting factor | pressure | oxygen | oxygen | oxygen | temperature |
+
+The angler fished Friday to Sunday and took 17 fish. The model reaches the same
+conclusion from the weather alone, and the limiting factor migrates from
+pressure to oxygen to temperature, which is a coherent story rather than a
+coincidence. This is the strongest check available before real catches exist —
+it is a *consistency* check against one anecdote, not validation.
+
+Reproduce with `python tools/bite_report.py --demo`, or `--sweep` for the
+temperature response.
+
+### A sign error the tests caught
+
+`thermal_direction` was written with the distances the wrong way round, so it
+read +1 for a lake drifting *away* from the species optimum — it would have
+sent the angler to the fastest-warming bank in a heatwave. Invisible in review,
+caught by a property test asserting that the exposed bank's advantage must
+shrink when the lake moves away from the optimum. That test now guards it.
+
+### Activation
+
+The live lake page still scores with v0.3, and that is deliberate rather than
+unfinished. This model's water temperature has never been compared with an
+actual thermometer in Pomocnia, and law 2 makes every prediction written under
+v0.4 permanent. Switching over should follow a first real thermometer reading,
+not a green test suite.

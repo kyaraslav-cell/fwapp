@@ -1,7 +1,7 @@
-version: v0.4-draft
+version: v0.4
 features_version: f1
 parent: v0.3
-status: DRAFT — NOT ACTIVE
+status: built and tested; the live app still serves v0.3 (see §9)
 
 # ===========================================================================
 # WHAT THIS IS
@@ -12,11 +12,15 @@ status: DRAFT — NOT ACTIVE
 # Decisions, adaptations and provenance:
 #   docs/adr/0003-three-factor-bite-model.md
 #
-# The active ruleset is still config/rules.v0.3.yaml. This file is a proposal:
-# `features_version: f1` names features that DO NOT EXIST YET
-# (t_water, o2_sat, the 72 h stability statistics), so nothing can evaluate it
-# until those are built. Activating it before then would fail closed, which is
-# correct but unhelpful.
+# `features_version: f1` names app/features/water_temp.py, oxygen.py and
+# stability.py, which now exist, and app/rules/bite.py which combines them.
+# Run the whole model against this lake's real ingested weather with:
+#     python tools/bite_report.py
+#
+# The LIVE lake page still scores with v0.3. Switching it over is a separate,
+# deliberate step: this model's water temperature has never been checked
+# against an actual thermometer in Pomocnia, and law 2 means every prediction
+# written under v0.4 is permanent. Set FISHLOG_RULESET to move.
 #
 # THE MODEL IN ONE PARAGRAPH
 #   WHEN: three factors must line up at once - atmospheric pressure near this
@@ -120,12 +124,19 @@ water_temp:
   # dT/dt = (T_eq - T) / tau
   tau_days_per_metre: 0.9     # depth-scaled; ~2.6 days at Pomocnia's ~2.9 m mean
   equilibrium:
-    # T_eq tracks air temperature, lifted by sun and pulled down by evaporation
-    # into dry air. All four inputs are already ingested hourly.
+    # T_eq tracks air temperature, lifted by absorbed sunlight and pulled down
+    # by evaporation into dry air, with wind speeding the evaporation up. Four
+    # inputs, all already ingested hourly, and deliberately few free
+    # parameters: every extra coefficient is another thing that can be wrong in
+    # a way nobody notices.
     air_weight: 1.0
-    shortwave_gain_c_per_kwm2: 2.2
-    dewpoint_depression_loss: 0.12
-    wind_evaporative_loss_per_ms: 0.15
+    shortwave_gain_c_per_kwm2: 2.5
+    evaporative_loss_per_c_deficit: 0.10
+    wind_factor_ref_ms: 8.0
+    wind_factor_cap: 2.0        # a gale must not drive the equilibrium absurd
+  spin_up_hours: 72             # ~= tau, so the seed has decayed by the end
+  min_coverage_ratio: 0.8
+  mean_depth_m: 2.9             # Pomocnia; tau lands near 2.6 days
   init_from: air_temp_mean_72h
   is_measured: false          # NEVER flip this without a thermometer in the lake
 
@@ -309,11 +320,38 @@ bite_when:
 
   combine:
     blend: 0.35
+    # Instability damps the score to this floor, never to zero: a fish still
+    # feeds in a front, it just feeds less predictably. Mirrors
+    # `stability.score_floor` and is repeated here because the expression below
+    # is evaluated with this block's own names.
+    stability_floor: 0.55
+
+    # SETTLED *OR* IMPROVING. Two defensible ideas collide here and the
+    # resolution matters, so it is written down rather than tuned away.
+    #
+    # The owner's requirement is that a settled spell is the ideal case, which
+    # is true: a fish that has had three quiet days is a fish in a routine.
+    # But the source video's winning session happened during a CHANGE - a
+    # heatwave breaking, pressure falling back toward the norm - and a pure
+    # stability multiplier scores that as unsettled and marks it down. Replayed
+    # against the video's own week, it made Saturday and Sunday score WORSE
+    # than Friday even as the water cooled and the oxygen came back, which is
+    # the opposite of what the angler found.
+    #
+    # Both are right about different things. A day is worth fishing when the
+    # weather has settled OR when it is moving toward the norm; it is a poor
+    # day when it is neither. So the damping takes whichever applies, and only
+    # a day that is unsettled AND drifting away from the norm gets the haircut.
+    #
+    # Stability alone still drives CONFIDENCE - see §8. That separation is the
+    # point: a transition can be a good day to fish and still be a day the
+    # model deserves less trust on.
     expression: >
       ((1 - blend) * min(min(f_pressure, f_oxygen), f_temp)
       + blend * (f_pressure + f_oxygen + f_temp) / 3)
       * (1 + w_approach * f_approach)
-      * (stability_floor + (1 - stability_floor) * f_stability)
+      * (stability_floor + (1 - stability_floor)
+         * max(f_stability, max(0, f_approach)))
 
 # ---------------------------------------------------------------------------
 # 7. WHERE - the zone term
@@ -341,8 +379,12 @@ zone_score:
     # Reverse the trend and the same bank is the wrong one - which is why this
     # is a signed direction and not a fixed preference for windward banks.
     thermal_direction:
+      # SIGN: `t_water_24h` is the past, `t_water` is now, so the distance
+      # that shrank must come FIRST. Written the other way round this reads
+      # +1 for a lake drifting away from the species optimum, and would send
+      # the angler to the fastest-warming bank in a heatwave. A test pins it.
       expression: >
-        clamp((abs(t_water - t_opt) - abs(t_water_24h - t_opt)) / t_dir_full_c, -1, 1)
+        clamp((abs(t_water_24h - t_opt) - abs(t_water - t_opt)) / t_dir_full_c, -1, 1)
       t_dir_full_c: 2.0
 
     oxygen_zone:
