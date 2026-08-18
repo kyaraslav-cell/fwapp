@@ -1108,29 +1108,35 @@ details.card[open] summary::before { content: "－ "; }
   vertical-align: middle;
 }
 
-/* Water type switch. Two states with distinct colour, because the difference is
-   not decorative - it decides whether this water's catch rate may be averaged
-   with another's at all. `unset` is deliberately drab: an unclassified water
-   cannot be aggregated, and it should look unfinished until someone says which
-   it is. */
-.water-type { margin: 0 0 8px; }
-.water-type-chip {
-  font: inherit;
-  font-size: 12px;
+/* Water-type filter on the places list. Same pastel language as the rest of
+   the buttons - a quiet row of pills, not a control panel. It appears on the
+   main menu only: once a water is chosen the distinction is settled, and it
+   has no business following the angler into a session. */
+.filter-row {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 14px;
+  flex-wrap: wrap;
+}
+.filter-chip {
+  font-size: 0.82rem;
   font-weight: 600;
-  border: 1px solid var(--border);
+  text-decoration: none;
+  padding: 5px 14px;
   border-radius: 999px;
-  padding: 3px 12px;
-  cursor: pointer;
-  background: var(--surface-alt);
-  color: var(--primary-text);
-}
-.water-type-chip[data-type="commercial"] {
-  background: var(--accent-coral);
-  color: var(--accent-coral-text);
-}
-.water-type-chip[data-type="unset"] {
-  background: transparent;
+  border: 1px solid var(--border);
+  background: var(--surface);
   color: var(--muted);
-  border-style: dashed;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.filter-chip:hover { background: var(--surface-alt); color: var(--primary-text); }
+.filter-chip.is-active {
+  background: var(--primary);
+  border-color: var(--primary-strong);
+  color: #ffffff;
+}
+.empty-state {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 18px 2px;
 }

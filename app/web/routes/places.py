@@ -27,9 +27,20 @@ router = APIRouter()
 
 
 @router.get("/")
-def home(request: Request, db: Session = Depends(get_db)):
+def home(request: Request, water: str = "", db: Session = Depends(get_db)):
+    """Places, optionally filtered to one kind of water.
+
+    The filter lives here and nowhere else. Once you have picked a water you
+    are on it, and the distinction stops being a choice - so it does not follow
+    you into the lake page or a live session, where it would be one more thing
+    between the angler and the fish.
+    """
     get_lake(db)  # ensure Pomocnia (and species) are seeded
     lakes = db.execute(select(Lake).order_by(Lake.name)).scalars().all()
+
+    selected = water_type_mod.normalise(water)
+    if selected is not None:
+        lakes = [lk for lk in lakes if water_type_mod.normalise(lk.water_type) == selected]
 
     cards = []
     for lk in lakes:
@@ -47,11 +58,18 @@ def home(request: Request, db: Session = Depends(get_db)):
                 ),
                 "band_color": view["band_color"] if view else None,
                 "band_label": view["band_label"] if view else None,
+                "water_type": water_type_mod.normalise(lk.water_type),
             }
         )
 
     return templates.TemplateResponse(
-        "home.html", {"request": request, "cards": cards, "active_nav": "home"}
+        "home.html",
+        {
+            "request": request,
+            "cards": cards,
+            "active_nav": "home",
+            "water_filter": selected or "",
+        },
     )
 
 
@@ -131,9 +149,6 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
                 }
             ),
             "default_wind": default_wind if default_wind is not None else "null",
-            "water_type": lake.water_type,
-            "water_type_label": water_type_mod.label(lake.water_type),
-            "water_type_options": water_type_mod.KNOWN,
             "zone_provenance": zone_cfg["provenance"],
             "display_cfg": json.dumps(zone_cfg["display"]),
             "methods": METHODS,
@@ -209,21 +224,6 @@ def lake_grid(
             "cells": [[r, c, v] for r, c, v in scored],
         }
     )
-
-
-@router.post("/lake/{slug}/water-type")
-def set_water_type(slug: str, water_type: str = Form(""), db: Session = Depends(get_db)):
-    """Switch a water between PZW and commercial.
-
-    Stored rather than inferred because it changes what the numbers MEAN, not
-    just how they look: CPUE is never pooled across the two, and the zone
-    weights differ. An unrecognised value clears it back to unset, which the
-    aggregate guard treats as "refuse to average" rather than as a default.
-    """
-    lake = get_lake_by_slug(db, slug)
-    lake.water_type = water_type_mod.normalise(water_type)
-    db.flush()
-    return RedirectResponse(url=f"/lake/{slug}", status_code=303)
 
 
 @router.post("/lake/{slug}/refresh")

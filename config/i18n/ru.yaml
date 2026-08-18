@@ -6,6 +6,9 @@ nav:
   brand: Fishlog
 
 home:
+  filter_all: Все
+  filter_label: Тип водоёма
+  filter_empty: Водоёмов такого типа пока нет.
   section: Ваши места ловли
   sessions: сессия
   sessions_plural: сессий
@@ -23,7 +26,6 @@ place_new:
   back: ← Назад к местам
 
 lake:
-  water_type_switch: Переключить PZW / коммерческий
   session_in_progress: Сессия идёт
   started: начата
   back_to_logging: Вернуться к записи →

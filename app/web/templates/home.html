@@ -3,6 +3,18 @@
 {% block content %}
 <div class="section-label">{{ t('home.section') }}</div>
 
+{# Filter only, and only here. A PZW water and a commercial fishery are
+   different measurements - CPUE is never averaged across them - so the choice
+   belongs at the point where you pick where to go, not once you are standing
+   on the bank. #}
+<div class="filter-row" role="group" aria-label="{{ t('home.filter_label') }}">
+  <a class="filter-chip{{ ' is-active' if not water_filter }}" href="/">{{ t('home.filter_all') }}</a>
+  {% for kind in ['pzw', 'commercial'] %}
+    <a class="filter-chip{{ ' is-active' if water_filter == kind }}"
+       href="/?water={{ kind }}">{{ t('water_type.' ~ kind) }}</a>
+  {% endfor %}
+</div>
+
 {% for c in cards %}
 <a href="/lake/{{ c.slug }}" style="text-decoration:none; color:inherit;">
   <div class="place-card">
@@ -10,6 +22,7 @@
     <div class="place-info">
       <div class="place-name">{{ c.name }}</div>
       <div class="place-meta">
+        {% if c.water_type %}{{ t('water_type.' ~ c.water_type) }} · {% endif %}
         {{ c.n_sessions }} {{ t('home.sessions') if c.n_sessions == 1 else t('home.sessions_plural') }}
         {% if c.n_sessions > 0 %} · {{ t('home.last_visited') }} {{ c.last_visited }}{% else %} · {{ t('home.never_visited') }}{% endif %}
       </div>
@@ -21,6 +34,8 @@
     {% endif %}
   </div>
 </a>
+{% else %}
+  <p class="empty-state">{{ t('home.filter_empty') }}</p>
 {% endfor %}
 
 <a href="/places/new" class="btn btn-ghost" style="margin-top: 8px;">{{ t('home.new_place') }}</a>

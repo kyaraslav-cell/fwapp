@@ -69,18 +69,6 @@
 
 <div class="section-label" style="margin-top: 20px;">{{ t('lake.where_to_fish') }}</div>
 
-{# Water type is a switch, not a label: it decides whether CPUE from this water
-   may be averaged with another's, and which zone weights apply. Two options, so
-   a single toggling button rather than a select. #}
-<form class="water-type" method="post" action="/lake/{{ lake.slug }}/water-type">
-  <input type="hidden" name="water_type"
-         value="{{ 'commercial' if water_type == 'pzw' else 'pzw' }}">
-  <button type="submit" class="water-type-chip" data-type="{{ water_type or 'unset' }}"
-          title="{{ t('lake.water_type_switch') }}">
-    {{ t('water_type.' ~ (water_type or 'unset')) }}
-  </button>
-</form>
-
 <div class="season-line">
   {{ t('lake.assuming') }} <strong>{{ t('phase.' ~ season.phase) }}</strong>
   {# The caveat travels with the phase rather than being a fixed string: under

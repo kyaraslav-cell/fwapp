@@ -6,6 +6,9 @@ nav:
   brand: Fishlog
 
 home:
+  filter_all: Wszystkie
+  filter_label: Typ wody
+  filter_empty: Brak wód tego typu.
   section: Twoje łowiska
   sessions: sesja
   sessions_plural: sesji
@@ -23,7 +26,6 @@ place_new:
   back: ← Powrót do łowisk
 
 lake:
-  water_type_switch: Przełącz PZW / komercyjne
   session_in_progress: Sesja w toku
   started: start
   back_to_logging: Wróć do zapisu →

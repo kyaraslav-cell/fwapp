@@ -6,6 +6,9 @@ nav:
   brand: Fishlog
 
 home:
+  filter_all: All
+  filter_label: Water type
+  filter_empty: No waters of that kind yet.
   section: Your fishing places
   sessions: session
   sessions_plural: sessions
@@ -23,7 +26,6 @@ place_new:
   back: ← Back to places
 
 lake:
-  water_type_switch: Switch PZW / commercial
   session_in_progress: Session in progress
   started: started
   back_to_logging: Back to logging →
