@@ -195,6 +195,23 @@ try {
   if (fb) fb.style.display = 'block';
 }
 
+// The overlay was two alphas multiplied together - 205/255 in the pixel data
+// and 0.72 on the layer - which came out at 0.58 and buried the satellite
+// image. You could not see the bank you were aiming at, which made dropping
+// the pin on a real swim a guess.
+//
+// Pixels are now fully opaque and the LAYER alone carries the transparency, so
+// there is one number to reason about. And while the pin is actually in the
+// angler's hand the overlay steps further back: at that moment the score
+// matters less than the reeds, the bank and the clear water you are aiming
+// for.
+const HEAT_OPACITY = 0.42;
+const HEAT_OPACITY_PLACING = 0.15;
+
+function setHeatOpacity(value) {
+  if (heatLayer) heatLayer.setOpacity(value);
+}
+
 // Render one pixel per cell into a small canvas, then let the browser upscale
 // it. That interpolation is what turns discrete 5 m cells into a smooth field
 // instead of a visible mosaic.
@@ -213,13 +230,13 @@ function renderHeat(cells) {
     img.data[idx] = r;
     img.data[idx + 1] = g;
     img.data[idx + 2] = b;
-    img.data[idx + 3] = 205;
+    img.data[idx + 3] = 255;
   }
   ctx.putImageData(img, 0, 0);
 
   if (heatLayer) map.removeLayer(heatLayer);
   heatLayer = L.imageOverlay(canvas.toDataURL(), bounds, {
-    opacity: 0.72, interactive: false, className: 'heat-overlay'
+    opacity: HEAT_OPACITY, interactive: false, className: 'heat-overlay'
   }).addTo(map);
 }
 
@@ -364,6 +381,7 @@ function startDrag(e) {
   if (!map) return;
   e.preventDefault();
   pin.classList.add('is-held');
+  setHeatOpacity(HEAT_OPACITY_PLACING);
 
   ghost = pin.cloneNode(true);
   ghost.removeAttribute('id');
@@ -386,6 +404,7 @@ function moveGhost(e) {
 function cleanupDrag() {
   window.removeEventListener('pointermove', moveGhost);
   pin.classList.remove('is-held');
+  setHeatOpacity(HEAT_OPACITY);
 }
 
 function cancelDrag() {
