@@ -7,8 +7,11 @@ model) picks this up cold. Read `CLAUDE.md` first, then this.
 
 ## 1. What exists right now
 
-A working FastAPI + SQLite app, ~3 000 lines of Python, 32 tests, `make check`
-green (ruff, `mypy --strict` on `app/core` `app/rules` `app/features`, pytest).
+A working FastAPI + SQLite app, 109 tests, `make check` green (ruff,
+`mypy --strict` on `app/core` `app/rules` `app/features`, pytest).
+
+Per-session detail lives in `docs/handoff/` — newest file first. Use the
+`session-start` and `session-end` skills.
 
 Branch: `claude/repository-edit-push-ggr229` on `kyaraslav-cell/fwapp`.
 
@@ -20,7 +23,13 @@ Branch: `claude/repository-edit-push-ggr229` on `kyaraslav-cell/fwapp`.
 | Real OSM lake outline via Overpass, cached, circle fallback | works |
 | 5 m grid clipped to the outline, ~3 564 cells | works |
 | Heat overlay (canvas upscale → smooth field), red→green | works |
-| Provisional zone score, v0.3, YAML-only | works |
+| Three-factor bite model (pressure/oxygen/water temp), v0.4 active | works |
+| Water temperature: lumped model + 27-member uncertainty band | modelled, never measured |
+| Thermal phase from modelled water temp, not the calendar | works |
+| ERA5 archive backfill (the pressure norm needs 8760 h) | works |
+| Real OSM shoreline committed to the repo, no build-time fetch | works |
+| Water type (pzw/commercial) + filter on the places list | works |
+| Pyodide + shapely spike, passed on the real Pages URL | done |
 | Session notebook: spot → method → rods → catches → end | works |
 | 25-species DB, PL/EN/scientific search | works |
 | Catch weight/length sliders, bait, photo, edit, delete | works |

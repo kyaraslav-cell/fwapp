@@ -157,6 +157,13 @@ SPA framework, no external message queue, no separate database server.
 If you believe a dependency is needed, add it to `docs/adr/` as a decision record
 with the justification first.
 
+## Sessions
+
+Start with the `session-start` skill and finish with `session-end`. The
+transcript is the least durable thing in this project and the only place the
+*reasoning* lives — the code survives, the reason it looks like that does not.
+`session-end` moves that reasoning to `docs/handoff/` before compaction eats it.
+
 ## Answering the owner
 
 Short. Three things only: **what you did**, **what you could not do**, **what is
