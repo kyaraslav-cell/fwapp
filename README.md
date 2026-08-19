@@ -56,7 +56,7 @@ the target to grow into once those inputs exist.
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
 make check          # ruff + mypy --strict + pytest
-make dev             # http://localhost:8000, auto-reload
+make dev            # http://localhost:8000, auto-reload
 ```
 
 Or with Docker:
@@ -64,6 +64,24 @@ Or with Docker:
 ```bash
 docker compose up --build
 ```
+
+### Keys, and checking that they work
+
+Optional features (the Gemini local-knowledge pass, sign in with Google) are
+switched on by environment variables. Copy `.env.example` to `.env` — which is
+gitignored, and is the only place a real key belongs — and fill in what you
+have. Both `make dev` and `docker compose` read it; a variable already set in
+your shell always wins over the file.
+
+```bash
+cp .env.example .env
+make preflight        # calls every external service and says which one refused
+```
+
+`make preflight` is worth running once on any new machine. Everything this app
+talks to — Nominatim, Overpass, Open-Meteo, Google, Gemini — is unreachable
+from the sandbox it was built in, so those clients are unverified until this
+passes somewhere with a network. It never prints a key and writes nothing.
 
 Open `http://localhost:8000`. On first boot the app seeds the Pomocnia lake
 row from `config/lakes/pomocnia.yaml`, fetches Open-Meteo forecast data, and

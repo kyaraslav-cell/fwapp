@@ -289,15 +289,31 @@ cp .env.example .env      # then edit .env and paste the key in
 docker compose up -d      # compose reads .env from this directory
 ```
 
-**Running with `make dev` (a laptop, one session):**
+**Running with `make dev`, or in a Codespace:**
 
 ```bash
-export FISHLOG_GEMINI_API_KEY=...
-make dev
+cp .env.example .env      # then edit .env and paste the key in
+make dev                  # the app reads .env at startup
 ```
 
-The shell export lasts until that terminal closes, which is the right lifetime
-for trying a key out and the wrong one for a machine that is meant to stay up.
+`app/core/env.py` applies `.env` when the app starts, so the same file works
+inside and outside docker. **A variable already set in the shell always wins**
+over the file, so `FISHLOG_GEMINI_API_KEY=... make dev` still does what it
+looks like it does.
+
+**Check it actually works — the important part:**
+
+```bash
+make preflight               # env, nominatim, overpass, open-meteo, gemini
+make preflight ARGS=gemini   # just one section
+```
+
+`tools/preflight.py` calls each real service and says which layer refused.
+Nothing in this app has ever reached any of them from the build sandbox
+(§6), so **this command is the only thing that turns "believed" into
+"observed"** — run it once on a machine with network before trusting any of it.
+It never prints a key (first four characters and a length), writes nothing, and
+exits non-zero when a section fails.
 
 | Variable | Switches on | Without it |
 |---|---|---|
@@ -310,10 +326,11 @@ A Gemini key comes from https://aistudio.google.com/apikey. The free tier
 covers this comfortably: one call per water added, plus one per monthly
 refresh.
 
-**Checking it took:** add a water, then look at the `intel` job on the lake
-page. "skipped" means the process cannot see the key — for docker that is
-almost always a `.env` in the wrong directory, and `docker compose config`
-prints what compose actually resolved.
+**If `make preflight` says the key is not set:** the `.env` has to be in the
+repository root, beside `Makefile`. `docker compose config` prints what compose
+resolved for the docker path. A key that is present but refused shows as
+`Gemini returned 400/403`, which is a different problem — wrong key, or the
+Generative Language API not enabled on that Google project.
 
 ---
 

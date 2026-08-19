@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import get_settings
 from app.core.db import init_db, session_scope
+from app.core.env import load_env_file
 from app.core.seed import ensure_lake_seeded
 from app.ingest.open_meteo import ingest_forecast
 from app.ingest.scheduler import build_scheduler
@@ -37,6 +38,14 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    # Before anything reads os.environ. `docker compose` already applies `.env`
+    # itself; this is what makes `make dev` behave the same way, so the file
+    # the docs tell the owner to write is not silently ignored outside docker.
+    applied = load_env_file()
+    if applied:
+        # Names only. The values are the point of the file.
+        logging.getLogger("fishlog").info(".env applied: %s", ", ".join(applied))
+
     app = FastAPI(title="Fishlog", lifespan=lifespan)
     app.mount("/static", StaticFiles(directory="app/web/static"), name="static")
 

@@ -1,6 +1,6 @@
 VENV := .venv/bin
 
-.PHONY: check run dev
+.PHONY: check run dev preflight
 
 check:
 	$(VENV)/ruff check app tests
@@ -12,3 +12,10 @@ run:
 
 dev:
 	$(VENV)/uvicorn app.web.app:app --reload --port 8000
+
+# Does this machine's setup actually work? Run it where the network is - the
+# build sandbox reaches none of these services, so every client in this app is
+# unverified until this passes somewhere real. `make preflight ARGS=gemini`
+# runs one section.
+preflight:
+	$(VENV)/python tools/preflight.py $(ARGS)
