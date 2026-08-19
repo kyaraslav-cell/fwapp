@@ -199,3 +199,32 @@ the section are not translated the way the labels around them are. Translating
 them would mean either a second model call per language or storing a claim
 three times; neither is worth it before the first real pass shows how much text
 there actually is.
+
+---
+
+## 11. The jsonv2 field-name bug — read this before writing another fake
+
+**Symptom:** every search result, including Zalew Zegrzyński at 3 300 ha, came
+back marked "not a water", and adding one was refused. It read exactly like a
+tagging problem at OpenStreetMap's end.
+
+**Cause:** the request asks for `format=jsonv2`, and jsonv2 **renames `class` to
+`category`**. `_to_candidate` read `row["class"]`, got an empty string for every
+result, matched no entry in `WATER_TYPES`, and set `is_water=False` on all of
+them. One field name; the entire feature dead.
+
+**Why the tests were green:** the fixtures said `"class"` too. They were written
+by reading the parser, not the API. A fake built from the same assumption as the
+code under test asserts the assumption and nothing else — and this project
+cannot reach Nominatim from the build sandbox, so a fake is all there is.
+
+**The rule this earns:** when a fixture stands in for a service nobody here can
+call, its field names come from that service's documentation, and the test says
+in its own docstring which format it is imitating. `tests/test_discover.py` now
+does, and the parser reads both names so that changing the `format` parameter
+cannot resurrect this.
+
+**And the reason it was invisible:** the picker printed "not a water" with no
+hint of what the result actually was. It now prints the OSM tag beside the
+badge — `place=village` is a correct refusal, an empty tag is a broken parser,
+and the two were indistinguishable for as long as this bug lived.

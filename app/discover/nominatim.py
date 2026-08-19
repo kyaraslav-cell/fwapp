@@ -67,7 +67,7 @@ class Candidate:
     lon: float
     osm_type: str
     osm_id: int
-    kind: str          # "natural=water" etc, for the picker
+    kind: str          # "natural=water" etc, shown on the picker card
     area_ha: float | None
     is_water: bool
 
@@ -109,7 +109,13 @@ def _to_candidate(row: dict[str, Any]) -> Candidate | None:
         lon = float(row["lon"])
     except (KeyError, TypeError, ValueError):
         return None
-    cls = str(row.get("class", ""))
+    # `jsonv2` renames `class` to `category`. Reading only `class` made every
+    # result - Zalew Zegrzynski included - come back with an empty category,
+    # never match WATER_TYPES, and be refused as "not a water". The whole
+    # add-a-water flow was dead, and the tests did not catch it because the
+    # fixtures were written to match the code rather than the API.
+    # Both names are read so the parser survives a format change either way.
+    cls = str(row.get("category") or row.get("class") or "")
     typ = str(row.get("type", ""))
     display = str(row.get("display_name", ""))
     return Candidate(

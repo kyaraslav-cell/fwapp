@@ -62,8 +62,16 @@
       {% else %}
       {# Kept, not hidden: a fishery is sometimes tagged as something else, and
          silently dropping everything that is not natural=water would make a
-         findable place look missing. Marked so it is a deliberate choice. #}
-      <span class="badge badge-neutral">{{ t('discover.not_water') }}</span>
+         findable place look missing. Marked so it is a deliberate choice.
+
+         The OSM tag is printed beside the badge because it is the only thing
+         that distinguishes "this result is a village" from "our parser is
+         broken". Both look identical without it, and the second one has
+         happened: a field-name mismatch marked every result non-water for a
+         fortnight and read as a data problem at OpenStreetMap's end. #}
+      <span class="badge badge-neutral" title="{{ c.kind }}">
+        {{ t('discover.not_water') }} · {{ c.kind }}
+      </span>
       {% endif %}
     </button>
   </form>

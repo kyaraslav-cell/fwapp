@@ -55,12 +55,27 @@ def water(
 
 
 def test_a_lake_result_is_recognised_as_water() -> None:
+    """The row is shaped as **jsonv2** sends it, which is what we ask for.
+
+    This test used to say `"class"`, because that is what the parser read - a
+    fixture written to match the code instead of the API. jsonv2 renames that
+    field to `category`, so in production every result parsed with an empty
+    category, matched no water type, and was refused as "not a water". Zalew
+    Zegrzynski - 3 300 ha, mapped, unmistakable - could not be added.
+
+    The lesson, and the reason this docstring is long: a fake that is built
+    from the same assumption as the code under test asserts the assumption, not
+    the behaviour. When a fixture stands in for a service nobody here can
+    reach, its field names have to come from that service's documentation.
+    """
     candidate = _to_candidate(
         {
             "lat": "52.4500",
             "lon": "21.0500",
-            "class": "natural",
+            # jsonv2. NOT "class" - see the docstring.
+            "category": "natural",
             "type": "water",
+            "place_rank": 22,
             "osm_type": "way",
             "osm_id": 123,
             "display_name": "Jezioro Zegrzyńskie, powiat legionowski, Poland",
@@ -79,7 +94,7 @@ def test_a_village_with_a_lake_name_is_not_water() -> None:
         {
             "lat": "52.1",
             "lon": "21.1",
-            "class": "place",
+            "category": "place",
             "type": "village",
             "osm_type": "node",
             "osm_id": 9,
@@ -91,7 +106,30 @@ def test_a_village_with_a_lake_name_is_not_water() -> None:
 
 
 def test_a_result_with_no_coordinates_is_dropped() -> None:
-    assert _to_candidate({"class": "natural", "type": "water"}) is None
+    assert _to_candidate({"category": "natural", "type": "water"}) is None
+
+
+def test_the_older_class_field_is_still_understood() -> None:
+    """`format=json` and older mirrors send `class`. Both are read.
+
+    Not for compatibility's sake: for the next time somebody changes the format
+    parameter. A parser that silently marks every water as not-a-water is the
+    worst possible failure here, because it looks like a data problem at the
+    other end.
+    """
+    candidate = _to_candidate(
+        {"lat": "52.4", "lon": "21.0", "class": "natural", "type": "water"}
+    )
+    assert candidate is not None and candidate.is_water
+
+
+def test_the_kind_string_names_the_tag_that_was_refused() -> None:
+    """What the picker shows when it refuses, so the reason is legible."""
+    candidate = _to_candidate(
+        {"lat": "52.1", "lon": "21.1", "category": "place", "type": "village"}
+    )
+    assert candidate is not None
+    assert candidate.kind == "place=village"
 
 
 def test_a_missing_bounding_box_is_not_an_area_of_zero() -> None:
