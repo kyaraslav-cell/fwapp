@@ -271,6 +271,51 @@ docs/12-SPIKE-PYODIDE.md      can a browser run our geometry? the measurements
 
 ---
 
+## 8a. Keys and secrets — where they go
+
+Every optional feature is switched on by an environment variable and is off,
+honestly and visibly, without one. Nothing is ever read from a file in the
+repository, and no key is ever committed — a key in git history is a leaked key
+after it is deleted, and the fix is revoking it, not removing it.
+
+`.env.example` is the committed list of every variable, with no values.
+`.env` is the real one and is gitignored.
+
+**Running with docker (the deployment path, `docs/10 §9`):**
+
+```bash
+cp .env.example .env      # then edit .env and paste the key in
+docker compose up -d      # compose reads .env from this directory
+```
+
+**Running with `make dev` (a laptop, one session):**
+
+```bash
+export FISHLOG_GEMINI_API_KEY=...
+make dev
+```
+
+The shell export lasts until that terminal closes, which is the right lifetime
+for trying a key out and the wrong one for a machine that is meant to stay up.
+
+| Variable | Switches on | Without it |
+|---|---|---|
+| `FISHLOG_GEMINI_API_KEY` | the local-knowledge pass (`docs/13 §10`) | the `intel` job succeeds and reports "skipped" |
+| `FISHLOG_GEMINI_MODEL` | overriding a stale model id | the default in `app/intel/gemini.py` |
+| `FISHLOG_GOOGLE_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | Sign in with Google | the button is not rendered at all |
+| `FISHLOG_TRUST_PROXY=1` | reading `X-Forwarded-For` | the socket peer is the address |
+
+A Gemini key comes from https://aistudio.google.com/apikey. The free tier
+covers this comfortably: one call per water added, plus one per monthly
+refresh.
+
+**Checking it took:** add a water, then look at the `intel` job on the lake
+page. "skipped" means the process cannot see the key — for docker that is
+almost always a `.env` in the wrong directory, and `docker compose config`
+prints what compose actually resolved.
+
+---
+
 ## 9. Where it runs — hosting the full app
 
 The published Pages site (`docs/11`) is **half** the app: it reads. Sessions,

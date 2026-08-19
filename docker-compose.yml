@@ -6,6 +6,23 @@ services:
     volumes:
       - fishlog-data:/data
     restart: unless-stopped
+    # Secrets are passed through from the shell or from a .env file beside this
+    # one, never written into the image and never committed. `.env` is in
+    # .gitignore; `.env.example` is the committed copy with no values in it.
+    #
+    # The `:-` default matters: without it, compose refuses to start whenever
+    # one of these is unset, which would make an optional feature - Google
+    # sign-in, the Gemini pass - into a hard requirement for running the app.
+    environment:
+      FISHLOG_GEMINI_API_KEY: "${FISHLOG_GEMINI_API_KEY:-}"
+      FISHLOG_GEMINI_MODEL: "${FISHLOG_GEMINI_MODEL:-}"
+      FISHLOG_GOOGLE_CLIENT_ID: "${FISHLOG_GOOGLE_CLIENT_ID:-}"
+      FISHLOG_GOOGLE_CLIENT_SECRET: "${FISHLOG_GOOGLE_CLIENT_SECRET:-}"
+      FISHLOG_GOOGLE_REDIRECT_URI: "${FISHLOG_GOOGLE_REDIRECT_URI:-}"
+      # 1 only when something in front of this app sets X-Forwarded-For
+      # (Caddy, a Tailscale funnel). Wrong either way breaks rate limiting -
+      # see the addendum to docs/adr/0004.
+      FISHLOG_TRUST_PROXY: "${FISHLOG_TRUST_PROXY:-}"
 
 volumes:
   fishlog-data:
