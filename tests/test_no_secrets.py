@@ -35,12 +35,23 @@ SIGNATURES: tuple[tuple[str, str], ...] = (
 
 # One of this app's own credential variables, assigned something long enough to
 # be real. `FOO=` and `FOO="k"` in a test are left alone.
+# Two exclusions, both learned by this check firing on innocent files.
+#
 # `[ \t]*` and not `\s*`: `\s` eats newlines, so `FISHLOG_GEMINI_API_KEY=` on
 # its own line would swallow the blank line after it and match whatever came
 # next in the file. That is how this check first failed - against
 # `.env.example`, whose values are deliberately empty.
+#
+# `\\` excluded from the value: a *source* line like
+# `parse_env("FISHLOG_GEMINI_API_KEY=abc123\\nFISHLOG_GEMINI_MODEL=x")` carries
+# the newline as two literal characters, so the value ran straight through it
+# and came out 32 characters long. No real credential contains a backslash.
+# This check flagged `tests/test_env_file.py` for exactly that, on the commit
+# after the file became tracked - which is also the lesson: `git ls-files`
+# cannot see a file until it is added, so a guard that scans tracked files has
+# to be re-run after the commit, not only before it.
 ASSIGNMENT = re.compile(
-    r"""FISHLOG_[A-Z_]*(?:KEY|SECRET)[ \t]*[=:][ \t]*["']?([^"'\s,}{)]{15,})""",
+    r"""FISHLOG_[A-Z_]*(?:KEY|SECRET)[ \t]*[=:][ \t]*["']?([^"'\s,}{)\\]{15,})""",
 )
 
 # Placeholders that are meant to be there.
@@ -109,6 +120,9 @@ def test_the_example_file_and_the_tests_do_not_trip_it() -> None:
         'FISHLOG_GEMINI_API_KEY: "${FISHLOG_GEMINI_API_KEY:-}"',
         'monkeypatch.setenv("FISHLOG_GEMINI_API_KEY", "k")',
         'api_key="test-key"',
+        # The one that actually fired: an escaped newline inside a source
+        # string, which is not 32 characters of credential.
+        r'parse_env("FISHLOG_GEMINI_API_KEY=abc123\nFISHLOG_GEMINI_MODEL=x\n")',
     ):
         match = ASSIGNMENT.search(benign)
         assert match is None or PLACEHOLDERS.match(match.group(1)), benign
