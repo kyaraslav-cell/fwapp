@@ -15,7 +15,7 @@ from app.geo import service as geo_service
 from app.ingest.open_meteo import ingest_forecast
 from app.notebook import water_type as water_type_mod
 from app.notebook.sessions import METHODS, active_session, lake_stats, start_session
-from app.predict.daily import generate_predictions, latest_prediction
+from app.predict.daily import OUTLOOK_DAYS, generate_predictions, latest_prediction
 from app.rules.loader import load_active_ruleset
 from app.rules.zone_score import _percentile_normalise, score_cells
 from app.web import bite_view
@@ -28,8 +28,8 @@ from app.web.deps import (
     require_user,
     templates,
 )
-from app.web.view_helpers import current_conditions, prediction_view
-from app.web.weather_table import current_reading, recent_days
+from app.web.view_helpers import calendar_view, current_conditions, prediction_view
+from app.web.weather_table import current_reading, forecast_day_winds, recent_days
 
 router = APIRouter()
 
@@ -133,6 +133,17 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
     elif days and days[0]["wind_dir"] is not None:
         default_wind = days[0]["wind_dir"]
 
+    # The day strip. Bands come from stored prediction rows and are never
+    # recomputed here (law 2); the per-day wind is what the map re-scores with
+    # when a day is picked.
+    calendar_days = calendar_view(
+        db,
+        lake,
+        OUTLOOK_DAYS,
+        latest_prediction,
+        forecast_day_winds(db, lake, OUTLOOK_DAYS),
+    )
+
     ruleset = load_active_ruleset()
     zone_cfg = ruleset["zone_score"]
 
@@ -154,6 +165,7 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
             "season": season,
             "conditions": conditions,
             "days": days,
+            "calendar_days": calendar_days,
             "now_wx": now_wx,
             "days_json": json.dumps(days),
             "outline_json": json.dumps(outline),

@@ -13,7 +13,58 @@
 </a>
 {% endif %}
 
-<div class="section-label">{{ lake.name }} · {{ now_local }}</div>
+{# The calendar lives here and only here: it is a property of one water, so
+   it appears once you are inside that water's page and never on the places
+   list. Tapping the icon rolls the day strip down in place - no page change,
+   so the map underneath keeps its position and zoom. #}
+<div class="lake-heading">
+  <div class="section-label">{{ lake.name }} · {{ now_local }}</div>
+  {% if calendar_days %}
+  <button type="button" class="calendar-toggle" id="calendar-toggle"
+          aria-expanded="false" aria-controls="day-strip"
+          title="{{ t('calendar.toggle') }}" aria-label="{{ t('calendar.toggle') }}">
+    <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+      <rect x="2.5" y="4" width="15" height="13.5" rx="2.5"
+            fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M2.5 8h15" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M6.5 2.5v3M13.5 2.5v3" stroke="currentColor" stroke-width="1.6"
+            stroke-linecap="round"/>
+      <rect x="5.5" y="10.5" width="2.6" height="2.4" rx="0.7" fill="currentColor"/>
+      <rect x="11.9" y="10.5" width="2.6" height="2.4" rx="0.7" fill="currentColor"/>
+    </svg>
+  </button>
+  {% endif %}
+</div>
+
+{% if calendar_days %}
+{# Rolled up until asked for. Every band below is read from a stored prediction
+   row, written before the day it describes (law 2) - nothing here is computed
+   at render time, and a day with no row shows as "no data" rather than
+   borrowing its neighbour's colour (law 4). #}
+<div class="day-strip" id="day-strip" hidden>
+  <div class="day-strip-rail">
+    {% for day in calendar_days %}
+    <button type="button"
+            class="day-chip{{ ' is-today' if day.is_today }}{{ ' is-selected' if day.is_today }}{{ ' is-far' if day.is_far }}{{ ' is-empty' if not day.has_data }}"
+            data-horizon="{{ day.horizon }}"
+            data-wind="{{ day.wind_dir if day.wind_dir is not none else '' }}"
+            data-label="{{ day.label }}"
+            aria-pressed="{{ 'true' if day.is_today else 'false' }}"
+            title="{{ day.label }}{% if day.best_hours %} · {{ day.best_hours | join(', ') }}{% endif %}">
+      <span class="day-chip-weekday">{{ t('weekday.' ~ day.weekday | lower) }}</span>
+      <span class="day-chip-date">{{ day.day_of_month }}</span>
+      <span class="day-chip-band band-{{ day.band_color if day.has_data else 'none' }}"></span>
+      {% if day.best_hours %}
+      <span class="day-chip-hours">{{ day.best_hours[0] }}</span>
+      {% else %}
+      <span class="day-chip-hours">{{ t('calendar.no_data') }}</span>
+      {% endif %}
+    </button>
+    {% endfor %}
+  </div>
+  <p class="day-strip-note">{{ t('calendar.note') }}</p>
+</div>
+{% endif %}
 
 {% if now_wx %}
 <div class="now-card">
@@ -96,6 +147,11 @@
 
 <div class="map-wrap" id="map-wrap" style="position: relative;">
   <div id="map"></div>
+  {# Only the overlay colours follow the selected day - the conditions card and
+     the weather table keep showing now. This badge exists so that difference is
+     never something the reader has to remember: an overlay drawn for Saturday
+     under a header reading today would otherwise be a trap. #}
+  <div class="map-day-badge" id="map-day-badge" hidden></div>
 </div>
 
 <div class="heat-legend">
@@ -138,9 +194,17 @@ const STATIC_GRID = {{ static_grid | tojson }};
 const STATIC_GRID_STEP = {{ static_grid_step }};
 const I18N = {
   fish_here: {{ t('lake.fish_here') | tojson }},
-  start_session: {{ t('lake.start_session_link') | tojson }}
+  start_session: {{ t('lake.start_session_link') | tojson }},
+  forecast_only: {{ t('calendar.forecast_only') | tojson }},
+  forecast_badge: {{ t('calendar.badge') | tojson }}
 };
 let currentWind = DEFAULT_WIND !== null ? DEFAULT_WIND : 270;
+const TODAY_WIND = currentWind;
+
+// null while today is selected. Set to the day's label while a forecast day is,
+// which is the single flag that makes the map read-only: a session is always
+// logged against now, so it cannot be started from a day that has not happened.
+let forecastDay = null;
 
 const M_PER_DEG_LAT = 111320;
 const mPerDegLon = M_PER_DEG_LAT * Math.cos(LAKE.lat * Math.PI / 180);
@@ -275,6 +339,18 @@ function pickSpot(lat, lon, containerPoint) {
   if (marker) map.removeLayer(marker);
   marker = L.marker([lat, lon], { icon }).addTo(map);
 
+  if (forecastDay) {
+    // Look, do not log. The popup says which day it is looking at rather than
+    // offering a link that would silently record the session against today.
+    marker.bindPopup(
+      `<div style="text-align:center;font-family:inherit;">
+         <div style="font-weight:600;margin-bottom:4px;">${forecastDay}</div>
+         <div style="color:#6c8299;font-size:0.86em;">${I18N.forecast_only}</div>
+       </div>`
+    ).openPopup();
+    return;
+  }
+
   const href = `/lake/${LAKE.slug}/spot?lat=${lat.toFixed(6)}&lon=${lon.toFixed(6)}&cell=${cell}`;
   marker.bindPopup(
     `<div style="text-align:center;font-family:inherit;">
@@ -361,6 +437,64 @@ function splash(point) {
   return parts;
 }
 
+// The day strip: roll it down, and recolour the map for the picked day.
+//
+// Only the overlay changes. The conditions card and the weather table keep
+// showing now, which is what the owner asked for - so the badge over the map
+// carries the day instead, and the fish pin stops offering to start a session.
+const calendarToggle = document.getElementById('calendar-toggle');
+const dayStrip = document.getElementById('day-strip');
+const dayBadge = document.getElementById('map-day-badge');
+
+if (calendarToggle && dayStrip) {
+  calendarToggle.addEventListener('click', () => {
+    const open = dayStrip.hasAttribute('hidden');
+    dayStrip.toggleAttribute('hidden', !open);
+    calendarToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    calendarToggle.classList.toggle('is-open', open);
+    if (open) {
+      // Roll: measured height, so the strip slides rather than appearing.
+      dayStrip.style.setProperty('--roll-height', dayStrip.scrollHeight + 'px');
+      dayStrip.classList.add('is-rolling');
+      requestAnimationFrame(() => dayStrip.classList.add('is-open'));
+    } else {
+      dayStrip.classList.remove('is-open', 'is-rolling');
+    }
+  });
+
+  dayStrip.querySelectorAll('.day-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      dayStrip.querySelectorAll('.day-chip').forEach(c => {
+        c.classList.remove('is-selected');
+        c.setAttribute('aria-pressed', 'false');
+      });
+      chip.classList.add('is-selected');
+      chip.setAttribute('aria-pressed', 'true');
+
+      const isToday = chip.dataset.horizon === '0';
+      const wind = parseFloat(chip.dataset.wind);
+
+      if (isToday) {
+        forecastDay = null;
+        currentWind = TODAY_WIND;
+        dayBadge.setAttribute('hidden', '');
+      } else {
+        forecastDay = chip.dataset.label;
+        dayBadge.textContent = I18N.forecast_badge + ' · ' + chip.dataset.label;
+        dayBadge.removeAttribute('hidden');
+        // A day the forecast never covered keeps the wind it had rather than
+        // inventing one - the chip already says it has no data.
+        if (!Number.isNaN(wind)) currentWind = wind;
+      }
+
+      // A marker left over from another day would look like a chosen spot for
+      // a day that is not selected any more.
+      if (marker) { map.removeLayer(marker); marker = null; }
+      loadGrid();
+    });
+  });
+}
+
 // Weather rows recolour the map for that day's wind.
 document.querySelectorAll('#weather-table tbody tr').forEach(tr => {
   tr.addEventListener('click', () => {
@@ -368,6 +502,16 @@ document.querySelectorAll('#weather-table tbody tr').forEach(tr => {
     if (!wind) return;
     document.querySelectorAll('#weather-table tbody tr').forEach(r => r.classList.remove('selected'));
     tr.classList.add('selected');
+    // One selector at a time: a highlighted forecast chip and a highlighted
+    // past row would be two answers to "which day is the map showing".
+    if (dayStrip) {
+      dayStrip.querySelectorAll('.day-chip').forEach(c => {
+        c.classList.remove('is-selected');
+        c.setAttribute('aria-pressed', 'false');
+      });
+    }
+    forecastDay = null;
+    if (dayBadge) dayBadge.setAttribute('hidden', '');
     currentWind = parseFloat(wind);
     loadGrid();
   });

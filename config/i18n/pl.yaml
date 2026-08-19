@@ -200,3 +200,23 @@ auth:
     google_failed: Google odrzuciło logowanie.
     google_unreachable: Brak połączenia z Google. Sprawdź sieć i spróbuj ponownie.
     google_unverified: To konto Google ma niezweryfikowany adres e-mail.
+
+weekday:
+  mon: Pon
+  tue: Wto
+  wed: Śro
+  thu: Czw
+  fri: Pią
+  sat: Sob
+  sun: Nie
+
+calendar:
+  toggle: Kolejne dni
+  no_data: brak danych
+  badge: Prognoza
+  note: >
+    Kolor to prognoza dnia, zapisana przed tym dniem; godzina to okno świtu.
+    Wybór dnia przemalowuje mapę pod wiatr tego dnia - warunki powyżej
+    pozostają aktualne. Ostatnie dni są przygaszone: prognoza ciśnienia tak
+    daleko jest słaba.
+  forecast_only: Widok prognozy. Wybierz dziś, aby zacząć sesję.

@@ -196,3 +196,37 @@ Third: a depth survey, which for 9 ha is a morning with a marker float.
 2. **Password reset** - needs an SMTP credential and a sending domain.
 3. **The Google flow has never talked to Google.** Register the redirect URI in
    the Google console and sign in once on a real machine.
+
+## 13. Day strip behind a calendar icon on the lake page · DONE (one caveat)
+
+- Calendar icon beside the lake name, inside the lake page only. Tapping it
+  rolls a strip of **today + 7 days** down in place; tapping again rolls it up.
+- Each day carries a **colour band and its dawn window**. No number: the day
+  score is never shown raw, and a "% chance of a fish" would claim a
+  calibration this project has not earned - there are no logged sessions to
+  calibrate against yet. When the calibration loop (phase 5) has a season of
+  data, that percentage becomes computable and this is where it goes.
+- Every band is read from a stored `prediction` row written before the day it
+  describes (law 2). Nothing is recomputed at render time. A day with no row
+  shows a hatched "no data" chip and is never filled in from its neighbour
+  (law 4).
+- Picking a day **recolours the map overlay** for that day's mean forecast
+  wind. The conditions card and the weather table deliberately keep showing
+  now, at the owner's request, so a badge over the map names the day being
+  drawn.
+- **A session cannot be started from a forecast day.** Tapping the map while
+  one is selected names the day and offers no start link - a session is always
+  logged against now.
+- Days past +5 are faded and the strip says why: the pressure forecast that
+  drives the day score is weak that far out.
+
+**The caveat, in one line:** a future day's overlay uses that day's forecast
+*wind* with **today's** modelled water temperature and oxygen. The v0.4 bite
+model is built from current conditions and there is no forward water-temperature
+run yet. The UI only ever claims wind, but anyone extending this should know the
+thermal half of the overlay is not a forecast.
+
+**Open, and only worth doing once there is data:** past days in the strip
+showing what was predicted beside what was actually caught. That view is the
+calibration loop's face and is empty until sessions are logged.
+

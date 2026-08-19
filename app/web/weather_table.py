@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import math
 from collections import defaultdict
+from datetime import timedelta
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.models import Lake, WeatherHourly
-from app.core.time import parse_iso, to_display, utcnow
+from app.core.time import iso, parse_iso, to_display, utcnow
 
 
 def _circular_mean_deg(values: list[float]) -> float | None:
@@ -18,7 +19,10 @@ def _circular_mean_deg(values: list[float]) -> float | None:
     cos_sum = sum(math.cos(math.radians(v)) for v in values)
     if sin_sum == 0 and cos_sum == 0:
         return None
-    return round(math.degrees(math.atan2(sin_sum, cos_sum)) % 360, 0)
+    # Modulo *after* rounding: a mean a hair below north comes out of atan2 as
+    # 359.9999, which rounds to 360 - a bearing that does not exist. Callers
+    # index by this value, so it has to stay inside [0, 360).
+    return round(math.degrees(math.atan2(sin_sum, cos_sum)) % 360, 0) % 360
 
 
 def _compass(deg: float | None) -> str:
@@ -122,3 +126,39 @@ def recent_days(db: Session, lake: Lake, days: int = 5) -> list[dict[str, Any]]:
             }
         )
     return out
+
+
+def forecast_day_winds(db: Session, lake: Lake, days: int) -> dict[str, float | None]:
+    """Mean wind direction per forecast day, keyed by local date.
+
+    The calendar needs one bearing per day to re-score the map with. A daily
+    circular mean is the honest resolution to ask for: the zone score is
+    provisional and displayed as a percentile, so resolving wind finer than
+    "roughly from there, that day" would be false precision - the same reason
+    `tools/build_static.py` buckets the published overlay to 30 degrees.
+
+    Forecast rows only (is_forecast = 1). Today is deliberately absent: the map
+    already scores today from the live reading, and mixing a day-mean into that
+    would quietly change what "now" means.
+    """
+    horizon_end = utcnow() + timedelta(days=days + 1)
+    rows = db.execute(
+        select(WeatherHourly)
+        .where(
+            WeatherHourly.lake_id == lake.id,
+            WeatherHourly.source == "openmeteo_forecast",
+            WeatherHourly.is_forecast == 1,
+            WeatherHourly.ts_utc <= iso(horizon_end),
+        )
+        .order_by(WeatherHourly.ts_utc)
+    ).scalars().all()
+
+    buckets: dict[str, list[float]] = defaultdict(list)
+    for row in rows:
+        if row.wind_direction_10m is None:
+            continue
+        buckets[to_display(parse_iso(row.ts_utc)).date().isoformat()].append(
+            row.wind_direction_10m
+        )
+
+    return {day: _circular_mean_deg(values) for day, values in buckets.items()}

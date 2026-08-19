@@ -1315,3 +1315,159 @@ details.card[open] summary::before { content: "－ "; }
 
 .auth-switch { font-size: 0.86rem; color: var(--muted); margin-top: 4px; }
 .auth-switch a { font-weight: 600; }
+
+/* ---------------------------------------------------------------------------
+   The day strip: a calendar icon on the lake header, and eight day chips that
+   roll down under it.
+
+   The chips carry a colour and a time, nothing else. There is no number on
+   them on purpose - the day score is never shown raw, and a percentage would
+   claim a calibration this project has not earned yet.
+   --------------------------------------------------------------------------- */
+.lake-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lake-heading .section-label { margin-bottom: 0; }
+
+.calendar-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.calendar-toggle:hover { color: var(--primary-text); background: var(--surface-alt); }
+.calendar-toggle.is-open {
+  color: #ffffff;
+  background: var(--primary-strong);
+  border-color: var(--primary-strong);
+}
+
+/* Rolls open to a measured height rather than `auto`, which cannot be
+   transitioned. The height is set from scrollHeight in the template's script. */
+.day-strip {
+  overflow: hidden;
+  margin: 10px 0 14px;
+}
+
+.day-strip.is-rolling {
+  max-height: 0;
+  transition: max-height 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.day-strip.is-rolling.is-open { max-height: var(--roll-height, 200px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .day-strip.is-rolling { transition: none; }
+}
+
+/* Horizontal rail, not a month grid: eight days is what the predictions cover,
+   and a grid of mostly empty squares would be four taps of scrolling to say so. */
+.day-strip-rail {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.day-strip-rail::-webkit-scrollbar { display: none; }
+
+.day-chip {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 58px;
+  padding: 8px 6px 7px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.day-chip-weekday {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.day-chip-date { font-size: 1rem; font-weight: 700; color: var(--primary-text); }
+
+/* The band. A bar, not a dot: at this size a dot reads as a bullet point and a
+   bar reads as a measurement. */
+.day-chip-band {
+  width: 30px;
+  height: 6px;
+  border-radius: 999px;
+  margin: 2px 0 1px;
+}
+
+.band-red    { background: #d9553f; }
+.band-orange { background: #e58a3c; }
+.band-yellow { background: #e5c645; }
+.band-green  { background: #4fae7c; }
+/* No prediction row for that day. Hollow, so it cannot be mistaken for a band
+   at a glance, and never filled in from the day beside it (law 4). */
+.band-none {
+  background: repeating-linear-gradient(
+    45deg, var(--border), var(--border) 2px, transparent 2px, transparent 4px
+  );
+}
+
+.day-chip-hours { font-size: 0.62rem; color: var(--muted); white-space: nowrap; }
+
+.day-chip.is-today { border-color: var(--primary); }
+
+.day-chip.is-selected {
+  border-color: var(--primary-strong);
+  box-shadow: 0 0 0 2px rgba(111, 177, 232, 0.35);
+}
+
+/* Far out, and saying so. Faded rather than hidden: pretending the model sees
+   only five days would be its own inaccuracy. */
+.day-chip.is-far { opacity: 0.55; }
+.day-chip.is-empty { opacity: 0.7; }
+
+.day-strip-note {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.35;
+  margin: 2px 2px 0;
+}
+
+/* Which day the overlay is drawn for, over the map, because the conditions
+   card deliberately keeps showing now. */
+.map-day-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 500;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--primary-text);
+  pointer-events: none;
+}

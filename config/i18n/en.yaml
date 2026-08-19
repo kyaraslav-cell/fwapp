@@ -201,3 +201,25 @@ auth:
     google_failed: Google refused the sign-in.
     google_unreachable: Could not reach Google. Check the connection and try again.
     google_unverified: That Google account has an unverified email address.
+
+# The day strip behind the calendar icon on the lake page. Weekday keys are
+# lowercase %a, so the template can look one up without a mapping table.
+weekday:
+  mon: Mon
+  tue: Tue
+  wed: Wed
+  thu: Thu
+  fri: Fri
+  sat: Sat
+  sun: Sun
+
+calendar:
+  toggle: Next days
+  no_data: no data
+  badge: Forecast
+  note: >
+    Colour is the day's outlook, written before the day; the time is the dawn
+    window. Picking a day recolours the map for that day's wind - the conditions
+    above stay on now. The last days are faded: the pressure forecast is weak
+    that far out.
+  forecast_only: Forecast view. Pick today to start a session.

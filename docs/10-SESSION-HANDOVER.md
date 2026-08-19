@@ -36,6 +36,7 @@ Branch: `claude/repository-edit-push-ggr229` on `kyaraslav-cell/fwapp`.
 | RU / PL / EN with on-page switcher | works |
 | Fish pin: held drag, dive, splash | works |
 | Water-type filter as a segmented switch | works |
+| Day strip (today + 7) behind a calendar icon, map re-scores per day | works |
 | Accounts: password sign-in, sessions, per-angler notebook | works |
 | Sign in with Google | built, **never run against Google** |
 

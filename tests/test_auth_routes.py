@@ -230,3 +230,18 @@ def test_registration_still_works_with_google_configured_but_unreachable(
 def test_os_environ_is_left_as_it_was_found() -> None:
     """Guards the fixture itself: a leaked env var would make later tests lie."""
     assert "FISHLOG_GOOGLE_CLIENT_ID" not in os.environ
+
+
+def test_the_day_strip_is_public_and_carries_no_score(client: TestClient) -> None:
+    """The calendar is weather, not notebook - it stays open like the map.
+
+    Also guards the owner's standing rule at the page level: the strip may
+    carry colours and times, never a number out of ten.
+    """
+    body = client.get("/lake/pomocnia").text
+    assert 'id="calendar-toggle"' in body
+    assert 'class="day-strip"' in body
+    assert body.count("day-chip ") >= 8 or body.count('class="day-chip') >= 8
+    # No day_score anywhere in the rendered strip.
+    strip = body[body.index('id="day-strip"'): body.index("day-strip-note")]
+    assert "day_score" not in strip
