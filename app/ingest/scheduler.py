@@ -5,6 +5,7 @@ import logging
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 
 from app.core.db import init_db, session_scope
 from app.core.seed import ensure_lake_seeded
@@ -27,10 +28,52 @@ def run_predict_job() -> None:
         generate_predictions(db, lake)
 
 
+def run_jobs_tick() -> None:
+    """Drain the background queue: outlines, grids, backfills for new waters.
+
+    Every 30 seconds rather than on a cron, because these jobs are what an
+    angler is waiting for after typing a lake's name - a minute of dead time
+    with the page saying "preparing" is the difference between a feature that
+    feels alive and one that feels broken.
+    """
+    from app.jobs.runner import drain
+
+    drained = drain()
+    if drained:
+        logger.info("jobs: ran %s", drained)
+
+
+def run_monthly_refresh_job() -> None:
+    """Re-check every discovered water's shoreline once a month.
+
+    OSM improves: a pond mapped as a blob in 2024 gets a proper shore in 2026.
+    One Overpass call per water per month is nothing against their allowance,
+    and it is the cheapest way to let the map get better on its own.
+    """
+    from app.core.models import Lake
+    from app.jobs import queue
+    from app.jobs.handlers import OUTLINE
+
+    with session_scope() as db:
+        waters = db.query(Lake).filter(Lake.origin == "discovered").all()
+        for lake in waters:
+            # Clearing the cached polygon is what makes the outline job refetch;
+            # the handler is a no-op for a water that still has one.
+            lake.outline_geojson = None
+            queue.enqueue(db, OUTLINE, lake_id=lake.id)
+        logger.info("monthly refresh queued for %s waters", len(waters))
+
+
 def build_scheduler() -> BackgroundScheduler:
     scheduler = BackgroundScheduler(timezone="UTC")
     scheduler.add_job(run_ingest_job, CronTrigger(minute=5), id="fetch_openmeteo_forecast")
     scheduler.add_job(run_predict_job, CronTrigger(hour=4, minute=0), id="generate_prediction")
+    scheduler.add_job(run_jobs_tick, IntervalTrigger(seconds=30), id="drain_job_queue")
+    scheduler.add_job(
+        run_monthly_refresh_job,
+        CronTrigger(day=1, hour=3, minute=0),
+        id="refresh_discovered_waters",
+    )
     return scheduler
 
 

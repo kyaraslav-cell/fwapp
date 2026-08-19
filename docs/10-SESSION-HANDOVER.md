@@ -38,6 +38,7 @@ Branch: `claude/repository-edit-push-ggr229` on `kyaraslav-cell/fwapp`.
 | Water-type filter as a segmented switch | works |
 | Day strip (today + 7) behind a calendar icon, map re-scores per day | works |
 | Thermal-phase line on the lake page | **removed** — see backlog §14 |
+| Add a water by name: search, job queue, staged build | works, **never run against Nominatim/Overpass** |
 | Accounts: password sign-in, sessions, per-angler notebook | works |
 | Sign in with Google | built, **never run against Google** |
 
@@ -214,6 +215,10 @@ docs/10-SESSION-HANDOVER.md   this file
 docs/adr/0001                 foundational decisions
 docs/adr/0002                 provisional zone score + its provenance
 docs/adr/0004                 accounts, sign-in, and the public/private boundary
+docs/adr/0005                 adding waters: the queue, named waters, no fake shorelines
+docs/13-ADD-A-WATER.md        the pipeline, its costs and its failure table
+app/discover/                 nominatim search, dedupe, quota, add
+app/jobs/                     queue state machine, handlers, runner
 app/auth/                     passwords, validation, tokens, google, service
 config/rules.v0.3.yaml        active ruleset (day score + zone score)
 config/species.yaml           25 species, sizes, icon shape, colour

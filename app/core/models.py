@@ -21,6 +21,17 @@ class Lake(Base):
     max_depth_m: Mapped[float | None] = mapped_column(Float)
     outline_geojson: Mapped[str | None] = mapped_column(Text)
     outline_source: Mapped[str | None] = mapped_column(String)  # osm|circle_fallback
+    # Where this water came from, and who put it there. `discovered` waters are
+    # the ones the add-a-water flow created; `seed` is Pomocnia, which predates
+    # it and keeps its committed outline.
+    origin: Mapped[str] = mapped_column(String, nullable=False, default="seed")
+    osm_type: Mapped[str | None] = mapped_column(String)  # node|way|relation
+    osm_id: Mapped[int | None] = mapped_column(Integer)
+    added_by_user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("user.id"))
+    # Grid resolution actually used for this water. Stored because it depends on
+    # the water's area: a cached grid and a live one must never disagree about
+    # how big a cell is.
+    grid_cell_m: Mapped[float | None] = mapped_column(Float)
     # pzw | commercial. NOT cosmetic: it is the segmentation key for every
     # CPUE aggregate. A stocked commercial water and a PZW lake produce fish
     # per hour on completely different scales, so pooling them into one
@@ -250,3 +261,34 @@ class AuthSession(Base):
     last_seen_at: Mapped[str | None] = mapped_column(String)
     revoked_at: Mapped[str | None] = mapped_column(String)
     user_agent: Mapped[str | None] = mapped_column(String)
+
+
+class Job(Base):
+    """One slow piece of work, queued and drained in the background.
+
+    Adding a water means geocoding, a shoreline fetch that can take half a
+    minute, a grid build, a year of pressure history and a research pass. None
+    of that belongs in a request, and none of it may be lost if it fails - so
+    each piece is a row here with a state, an attempt count and its last error.
+
+    Deliberately a table and not a library: `docs/adr/0001` forbids an external
+    queue, this app has one writer, and a job that survives a restart because it
+    is in the same SQLite file as everything else is worth more here than
+    throughput.
+    """
+
+    __tablename__ = "job"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    lake_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("lake.id"))
+    kind: Mapped[str] = mapped_column(String, nullable=False)
+    state: Mapped[str] = mapped_column(String, nullable=False, default="queued")
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # When this job may next be picked up. Backoff is a timestamp rather than a
+    # sleep: a sleeping worker is a worker that is not doing the other jobs.
+    run_after: Mapped[str] = mapped_column(String, nullable=False)
+    last_error: Mapped[str | None] = mapped_column(Text)
+    payload_json: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[str] = mapped_column(String, nullable=False)
+    started_at: Mapped[str | None] = mapped_column(String)
+    finished_at: Mapped[str | None] = mapped_column(String)

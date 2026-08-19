@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+from typing import Any
 
 import httpx
 from sqlalchemy import select
@@ -56,11 +57,11 @@ CHUNK_DAYS = 365
 
 def fetch_archive(
     lat: float, lon: float, start: dt.date, end: dt.date, timeout: float = 60.0
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """One archive request. Raises on transport or shape errors; the caller logs a gap."""
     params = {
-        "latitude": lat,
-        "longitude": lon,
+        "latitude": str(lat),
+        "longitude": str(lon),
         "hourly": ",".join(HOURLY_VARS),
         "timezone": "UTC",
         "start_date": start.isoformat(),
@@ -74,9 +75,9 @@ def fetch_archive(
 
     hourly = payload["hourly"]
     times = hourly["time"]
-    rows: list[dict] = []
+    rows: list[dict[str, Any]] = []
     for i, ts in enumerate(times):
-        row: dict = {"ts_utc": ts + ":00+00:00" if len(ts) == 16 else ts}
+        row: dict[str, Any] = {"ts_utc": ts + ":00+00:00" if len(ts) == 16 else ts}
         for api_field, model_field in FIELD_MAP.items():
             values = hourly.get(api_field, [])
             row[model_field] = values[i] if i < len(values) else None

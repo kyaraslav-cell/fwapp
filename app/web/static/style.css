@@ -1476,3 +1476,43 @@ details.card[open] summary::before { content: "－ "; }
   border: 1px dashed var(--border);
   background: linear-gradient(135deg, var(--surface), var(--surface-alt));
 }
+
+/* A quiet notice block. Used by the static build's "this site only reads"
+   banner - which has been rendering unstyled since that build was written -
+   and by the stage note on a water that is still being prepared. */
+.callout {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+/* A search result you can add. It is a submit button styled as a place card,
+   so the whole row is the tap target on a phone rather than a small link. */
+.candidate-form { margin: 0 0 8px; }
+
+.candidate-card {
+  width: 100%;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.candidate-card.is-not-water { opacity: 0.7; }
+
+/* What stage a newly added water is at. Quiet by default - it is progress, not
+   a problem - and only coloured when something actually failed. */
+.build-note {
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.build-note-failed {
+  background: #fbe6e2;
+  color: var(--accent-coral-text);
+}

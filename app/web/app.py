@@ -16,7 +16,7 @@ from app.ingest.open_meteo import ingest_forecast
 from app.ingest.scheduler import build_scheduler
 from app.predict.daily import generate_predictions
 from app.web.deps import NotSignedInError, require_user, resolve_request_user
-from app.web.routes import auth, history, places, sessions
+from app.web.routes import auth, discover, history, places, sessions
 
 logging.basicConfig(level=logging.INFO)
 
@@ -70,6 +70,8 @@ def create_app() -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(places.router)
+    # Adding a water is a write, so it needs an account like the notebook does.
+    app.include_router(discover.router, dependencies=[Depends(require_user)])
     # The security boundary, in one place: the notebook is one angler's
     # private record and needs an account; the lake, the conditions and the
     # map read the same for everyone and stay open, which is also what keeps

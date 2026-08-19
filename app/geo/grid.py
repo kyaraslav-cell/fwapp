@@ -39,6 +39,36 @@ class LakeGrid:
         return None
 
 
+def polygon_area_ha(outline_geojson: dict[str, Any]) -> float | None:
+    """Area of a GeoJSON polygon's outer ring, in hectares. Pure.
+
+    Shoelace on a local equirectangular projection - metres east and north of
+    the ring's own centre. Over a few hundred metres that is exact enough that
+    the error is far below the shoreline's own precision, and it needs no
+    projection library for what is ultimately a number used to pick a grid
+    resolution.
+    """
+    geometry = outline_geojson.get("geometry", outline_geojson)
+    if geometry.get("type") != "Polygon":
+        return None
+    rings = geometry.get("coordinates") or []
+    if not rings or len(rings[0]) < 4:
+        return None
+
+    ring = rings[0]
+    mid_lat = sum(point[1] for point in ring) / len(ring)
+    m_per_lon = meters_per_degree_lon(mid_lat)
+
+    xs = [point[0] * m_per_lon for point in ring]
+    ys = [point[1] * METERS_PER_DEGREE_LAT for point in ring]
+
+    twice_area = 0.0
+    for i in range(len(ring) - 1):
+        twice_area += xs[i] * ys[i + 1] - xs[i + 1] * ys[i]
+    area_m2 = abs(twice_area) / 2.0
+    return area_m2 / 10_000.0 if area_m2 > 0 else None
+
+
 def meters_per_degree_lon(lat: float) -> float:
     return METERS_PER_DEGREE_LAT * math.cos(math.radians(lat))
 

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,7 +18,7 @@ from app.rules.loader import load_active_ruleset
 OUTLOOK_DAYS = 7
 
 
-def _ensure_ruleset_row(db: Session, ruleset: dict) -> None:
+def _ensure_ruleset_row(db: Session, ruleset: dict[str, Any]) -> None:
     version = ruleset["version"]
     existing = db.get(Ruleset, version)
     if existing is None:
@@ -54,7 +55,11 @@ def _load_pressure_points(db: Session, lake: Lake, now: datetime) -> list[Pressu
 
 
 def _score_for_horizon(
-    ruleset: dict, points: list[PressurePoint], lake: Lake, target_date, horizon: int
+    ruleset: dict[str, Any],
+    points: list[PressurePoint],
+    lake: Lake,
+    target_date: date,
+    horizon: int,
 ) -> tuple[ScoreBundle, FeatureBundle]:
     anchor = datetime.combine(target_date, time(12, 0), tzinfo=UTC)
     pressure_features = compute_pressure_features(points, anchor, ruleset["pressure_regimes"])

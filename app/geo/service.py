@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,35 @@ from app.geo.outline import fetch_osm_outline
 logger = logging.getLogger("fishlog.geo.service")
 
 DEFAULT_CELL_M = 5.0
+
+# The grid is handed to a phone as JSON, once per wind bucket, every time a day
+# is tapped. Pomocnia's 3 564 cells are ~60 KB; the same 5 m cells on a 500 ha
+# lake would be ~200 000 cells and megabytes. So resolution follows area,
+# targeting a cell count that stays cheap to send and to draw. The binding
+# constraint is transfer, not CPU.
+TARGET_CELLS = 5000
+MIN_CELL_M = 5.0
+# 150 m, not 50: at 50 m a 10 000 ha water still comes to 40 000 cells, which
+# is the very thing the target exists to prevent. Resolution is properly a
+# fraction of the water's size - 5 m on Pomocnia's 340 m is 1/68th of it, and
+# 150 m on Sniardwy's 22 km is 1/150th. On a water that large the angler is
+# choosing a bay, not a swim, and a coarse overlay beats none.
+MAX_CELL_M = 150.0
+
+
+def cell_size_for_area(area_ha: float | None) -> float:
+    """Metres per grid cell for a water of this area.
+
+    Unknown area falls back to the finest resolution: a water we know nothing
+    about is more likely to be a pond than a reservoir, and being too fine
+    costs bytes while being too coarse costs the whole overlay.
+    """
+    if area_ha is None or area_ha <= 0:
+        return DEFAULT_CELL_M
+    area_m2 = area_ha * 10_000.0
+    ideal = math.sqrt(area_m2 / TARGET_CELLS)
+    # Round to whole metres so a cached grid and a rebuilt one agree exactly.
+    return float(min(MAX_CELL_M, max(MIN_CELL_M, round(ideal))))
 
 # Overpass and the grid maths are both too slow to run per request, and the
 # outline never changes - so both are cached. Outline is cached in the database,
@@ -100,7 +130,13 @@ def get_geometry_inputs(
 
 
 def invalidate(lake_id: int) -> None:
-    for key in [k for k in _grid_cache if k[0] == lake_id]:
-        del _grid_cache[key]
-    for key in [k for k in _fetch_cache if k[0] == lake_id]:
-        del _fetch_cache[key]
+    """Drop cached geometry for one water.
+
+    Called when its outline changes - a monthly OSM refresh, or the first time
+    a discovered water's polygon lands. Both caches are keyed differently, so
+    they are cleared separately rather than through one loop variable.
+    """
+    for grid_key in [k for k in _grid_cache if k[0] == lake_id]:
+        del _grid_cache[grid_key]
+    for fetch_key in [k for k in _fetch_cache if k[0] == lake_id]:
+        del _fetch_cache[fetch_key]

@@ -256,3 +256,29 @@ be measured.
 
 If a phase display comes back, it needs to be something the angler can act on -
 a depth band or a bank, not the name of a season.
+
+## 15. Add a water by name · PARTIAL — the backbone is in
+
+Built: search by name (Nominatim, throttled to their 1 req/s), a candidate
+picker that marks non-water results rather than hiding them, dedupe by OSM id
+and by name-plus-proximity, a per-account daily quota, and a **job queue** that
+builds the water in the background — shoreline, a year of pressure history,
+forecast, grid — while the angler already has a satellite map and a pin.
+
+Design and reasoning: `docs/13-ADD-A-WATER.md`, `docs/adr/0005-adding-waters.md`.
+
+**Not built yet, in the order they matter:**
+
+1. **The Gemini pass.** The job kind is not wired. This is the local-knowledge
+   step — species, bottom, access, rules — and it supplies *facts only*, never
+   formula weights (ADR 0005 §2).
+2. **Rivers.** Beat boundaries are findable, but flow is not modelled at all.
+3. **Raster auto-tracing** for waters OSM has no polygon for. Deliberately
+   deferred until the named-water path shows how often it is actually needed;
+   it needs numpy and a GeoTIFF reader, so it gets its own ADR.
+4. **A live run.** Nothing here has ever reached Nominatim or Overpass — the
+   sandbox has no outbound network. The pipeline was driven end to end against
+   a stubbed geocoder and a real queue; the first true search will be on the
+   owner's machine, and `docs/13 §8` is the table of what should happen when
+   each part fails.
+

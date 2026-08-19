@@ -15,11 +15,38 @@ OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 USER_AGENT = "Fishlog/0.1 (personal fishing log; one lake; contact via repo)"
 
 
-def fetch_osm_outline(lat: float, lon: float, radius_m: int = 500) -> dict[str, Any] | None:
-    """Fetch the water polygon nearest the given point from OpenStreetMap.
+class OverpassUnavailableError(RuntimeError):
+    """Overpass could not be reached or refused. Distinct from "no polygon".
 
-    Returns a GeoJSON Polygon dict, or None if nothing usable came back.
-    Never raises on network failure - the caller falls back to an approximation.
+    The difference decides a water's fate: an empty *answer* means this water
+    genuinely has no shoreline in OpenStreetMap and never will until somebody
+    maps it, while an unreachable *service* means try again in a minute.
+    Collapsing them - which this module did until a live run caught it - marks
+    a mapped lake as unmapped forever because of one timeout.
+    """
+
+
+def fetch_osm_outline(lat: float, lon: float, radius_m: int = 500) -> dict[str, Any] | None:
+    """The water polygon nearest a point, or None for any reason at all.
+
+    Kept lenient for the seeded lake, whose caller falls back to a committed
+    file or an approximation and must not break on a network failure. Anything
+    that has to tell "no polygon" from "no Overpass" calls
+    `fetch_osm_outline_strict` instead.
+    """
+    try:
+        return fetch_osm_outline_strict(lat, lon, radius_m)
+    except OverpassUnavailableError:
+        return None
+
+
+def fetch_osm_outline_strict(
+    lat: float, lon: float, radius_m: int = 500
+) -> dict[str, Any] | None:
+    """As above, but raises `OverpassUnavailableError` when the service failed.
+
+    Returns None only when Overpass answered and there is genuinely no water
+    polygon there.
     """
     # Rivers are excluded explicitly: the Wkra runs past Pomocnia and its
     # polygon is far larger than the lake, so any "biggest wins" heuristic
@@ -39,7 +66,7 @@ def fetch_osm_outline(lat: float, lon: float, radius_m: int = 500) -> dict[str, 
             data = resp.json()
     except (httpx.HTTPError, ValueError) as exc:
         logger.warning("Overpass fetch failed (%s: %s)", type(exc).__name__, exc)
-        return None
+        raise OverpassUnavailableError(f"{type(exc).__name__}: {exc}") from exc
 
     candidates: list[tuple[list[list[float]], float]] = []
     for element in data.get("elements", []):

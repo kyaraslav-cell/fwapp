@@ -1,0 +1,153 @@
+"""Search for a water by name, and add it.
+
+Two routes, and the split between them is the whole design: `GET /places/new`
+does one throttled geocoder call and shows a list; `POST /places/new` writes a
+row and queues four jobs, then redirects. Neither touches Overpass, the
+archive, or the grid - all of that happens in the background, so the angler is
+looking at a map of their lake about a second after they pick it.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from fastapi import APIRouter, Depends, Form, Request, Response
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+
+from app.core.time import to_display
+from app.discover import nominatim, service
+from app.discover.nominatim import Candidate
+from app.web.deps import CurrentUser, get_db, require_user, templates
+
+router = APIRouter()
+
+
+def _render(
+    request: Request, *, status_code: int = 200, **context: Any
+) -> Response:
+    payload: dict[str, Any] = {
+        "request": request,
+        "active_nav": "home",
+        "query": "",
+        "candidates": [],
+        "error": None,
+        "searched": False,
+        "quota_left": None,
+        "quota_reset": None,
+    }
+    payload.update(context)
+    return templates.TemplateResponse("place_new.html", payload, status_code=status_code)
+
+
+@router.get("/places/new")
+def search_form(
+    request: Request,
+    q: str = "",
+    user: CurrentUser = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    quota = service.quota_left(db, user.id)
+    reset = service.next_quota_reset(db, user.id)
+
+    query = q.strip()
+    if not query:
+        return _render(request, quota_left=quota, quota_reset=_local(reset))
+
+    try:
+        found = nominatim.search(query)
+    except nominatim.NominatimError:
+        # The geocoder is a shared community service and it is allowed to say
+        # no. Nothing is created, and the angler is told which part failed
+        # rather than "something went wrong".
+        return _render(
+            request,
+            status_code=503,
+            query=query,
+            searched=True,
+            error="discover.error.geocoder",
+            quota_left=quota,
+            quota_reset=_local(reset),
+        )
+
+    return _render(
+        request,
+        query=query,
+        searched=True,
+        candidates=[_row(db, c) for c in found],
+        quota_left=quota,
+        quota_reset=_local(reset),
+    )
+
+
+@router.post("/places/new")
+def add(
+    request: Request,
+    name: str = Form(...),
+    display_name: str = Form(default=""),
+    lat: float = Form(...),
+    lon: float = Form(...),
+    osm_type: str = Form(default=""),
+    osm_id: int = Form(default=0),
+    area_ha: str = Form(default=""),
+    is_water: str = Form(default="1"),
+    user: CurrentUser = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Add the chosen water.
+
+    The candidate is rebuilt from the form rather than re-queried: Nominatim
+    allows one request a second, and asking it again to learn what it already
+    told us thirty seconds ago is exactly the kind of waste that gets an IP
+    blocked.
+    """
+    candidate = Candidate(
+        name=name.strip(),
+        display_name=display_name.strip() or name.strip(),
+        lat=lat,
+        lon=lon,
+        osm_type=osm_type.strip(),
+        osm_id=osm_id,
+        kind="",
+        area_ha=float(area_ha) if area_ha.strip() else None,
+        is_water=is_water == "1",
+    )
+
+    try:
+        result = service.add_water(db, candidate, user_id=user.id)
+    except service.QuotaExceededError:
+        return _render(
+            request,
+            status_code=429,
+            query=name,
+            searched=True,
+            error="discover.error.quota",
+            quota_left=0,
+            quota_reset=_local(service.next_quota_reset(db, user.id)),
+        )
+    except service.NotAWaterError:
+        return _render(
+            request,
+            status_code=422,
+            query=name,
+            searched=True,
+            error="discover.error.not_water",
+            quota_left=service.quota_left(db, user.id),
+        )
+
+    # Either way the angler lands on the water's page - a duplicate add opens
+    # the water that already exists rather than making a second copy of it.
+    return RedirectResponse(url=f"/lake/{result.lake.slug}", status_code=303)
+
+
+def _row(db: Session, candidate: Candidate) -> dict[str, Any]:
+    """One search result, with whether we already have it."""
+    existing = service.find_existing(db, candidate)
+    return {
+        "candidate": candidate,
+        "existing_slug": existing.slug if existing is not None else None,
+    }
+
+
+def _local(moment: Any) -> str | None:
+    return to_display(moment).strftime("%H:%M") if moment is not None else None

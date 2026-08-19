@@ -1,16 +1,80 @@
 {% extends "base.html" %}
-{% block title %}New place — Fishlog{% endblock %}
+{% block title %}{{ t('place_new.title') }} — Fishlog{% endblock %}
 {% block page_class %} narrow{% endblock %}
 {% block content %}
 <h1>{{ t('place_new.title') }}</h1>
-<div class="card">
-  <p>
-    Multi-lake support is deferred for now — Fishlog is scoped to
-    <strong>Jezioro Pomocnia</strong> until the real add-a-lake pipeline
-    (geocode → OSM polygon → zone mapping) is built.
-  </p>
-  <p>When it ships, this is where you'll type a lake name and get an
-  auto-resolved outline to start mapping zones on.</p>
+<p class="auth-lede">{{ t('place_new.lede') }}</p>
+
+{% if error %}
+<div class="form-error form-error-banner" role="alert">
+  {{ t(error) }}{% if quota_reset and error == 'discover.error.quota' %} {{ t('discover.quota_reset') }} {{ quota_reset }}.{% endif %}
 </div>
-<a href="/" class="btn btn-secondary">{{ t('place_new.back') }}</a>
+{% endif %}
+
+<form method="get" action="/places/new" class="auth-form" style="margin-bottom: 14px;">
+  <label class="field">
+    <span class="field-label">{{ t('discover.field.name') }}</span>
+    <input type="text" name="q" value="{{ query }}" autocomplete="off"
+           placeholder="{{ t('discover.placeholder') }}" autofocus>
+    <span class="field-hint">{{ t('discover.hint') }}</span>
+  </label>
+  <button class="btn btn-primary" type="submit">{{ t('discover.search') }}</button>
+</form>
+
+{% if searched and not candidates and not error %}
+<p class="empty-state">{{ t('discover.nothing_found') }}</p>
+{% endif %}
+
+{% for row in candidates %}
+  {% set c = row.candidate %}
+  {# A result already in the database is a link, not an add button. Two rows
+     for one water would split every statistic about it. #}
+  {% if row.existing_slug %}
+  <a href="/lake/{{ row.existing_slug }}" style="text-decoration:none; color:inherit;">
+    <div class="place-card">
+      <div class="place-info">
+        <div class="place-name">{{ c.name }}</div>
+        <div class="place-meta">{{ c.display_name }}</div>
+      </div>
+      <span class="badge badge-neutral">{{ t('discover.already_added') }}</span>
+    </div>
+  </a>
+  {% else %}
+  <form method="post" action="/places/new" class="candidate-form">
+    <input type="hidden" name="name" value="{{ c.name }}">
+    <input type="hidden" name="display_name" value="{{ c.display_name }}">
+    <input type="hidden" name="lat" value="{{ c.lat }}">
+    <input type="hidden" name="lon" value="{{ c.lon }}">
+    <input type="hidden" name="osm_type" value="{{ c.osm_type }}">
+    <input type="hidden" name="osm_id" value="{{ c.osm_id }}">
+    <input type="hidden" name="area_ha" value="{{ c.area_ha if c.area_ha is not none }}">
+    <input type="hidden" name="is_water" value="{{ '1' if c.is_water else '0' }}">
+    <button type="submit" class="place-card candidate-card{{ ' is-not-water' if not c.is_water }}">
+      <div class="place-info">
+        <div class="place-name">{{ c.name }}</div>
+        <div class="place-meta">
+          {{ c.display_name }}
+          {% if c.area_ha %} · ~{{ c.area_ha | round(0) | int }} ha{% endif %}
+        </div>
+      </div>
+      {% if c.is_water %}
+      <span class="badge badge-green">{{ t('discover.add') }}</span>
+      {% else %}
+      {# Kept, not hidden: a fishery is sometimes tagged as something else, and
+         silently dropping everything that is not natural=water would make a
+         findable place look missing. Marked so it is a deliberate choice. #}
+      <span class="badge badge-neutral">{{ t('discover.not_water') }}</span>
+      {% endif %}
+    </button>
+  </form>
+  {% endif %}
+{% endfor %}
+
+{% if quota_left is not none %}
+<p class="day-strip-note" style="margin-top: 14px;">
+  {{ t('discover.quota_left') }}: {{ quota_left }}
+</p>
+{% endif %}
+
+<a href="/" class="btn btn-secondary" style="margin-top: 12px;">{{ t('place_new.back') }}</a>
 {% endblock %}

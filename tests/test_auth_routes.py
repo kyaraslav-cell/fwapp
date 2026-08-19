@@ -245,3 +245,132 @@ def test_the_day_strip_is_public_and_carries_no_score(client: TestClient) -> Non
     # No day_score anywhere in the rendered strip.
     strip = body[body.index('id="day-strip"'): body.index("day-strip-note")]
     assert "day_score" not in strip
+
+
+# ---------------------------------------------------------------------------
+# Adding a water, through the real app
+# ---------------------------------------------------------------------------
+
+
+def test_adding_a_water_needs_an_account(client: TestClient) -> None:
+    response = client.get("/places/new", follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"].startswith("/auth/login?next=")
+
+
+def test_a_search_that_finds_nothing_says_so(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.discover import nominatim
+
+    monkeypatch.setattr(nominatim, "search", lambda *a, **k: [])
+    register(client)
+
+    body = client.get("/places/new?q=Nonexistent+Lake").text
+    assert "Nothing found" in body
+
+
+def test_a_geocoder_outage_creates_nothing_and_says_which_part_failed(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The failure mode that will actually happen: a shared free service saying no."""
+    from app.core.db import session_scope
+    from app.core.models import Lake
+    from app.discover import nominatim
+
+    def down(*args: object, **kwargs: object) -> list[nominatim.Candidate]:
+        raise nominatim.NominatimError("503")
+
+    monkeypatch.setattr(nominatim, "search", down)
+    register(client)
+
+    response = client.get("/places/new?q=Jezioro")
+    assert response.status_code == 503
+    assert "map search service" in response.text
+    with session_scope() as db:
+        assert db.query(Lake).count() == 0, "a failed search must create nothing"
+
+
+def test_adding_a_water_creates_it_and_queues_the_work(client: TestClient) -> None:
+    from app.core.db import session_scope
+    from app.core.models import Job, Lake
+
+    register(client)
+    response = client.post(
+        "/places/new",
+        data={
+            "name": "Jezioro Zegrzyńskie",
+            "display_name": "Jezioro Zegrzyńskie, Poland",
+            "lat": "52.45",
+            "lon": "21.05",
+            "osm_type": "way",
+            "osm_id": "12345",
+            "area_ha": "3300",
+            "is_water": "1",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/lake/jezioro-zegrzynskie"
+
+    with session_scope() as db:
+        lake = db.query(Lake).filter(Lake.slug == "jezioro-zegrzynskie").one()
+        assert lake.origin == "discovered"
+        assert db.query(Job).filter(Job.lake_id == lake.id).count() == 4
+
+
+def test_a_water_with_no_outline_still_has_a_working_page(client: TestClient) -> None:
+    """Satellite map, pin and forecast work; the overlay is absent and says so.
+
+    This is the whole "no circle fallback" decision (ADR 0005 §4) checked end to
+    end: the page must render, and /grid must answer with no cells rather than
+    with cells computed over an invented shoreline.
+    """
+    register(client)
+    client.post(
+        "/places/new",
+        data={
+            "name": "Staw Testowy", "display_name": "Staw Testowy", "lat": "52.1",
+            "lon": "21.1", "osm_type": "way", "osm_id": "777", "area_ha": "4",
+            "is_water": "1",
+        },
+        follow_redirects=False,
+    )
+
+    page = client.get("/lake/staw-testowy")
+    assert page.status_code == 200
+    assert "shoreline" in page.text or "OpenStreetMap" in page.text
+
+    grid = client.get("/lake/staw-testowy/grid?wind_dir=270")
+    assert grid.status_code == 200
+    assert grid.json() == {
+        "cells": [], "model": "no_outline", "wind_dir": 270.0, "phase": "",
+    }
+
+
+def test_the_quota_stops_the_sixth_water(client: TestClient) -> None:
+    from app.discover.service import DAILY_ADD_QUOTA
+
+    register(client)
+    for i in range(DAILY_ADD_QUOTA):
+        client.post(
+            "/places/new",
+            data={
+                "name": f"Jezioro Test {i}", "display_name": "x", "lat": str(52.0 + i),
+                "lon": "21.0", "osm_type": "way", "osm_id": str(500 + i),
+                "area_ha": "10", "is_water": "1",
+            },
+            follow_redirects=False,
+        )
+
+    response = client.post(
+        "/places/new",
+        data={
+            "name": "One Too Many", "display_name": "x", "lat": "60.0", "lon": "21.0",
+            "osm_type": "way", "osm_id": "9999", "area_ha": "10", "is_water": "1",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 429
+    assert "allowance" in response.text

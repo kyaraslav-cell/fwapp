@@ -20,6 +20,7 @@ home:
   new_place: + Nowe łowisko
 
 place_new:
+  lede: Wpisz nazwę. Wody PZW i łowiska komercyjne są nazwane i naniesione na mapę.
   title: Nowe łowisko
   body: >
     Obsługa wielu jezior jest na razie odłożona — Fishlog obejmuje wyłącznie
@@ -228,3 +229,27 @@ dayreason:
   rating_middling: oceniane średnio
   rating_poor: oceniane nisko
   rating_worst: oceniane najgorzej ze stanów ciśnienia
+
+discover:
+  field:
+    name: Nazwa akwenu
+  placeholder: np. Jezioro Zegrzyńskie
+  hint: Wody PZW i łowiska komercyjne mają nazwy. Wpisz nazwę tak, jak na tablicy.
+  search: Szukaj
+  add: Dodaj
+  not_water: To nie akwen
+  already_added: Już jest
+  nothing_found: Nie znaleziono akwenu o tej nazwie.
+  quota_left: Akweny, które możesz dziś jeszcze dodać
+  quota_reset: Spróbuj po
+  error:
+    geocoder: Nie udało się połączyć z wyszukiwarką map. Nic nie dodano - spróbuj za chwilę.
+    quota: Wykorzystałeś dzienny limit dodawanych akwenów.
+    not_water: Ten wynik to nie akwen. Wybierz pozycję oznaczoną jako jezioro lub staw.
+
+build:
+  outline: Pobieramy linię brzegową z OpenStreetMap. Mapa już działa - nakładka potrzebuje kształtu.
+  weather: Pobieramy rok pogody, aby akwen miał własną normę ciśnienia. Kolory dni pojawią się po zakończeniu.
+  grid: Budujemy siatkę stref. Nakładka pojawi się po zakończeniu.
+  no_outline: OpenStreetMap nie ma linii brzegowej tego akwenu, więc nie ma nakładki stref. Reszta działa.
+  failed: Coś w przygotowaniu tego akwenu się nie powiodło. Spróbujemy ponownie; mapa i prognoza działają.

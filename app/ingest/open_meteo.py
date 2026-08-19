@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.core.models import IngestGap, Lake, WeatherHourly
@@ -40,14 +41,16 @@ FIELD_MAP = {
 
 def fetch_forecast(
     lat: float, lon: float, past_days: int = 3, forecast_days: int = 16
-) -> list[dict]:
+) -> list[dict[str, Any]]:
+    # Every value a string: httpx types its params narrowly, and an int here
+    # is the difference between a clean type check and a cast nobody reads.
     params = {
-        "latitude": lat,
-        "longitude": lon,
+        "latitude": str(lat),
+        "longitude": str(lon),
         "hourly": ",".join(HOURLY_VARS),
         "timezone": "UTC",
-        "past_days": past_days,
-        "forecast_days": forecast_days,
+        "past_days": str(past_days),
+        "forecast_days": str(forecast_days),
         "wind_speed_unit": "ms",
     }
     with httpx.Client(timeout=20.0) as client:
@@ -99,7 +102,7 @@ def ingest_forecast(db: Session, lake: Lake) -> int:
         is_forecast = 1 if ts_dt > now else 0
         if row["ts_utc"] in existing_ts:
             db.execute(
-                WeatherHourly.__table__.delete().where(
+                delete(WeatherHourly).where(
                     WeatherHourly.lake_id == lake.id,
                     WeatherHourly.source == "openmeteo_forecast",
                     WeatherHourly.ts_utc == row["ts_utc"],

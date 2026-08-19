@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -19,6 +20,7 @@ from app.predict.daily import OUTLOOK_DAYS, generate_predictions, latest_predict
 from app.rules.loader import load_active_ruleset
 from app.rules.zone_score import _percentile_normalise, score_cells
 from app.web import bite_view
+from app.web.build_status import status_for
 from app.web.deps import (
     CurrentUser,
     current_user,
@@ -32,6 +34,23 @@ from app.web.view_helpers import calendar_view, current_conditions, prediction_v
 from app.web.weather_table import current_reading, forecast_day_summaries, recent_days
 
 router = APIRouter()
+
+
+def water_outline(db: Session, lake: Lake) -> dict[str, Any] | None:
+    """This water's shoreline, or None if it has not got one.
+
+    Only the seeded lake may fall back to the circle approximation: it has a
+    committed, eyeballed polygon and the fallback is a hedge for a network
+    failure. For a discovered water the same fallback would be an invented
+    shoreline nobody has ever looked at, so it returns None and the page shows
+    a satellite map with no overlay (ADR 0005 §4).
+    """
+    if lake.origin == "seed":
+        return geo_service.ensure_outline(db, lake)
+    if lake.outline_geojson:
+        loaded: dict[str, Any] = json.loads(lake.outline_geojson)
+        return loaded
+    return None
 
 
 @router.get("/")
@@ -100,17 +119,6 @@ def set_language(code: str, next: str = "/"):
     return response
 
 
-@router.get("/places/new")
-def new_place(
-    request: Request,
-    user: CurrentUser = Depends(require_user),
-    db: Session = Depends(get_db),
-):
-    return templates.TemplateResponse(
-        "place_new.html", {"request": request, "active_nav": "home"}
-    )
-
-
 @router.get("/lake/{slug}")
 def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
     lake = get_lake_by_slug(db, slug)
@@ -124,8 +132,17 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
     days = recent_days(db, lake, days=5)
     now_wx = current_reading(db, lake)
 
-    outline = geo_service.ensure_outline(db, lake)
-    grid = geo_service.get_grid(lake, outline)
+    # A discovered water may have no outline yet, or never get one. Only the
+    # seeded lake is allowed the circle approximation - see ADR 0005 §4.
+    build = status_for(db, lake)
+    outline = water_outline(db, lake)
+    grid = (
+        geo_service.get_grid(
+            lake, outline, cell_m=geo_service.cell_size_for_area(lake.area_ha)
+        )
+        if outline
+        else None
+    )
 
     default_wind = None
     if conditions and conditions.get("wind_direction_10m") is not None:
@@ -174,8 +191,9 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
             "calendar_days": calendar_days,
             "now_wx": now_wx,
             "days_json": json.dumps(days),
-            "outline_json": json.dumps(outline),
+            "outline_json": json.dumps(outline) if outline else "null",
             "outline_source": lake.outline_source or "unknown",
+            "build": build,
             "grid_meta": json.dumps(
                 {
                     "origin_lat": grid.origin_lat,
@@ -184,6 +202,8 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
                     "n_rows": grid.n_rows,
                     "n_cols": grid.n_cols,
                 }
+                if grid
+                else {}
             ),
             "default_wind": default_wind if default_wind is not None else "null",
             "zone_provenance": zone_cfg["provenance"],
@@ -208,8 +228,18 @@ def lake_grid(
 ):
     """Per-cell provisional zone scores for one wind direction and phase."""
     lake = get_lake_by_slug(db, slug)
-    outline = geo_service.ensure_outline(db, lake)
-    grid = geo_service.get_grid(lake, outline)
+    outline = water_outline(db, lake)
+    if outline is None:
+        # No shoreline, no overlay. An empty cell list rather than an error:
+        # the map is working, it simply has nothing to colour, and the page
+        # already says why.
+        return JSONResponse(
+            {"cells": [], "model": "no_outline", "wind_dir": wind_dir, "phase": phase},
+            status_code=200,
+        )
+    grid = geo_service.get_grid(
+        lake, outline, cell_m=geo_service.cell_size_for_area(lake.area_ha)
+    )
     inputs = geo_service.get_geometry_inputs(lake, outline, grid, wind_dir)
 
     ruleset = load_active_ruleset()

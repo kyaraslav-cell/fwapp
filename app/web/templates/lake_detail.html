@@ -115,6 +115,15 @@
   {% endif %}
 </div>
 
+{% if build and build.message_key %}
+{# A newly added water is usable before it is finished, so the page names the
+   stage it is at. An empty map with no explanation is indistinguishable from a
+   broken one, and this is the difference between "busy" and "broken". #}
+<div class="callout build-note{{ ' build-note-failed' if build.state == 'failed' }}">
+  {{ t(build.message_key) }}
+</div>
+{% endif %}
+
 <div class="section-label" style="margin-top: 20px;">{{ t('lake.where_to_fish') }}</div>
 
 {# The thermal phase used to be printed here as "Assuming spring warming - from

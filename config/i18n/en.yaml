@@ -20,6 +20,7 @@ home:
   new_place: + New place
 
 place_new:
+  lede: Type the name. PZW waters and commercial fisheries are all named and mapped.
   title: New place
   body: >
     Multi-lake support is deferred for now — Fishlog is scoped to Jezioro
@@ -236,3 +237,27 @@ dayreason:
   rating_middling: rated middling
   rating_poor: rated low
   rating_worst: rated the worst of the pressure states
+
+discover:
+  field:
+    name: Name of the water
+  placeholder: e.g. Jezioro Zegrzyńskie
+  hint: PZW waters and commercial fisheries are all named. Type the name as it is signposted.
+  search: Search
+  add: Add
+  not_water: Not a water
+  already_added: Already here
+  nothing_found: Nothing found by that name.
+  quota_left: Waters you can still add today
+  quota_reset: Try again after
+  error:
+    geocoder: The map search service could not be reached. Nothing was added - try again in a moment.
+    quota: You have added your allowance of waters for today.
+    not_water: That result is not a water. Pick one marked as a lake or pond.
+
+build:
+  outline: Fetching this water's shoreline from OpenStreetMap. The map works meanwhile - the overlay needs the shape.
+  weather: Fetching a year of weather so this water gets a pressure norm of its own. The day colours appear when it lands.
+  grid: Building the zone grid. The overlay appears when it is done.
+  no_outline: OpenStreetMap has no shoreline for this water, so there is no zone overlay. Everything else works.
+  failed: Something in preparing this water failed. It will be retried; the map and the forecast still work.
