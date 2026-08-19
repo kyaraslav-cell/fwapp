@@ -140,7 +140,63 @@ season_caveat: >
   Предположено по дате, а не измерено. Настоящую фазу определяет температура
   воды — холодный май или тёплый апрель собьют это предположение.
 
+# Day-quality band. The ruleset stores an English label, and a prediction row
+# is immutable (law 2), so the label cannot be rewritten per language - the
+# colour is the stable identity and the wording is looked up from it here.
+band:
+  red: Плохо
+  orange: Средне
+  yellow: Неплохо
+  green: Отлично
+
 water_type:
   pzw: Вода PZW
   commercial: Коммерческий водоём
   unset: Тип водоёма не задан
+
+# Аккаунты. Ключи ошибок возвращает app/auth/validation.py.
+auth:
+  signin: Войти
+  signout: Выйти
+  or: или
+  field:
+    email: Почта
+    name: Имя
+    password: Пароль
+    password_confirm: Повторите пароль
+  hint:
+    password: Не меньше 10 символов. Запоминающаяся фраза лучше короткого набора.
+  login:
+    title: Вход
+    lede: Дневник ваш. Водоём, погода и карта остаются открытыми для всех.
+    submit: Войти
+    no_account: Ещё нет аккаунта?
+  register:
+    title: Создать аккаунт
+    lede: Один аккаунт хранит ваши сессии, улов и рыбу в час.
+    submit: Создать аккаунт
+    have_account: Аккаунт уже есть?
+  google:
+    button: Продолжить с Google
+  error:
+    email_required: Введите адрес почты.
+    email_invalid: Это не похоже на адрес почты.
+    email_too_long: Адрес слишком длинный.
+    email_taken: Аккаунт с таким адресом уже есть.
+    name_required: Введите имя, по которому к вам обращаться.
+    name_too_long: Имя слишком длинное.
+    password_required: Введите пароль.
+    password_too_short: Используйте не меньше 10 символов.
+    password_too_long: Пароль слишком длинный.
+    password_obvious: Это один из самых угадываемых паролей. Выберите другой.
+    password_is_email: Пароль не должен содержать ваш адрес почты.
+    password_repetitive: В пароле слишком мало разных символов.
+    password_mismatch: Пароли не совпадают.
+    bad_credentials: Неверная почта или пароль.
+    account_disabled: Этот аккаунт отключён.
+    google_unavailable: Вход через Google не настроен на этом сервере.
+    google_cancelled: Вход через Google отменён.
+    google_state: Ссылка для входа устарела. Попробуйте снова.
+    google_failed: Google отклонил вход.
+    google_unreachable: Не удалось связаться с Google. Проверьте сеть и повторите.
+    google_unverified: У этого аккаунта Google не подтверждён адрес почты.

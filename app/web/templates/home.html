@@ -46,7 +46,11 @@
       </div>
     </div>
     {% if c.band_color %}
-      <span class="badge badge-{{ c.band_color }}">{{ c.band_label }}</span>
+      {# The band label comes out of the immutable prediction row in English.
+         The colour is the part that carries the meaning (green good, red bad),
+         so the wording is looked up from the colour rather than stored per
+         language - a prediction may never be rewritten. #}
+      <span class="badge badge-{{ c.band_color }}">{{ t('band.' ~ c.band_color) }}</span>
     {% else %}
       <span class="badge badge-neutral">{{ t('home.no_data') }}</span>
     {% endif %}

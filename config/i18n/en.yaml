@@ -140,7 +140,64 @@ season_caveat: >
   Assumed from the date, not measured. Water temperature drives the real
   phase — a cold May or a warm April will fool this.
 
+# Day-quality band. The ruleset stores an English label, and a prediction row
+# is immutable (law 2), so the label cannot be rewritten per language - the
+# colour is the stable identity and the wording is looked up from it here.
+band:
+  red: Poor
+  orange: Marginal
+  yellow: Fair
+  green: Great
+
 water_type:
   pzw: PZW water
   commercial: Commercial fishery
   unset: Water type not set
+
+# Accounts. Error keys are returned by app/auth/validation.py, so a rule and
+# its wording are edited in two files and only two files.
+auth:
+  signin: Sign in
+  signout: Sign out
+  or: or
+  field:
+    email: Email
+    name: Name
+    password: Password
+    password_confirm: Repeat password
+  hint:
+    password: At least 10 characters. A phrase you will remember beats a short scramble.
+  login:
+    title: Sign in
+    lede: Your notebook is yours. The lake, the weather and the map stay open to everyone.
+    submit: Sign in
+    no_account: No account yet?
+  register:
+    title: Create account
+    lede: One account holds your sessions, your catches and your fish-per-hour.
+    submit: Create account
+    have_account: Already have an account?
+  google:
+    button: Continue with Google
+  error:
+    email_required: Enter your email address.
+    email_invalid: That does not look like an email address.
+    email_too_long: That address is too long.
+    email_taken: There is already an account with this address.
+    name_required: Enter a name to be known by.
+    name_too_long: That name is too long.
+    password_required: Enter a password.
+    password_too_short: Use at least 10 characters.
+    password_too_long: That password is too long.
+    password_obvious: That password is one of the most guessed ones. Pick another.
+    password_is_email: Your password must not contain your email address.
+    password_repetitive: That password repeats too few different characters.
+    password_mismatch: The two passwords do not match.
+    bad_credentials: Wrong email or password.
+    account_disabled: This account has been switched off.
+    google_unavailable: Google sign-in is not configured on this server.
+    google_cancelled: Google sign-in was cancelled.
+    google_state: That sign-in link expired. Try again.
+    google_failed: Google refused the sign-in.
+    google_unreachable: Could not reach Google. Check the connection and try again.
+    google_unverified: That Google account has an unverified email address.

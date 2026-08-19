@@ -140,7 +140,63 @@ season_caveat: >
   Przyjęte z daty, nie zmierzone. O prawdziwej fazie decyduje temperatura wody
   — zimny maj albo ciepły kwiecień zmylą to założenie.
 
+# Day-quality band. The ruleset stores an English label, and a prediction row
+# is immutable (law 2), so the label cannot be rewritten per language - the
+# colour is the stable identity and the wording is looked up from it here.
+band:
+  red: Słabo
+  orange: Przeciętnie
+  yellow: Nieźle
+  green: Świetnie
+
 water_type:
   pzw: Woda PZW
   commercial: Łowisko komercyjne
   unset: Typ wody nieustawiony
+
+# Konta. Klucze błędów zwraca app/auth/validation.py.
+auth:
+  signin: Zaloguj
+  signout: Wyloguj
+  or: albo
+  field:
+    email: E-mail
+    name: Imię
+    password: Hasło
+    password_confirm: Powtórz hasło
+  hint:
+    password: Co najmniej 10 znaków. Zapamiętane zdanie jest lepsze niż krótki zlepek.
+  login:
+    title: Logowanie
+    lede: Twój dziennik jest twój. Jezioro, pogoda i mapa pozostają dostępne dla wszystkich.
+    submit: Zaloguj
+    no_account: Nie masz jeszcze konta?
+  register:
+    title: Załóż konto
+    lede: Jedno konto trzyma twoje sesje, złowione ryby i wynik ryb na godzinę.
+    submit: Załóż konto
+    have_account: Masz już konto?
+  google:
+    button: Kontynuuj z Google
+  error:
+    email_required: Podaj adres e-mail.
+    email_invalid: To nie wygląda na adres e-mail.
+    email_too_long: Ten adres jest za długi.
+    email_taken: Konto z tym adresem już istnieje.
+    name_required: Podaj imię, którym mamy się do ciebie zwracać.
+    name_too_long: To imię jest za długie.
+    password_required: Podaj hasło.
+    password_too_short: Użyj co najmniej 10 znaków.
+    password_too_long: To hasło jest za długie.
+    password_obvious: To jedno z najczęściej zgadywanych haseł. Wybierz inne.
+    password_is_email: Hasło nie może zawierać twojego adresu e-mail.
+    password_repetitive: To hasło powtarza zbyt mało różnych znaków.
+    password_mismatch: Hasła nie są takie same.
+    bad_credentials: Błędny e-mail lub hasło.
+    account_disabled: To konto zostało wyłączone.
+    google_unavailable: Logowanie Google nie jest skonfigurowane na tym serwerze.
+    google_cancelled: Logowanie Google zostało przerwane.
+    google_state: Ten link logowania wygasł. Spróbuj jeszcze raz.
+    google_failed: Google odrzuciło logowanie.
+    google_unreachable: Brak połączenia z Google. Sprawdź sieć i spróbuj ponownie.
+    google_unverified: To konto Google ma niezweryfikowany adres e-mail.

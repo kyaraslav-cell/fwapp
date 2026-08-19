@@ -22,6 +22,7 @@ def start_session(
     lake: Lake,
     prediction: Prediction | None,
     zone_id: int | None = None,
+    user_id: int | None = None,
     method: str | None = None,
     rod_count: int | None = None,
     grid_cell: str | None = None,
@@ -31,6 +32,7 @@ def start_session(
     now = utcnow()
     session = FishSession(
         lake_id=lake.id,
+        user_id=user_id,
         zone_id=zone_id,
         started_at=iso(now),
         method=method,
@@ -133,12 +135,26 @@ class SessionSummary:
     cpue: float
 
 
-def list_sessions(db: Session, lake: Lake, limit: int = 50) -> list[SessionSummary]:
-    sessions = db.execute(
+def list_sessions(
+    db: Session, lake: Lake, limit: int = 50, user_id: int | None = None
+) -> list[SessionSummary]:
+    """Ended sessions, newest first, optionally only one angler's.
+
+    `user_id=None` means "every session on this water", which is what the
+    published read-only site and any pre-accounts caller get. Signed-in views
+    always pass an id: CPUE across two anglers is not a better-sampled CPUE, it
+    is a different measurement (law 3, ADR 0004) - skill varies more than the
+    weather does, so pooling would bury the signal this project is trying to
+    find.
+    """
+    query = (
         select(FishSession)
         .where(FishSession.lake_id == lake.id, FishSession.ended_at.is_not(None))
-        .order_by(FishSession.started_at.desc())
-        .limit(limit)
+    )
+    if user_id is not None:
+        query = query.where(FishSession.user_id == user_id)
+    sessions = db.execute(
+        query.order_by(FishSession.started_at.desc()).limit(limit)
     ).scalars().all()
 
     summaries = []
@@ -153,12 +169,22 @@ def list_sessions(db: Session, lake: Lake, limit: int = 50) -> list[SessionSumma
     return summaries
 
 
-def active_session(db: Session, lake: Lake) -> FishSession | None:
+def active_session(
+    db: Session, lake: Lake, user_id: int | None = None
+) -> FishSession | None:
+    """The session in progress, if there is one.
+
+    Scoped per angler when an id is given: two people on the same bank each
+    have their own session running, and the banner must not offer one of them
+    the other's notebook.
+    """
+    query = select(FishSession).where(
+        FishSession.lake_id == lake.id, FishSession.ended_at.is_(None)
+    )
+    if user_id is not None:
+        query = query.where(FishSession.user_id == user_id)
     return db.execute(
-        select(FishSession)
-        .where(FishSession.lake_id == lake.id, FishSession.ended_at.is_(None))
-        .order_by(FishSession.started_at.desc())
-        .limit(1)
+        query.order_by(FishSession.started_at.desc()).limit(1)
     ).scalar_one_or_none()
 
 
@@ -179,13 +205,17 @@ def mean_cpue(summaries: list[SessionSummary], water_types: list[str | None]) ->
     return round(sum(s.cpue for s in summaries) / len(summaries), 2)
 
 
-def lake_stats(db: Session, lake: Lake) -> tuple[int, str | None]:
+def lake_stats(
+    db: Session, lake: Lake, user_id: int | None = None
+) -> tuple[int, str | None]:
     """(session_count, last_visited_iso) for a lake, ended sessions only."""
-    rows = db.execute(
+    query = (
         select(FishSession.started_at)
         .where(FishSession.lake_id == lake.id, FishSession.ended_at.is_not(None))
-        .order_by(FishSession.started_at.desc())
-    ).all()
+    )
+    if user_id is not None:
+        query = query.where(FishSession.user_id == user_id)
+    rows = db.execute(query.order_by(FishSession.started_at.desc())).all()
     if not rows:
         return 0, None
     return len(rows), rows[0][0]

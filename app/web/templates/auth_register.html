@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}{{ t('auth.register.title') }} — Fishlog{% endblock %}
+{% block page_class %} narrow{% endblock %}
+{% block content %}
+<h1>{{ t('auth.register.title') }}</h1>
+<p class="auth-lede">{{ t('auth.register.lede') }}</p>
+
+{% if errors.get('form') %}
+<div class="form-error form-error-banner" role="alert">{{ t(errors['form']) }}</div>
+{% endif %}
+
+{# `novalidate` on purpose: the browser's own bubbles cannot be translated and
+   would say something different in each of the three languages. The same
+   rules run in the script below and again on the server, which is the one
+   that decides. #}
+<form method="post" action="/auth/register" class="auth-form" id="register-form" novalidate>
+  <input type="hidden" name="next" value="{{ next }}">
+
+  <label class="field{{ ' has-error' if errors.get('email') }}">
+    <span class="field-label">{{ t('auth.field.email') }}</span>
+    <input type="email" name="email" id="email" autocomplete="username" inputmode="email"
+           autocapitalize="none" spellcheck="false" required
+           value="{{ values.get('email', '') }}">
+    <span class="field-error" data-for="email">{{ t(errors['email']) if errors.get('email') }}</span>
+  </label>
+
+  <label class="field{{ ' has-error' if errors.get('name') }}">
+    <span class="field-label">{{ t('auth.field.name') }}</span>
+    <input type="text" name="display_name" id="display_name" autocomplete="name" required
+           value="{{ values.get('display_name', '') }}">
+    <span class="field-error" data-for="name">{{ t(errors['name']) if errors.get('name') }}</span>
+  </label>
+
+  <label class="field{{ ' has-error' if errors.get('password') }}">
+    <span class="field-label">{{ t('auth.field.password') }}</span>
+    <input type="password" name="password" id="password" autocomplete="new-password" required>
+    <span class="field-hint">{{ t('auth.hint.password') }}</span>
+    <span class="field-error" data-for="password">{{ t(errors['password']) if errors.get('password') }}</span>
+  </label>
+
+  <label class="field{{ ' has-error' if errors.get('confirmation') }}">
+    <span class="field-label">{{ t('auth.field.password_confirm') }}</span>
+    <input type="password" name="password_confirm" id="password_confirm"
+           autocomplete="new-password" required>
+    <span class="field-error" data-for="confirmation">{{ t(errors['confirmation']) if errors.get('confirmation') }}</span>
+  </label>
+
+  <button class="btn btn-primary" type="submit">{{ t('auth.register.submit') }}</button>
+</form>
+
+{% if google_enabled %}
+  <div class="auth-or"><span>{{ t('auth.or') }}</span></div>
+  <a class="btn btn-google" href="/auth/google?next={{ next | urlencode }}">
+    <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">
+      <path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.3-.2-1.9H9v3.5h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z"/>
+      <path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.3c-.8.6-1.9.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18z"/>
+      <path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3z"/>
+      <path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6z"/>
+    </svg>
+    {{ t('auth.google.button') }}
+  </a>
+{% endif %}
+
+<p class="auth-switch">
+  {{ t('auth.register.have_account') }}
+  <a href="/auth/login?next={{ next | urlencode }}">{{ t('auth.login.title') }}</a>
+</p>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+// A copy of the server's rules, to save a round trip on the obvious mistakes.
+// It is never the decision: app/auth/validation.py runs again on submit, and
+// a submission that gets past this still comes back with field errors if it
+// is wrong. Keys match the catalogue so the messages are the same text.
+(function () {
+  var MIN = {{ min_password_length }};
+  var MESSAGES = {
+    email_required: {{ t('auth.error.email_required') | tojson }},
+    email_invalid: {{ t('auth.error.email_invalid') | tojson }},
+    name_required: {{ t('auth.error.name_required') | tojson }},
+    password_required: {{ t('auth.error.password_required') | tojson }},
+    password_too_short: {{ t('auth.error.password_too_short') | tojson }},
+    password_mismatch: {{ t('auth.error.password_mismatch') | tojson }}
+  };
+  var form = document.getElementById('register-form');
+  if (!form) return;
+
+  function show(field, message) {
+    var slot = form.querySelector('[data-for="' + field + '"]');
+    if (slot) slot.textContent = message || '';
+    var wrap = slot ? slot.closest('.field') : null;
+    if (wrap) wrap.classList.toggle('has-error', Boolean(message));
+    return !message;
+  }
+
+  function checkEmail() {
+    var value = document.getElementById('email').value.trim();
+    if (!value) return show('email', MESSAGES.email_required);
+    // Same shape as the server: one @, a dot in the domain, no spaces.
+    return show('email', /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(value) ? '' : MESSAGES.email_invalid);
+  }
+  function checkName() {
+    var value = document.getElementById('display_name').value.trim();
+    return show('name', value ? '' : MESSAGES.name_required);
+  }
+  function checkPassword() {
+    var value = document.getElementById('password').value;
+    if (!value) return show('password', MESSAGES.password_required);
+    return show('password', value.length < MIN ? MESSAGES.password_too_short : '');
+  }
+  function checkConfirm() {
+    var a = document.getElementById('password').value;
+    var b = document.getElementById('password_confirm').value;
+    return show('confirmation', a === b ? '' : MESSAGES.password_mismatch);
+  }
+
+  // Only on blur and on submit. Marking a field red while it is still being
+  // typed into shouts at someone who has not finished their first character.
+  document.getElementById('email').addEventListener('blur', checkEmail);
+  document.getElementById('display_name').addEventListener('blur', checkName);
+  document.getElementById('password').addEventListener('blur', checkPassword);
+  document.getElementById('password_confirm').addEventListener('blur', checkConfirm);
+
+  form.addEventListener('submit', function (e) {
+    var ok = [checkEmail(), checkName(), checkPassword(), checkConfirm()].every(Boolean);
+    if (!ok) e.preventDefault();
+  });
+})();
+</script>
+{% endblock %}

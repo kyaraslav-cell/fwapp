@@ -1189,3 +1189,129 @@ details.card[open] summary::before { content: "－ "; }
   font-size: 0.9rem;
   padding: 18px 2px;
 }
+
+/* ---------------------------------------------------------------------------
+   Accounts: the topbar control, and the two forms.
+
+   Same pastel instrument language as the rest of the app - a sign-in page that
+   looks like a bank's would be the loudest screen in a quiet app. The only
+   colour that is not ours is Google's mark, which their brand terms require to
+   be drawn as issued.
+   --------------------------------------------------------------------------- */
+.account-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.account-name {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--primary-text);
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-signout,
+.account-signin {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 10px;
+  text-decoration: none;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.account-signout:hover,
+.account-signin:hover { color: var(--primary-text); text-decoration: none; }
+
+.auth-lede {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: -6px 0 18px;
+}
+
+.auth-form { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+
+.field-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.field input[type=email],
+.field input[type=password],
+.field input[type=text] {
+  width: 100%;
+  padding: 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.field-hint { font-size: 0.78rem; color: var(--muted); }
+
+/* Empty until something is wrong, so the form does not reserve a red line
+   under every field before anyone has typed. */
+.field-error { font-size: 0.78rem; color: var(--accent-coral-text); }
+.field-error:empty { display: none; }
+
+.field.has-error input { border-color: var(--danger); }
+
+.form-error-banner {
+  background: #fbe6e2;
+  color: var(--accent-coral-text);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 0.86rem;
+}
+
+/* A rule with the word "or" sitting in the gap. */
+.auth-or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 14px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.auth-or::before,
+.auth-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-google:hover { background: var(--surface-alt); }
+.btn-google svg { flex: none; }
+
+.auth-switch { font-size: 0.86rem; color: var(--muted); margin-top: 4px; }
+.auth-switch a { font-weight: 600; }

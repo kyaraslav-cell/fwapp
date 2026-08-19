@@ -179,3 +179,20 @@ because it is the only source of the asymmetry the map is missing.
 
 Second: OSM `natural=wood` for the tree line (backlog §3, needs an ADR).
 Third: a depth survey, which for 9 ha is a morning with a marker float.
+
+## 12. Accounts and sign-in · DONE (with three gaps)
+
+- Password sign-in, registration with full form validation, and sign-out.
+- Sign in with Google, off until `FISHLOG_GOOGLE_CLIENT_ID`,
+  `FISHLOG_GOOGLE_CLIENT_SECRET` and `FISHLOG_GOOGLE_REDIRECT_URI` are set.
+- The notebook (history, sessions, catches) is private per angler; the lake,
+  the weather and the map stay public, which is what keeps the Pages build
+  working.
+- Design decisions and what was left out: `docs/adr/0004-accounts-and-sign-in.md`.
+
+**Still open, in the order they will hurt:**
+
+1. **Login rate limiting** before this is reachable from the internet.
+2. **Password reset** - needs an SMTP credential and a sending domain.
+3. **The Google flow has never talked to Google.** Register the redirect URI in
+   the Google console and sign in once on a real machine.

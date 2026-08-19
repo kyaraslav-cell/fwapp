@@ -101,6 +101,12 @@ def rewrite(html: str, base: str, lang: str) -> str:
         r'<a[^>]+href="[^"]*/lake/[^"]*/spot[^"]*"[^>]*>.*?</a>', "", html, flags=re.S
     )
 
+    # Accounts need a server. The notebook they guard is not published here
+    # either, so the sign-in link would be a 404 on Pages - drop it rather than
+    # publish a door with no room behind it. (The sign-out form goes with the
+    # POST forms below.)
+    html = re.sub(r'<a[^>]+class="account-signin"[^>]*>.*?</a>', "", html, flags=re.S)
+
     # Every POST form is dead here - a static host has nothing to receive it.
     # "Refresh weather & prediction" is the visible one, and leaving a button
     # that silently does nothing is worse than not showing it: the workflow's

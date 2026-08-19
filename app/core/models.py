@@ -121,6 +121,13 @@ class FishSession(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     lake_id: Mapped[int] = mapped_column(Integer, ForeignKey("lake.id"), nullable=False)
+    # Who fished it. Nullable because every session logged before accounts
+    # existed has no owner; the first account created claims them (see
+    # app/auth/service.py). CPUE is never pooled across anglers for the same
+    # reason it is never pooled across water types - skill is a larger source
+    # of variance than the weather, so the average would be a different
+    # measurement wearing the same name (law 3, ADR 0004).
+    user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("user.id"))
     zone_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("zone.id"))
     started_at: Mapped[str] = mapped_column(String, nullable=False)
     ended_at: Mapped[str | None] = mapped_column(String)
@@ -196,3 +203,50 @@ class SessionTactic(Base):
     hookbaits: Mapped[str | None] = mapped_column(String)
     depth_fished_m: Mapped[float | None] = mapped_column(Float)
     distance_fished_m: Mapped[float | None] = mapped_column(Float)
+
+
+class User(Base):
+    """An account.
+
+    `password_hash` is nullable on purpose: an account created through Google
+    has never had a password, and inventing a random one to keep the column
+    NOT NULL would make "sign in with a password" silently impossible to
+    diagnose. `app.auth.passwords.verify_password` refuses a null hash rather
+    than treating it as "no password needed".
+
+    `google_sub` is Google's stable subject id, not the email. Google users can
+    change the address on an account; the subject survives it, and matching on
+    email would hand a stranger someone's notebook the day a recycled address
+    is reissued.
+    """
+
+    __tablename__ = "user"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    display_name: Mapped[str] = mapped_column(String, nullable=False)
+    password_hash: Mapped[str | None] = mapped_column(String)
+    google_sub: Mapped[str | None] = mapped_column(String, unique=True)
+    created_at: Mapped[str] = mapped_column(String, nullable=False)
+    last_login_at: Mapped[str | None] = mapped_column(String)
+    is_disabled: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class AuthSession(Base):
+    """One signed-in browser.
+
+    Server-side rather than a signed cookie, because a signed cookie cannot be
+    revoked: "sign out everywhere" after a lost phone has to delete something.
+    Only the SHA-256 of the token is stored - see `app.auth.tokens`.
+    """
+
+    __tablename__ = "auth_session"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    created_at: Mapped[str] = mapped_column(String, nullable=False)
+    expires_at: Mapped[str] = mapped_column(String, nullable=False)
+    last_seen_at: Mapped[str | None] = mapped_column(String)
+    revoked_at: Mapped[str | None] = mapped_column(String)
+    user_agent: Mapped[str | None] = mapped_column(String)

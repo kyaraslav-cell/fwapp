@@ -5,15 +5,21 @@ from sqlalchemy.orm import Session
 
 from app.core.time import parse_iso, to_display
 from app.notebook.sessions import list_sessions
-from app.web.deps import get_db, get_lake, templates
+from app.web.deps import CurrentUser, get_db, get_lake, require_user, templates
 
 router = APIRouter()
 
 
 @router.get("/history")
-def history(request: Request, db: Session = Depends(get_db)):
+def history(
+    request: Request,
+    user: CurrentUser = Depends(require_user),
+    db: Session = Depends(get_db),
+):
     lake = get_lake(db)
-    summaries = list_sessions(db, lake)
+    # One angler's own record. Law 3 again: a CPUE averaged over two people is
+    # a different measurement, so history never mixes them.
+    summaries = list_sessions(db, lake, user_id=user.id)
 
     rows = []
     for s in summaries:

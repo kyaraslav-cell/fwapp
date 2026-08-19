@@ -19,7 +19,15 @@ from app.predict.daily import generate_predictions, latest_prediction
 from app.rules.loader import load_active_ruleset
 from app.rules.zone_score import _percentile_normalise, score_cells
 from app.web import bite_view
-from app.web.deps import get_db, get_lake, get_lake_by_slug, templates
+from app.web.deps import (
+    CurrentUser,
+    current_user,
+    get_db,
+    get_lake,
+    get_lake_by_slug,
+    require_user,
+    templates,
+)
 from app.web.view_helpers import current_conditions, prediction_view
 from app.web.weather_table import current_reading, recent_days
 
@@ -38,6 +46,12 @@ def home(request: Request, water: str = "", db: Session = Depends(get_db)):
     get_lake(db)  # ensure Pomocnia (and species) are seeded
     lakes = db.execute(select(Lake).order_by(Lake.name)).scalars().all()
 
+    # Signed in: your own sessions. Signed out (and the published read-only
+    # build, which has no cookie): everything on the water, exactly as before
+    # accounts existed. Counts only - no CPUE is shown here.
+    viewer = current_user(request)
+    viewer_id = viewer.id if viewer else None
+
     selected = water_type_mod.normalise(water)
     if selected is not None:
         lakes = [lk for lk in lakes if water_type_mod.normalise(lk.water_type) == selected]
@@ -45,7 +59,7 @@ def home(request: Request, water: str = "", db: Session = Depends(get_db)):
     cards = []
     for lk in lakes:
         view = prediction_view(latest_prediction(db, lk, horizon=0))
-        n_sessions, last_visited = lake_stats(db, lk)
+        n_sessions, last_visited = lake_stats(db, lk, user_id=viewer_id)
         cards.append(
             {
                 "slug": lk.slug,
@@ -87,7 +101,11 @@ def set_language(code: str, next: str = "/"):
 
 
 @router.get("/places/new")
-def new_place(request: Request, db: Session = Depends(get_db)):
+def new_place(
+    request: Request,
+    user: CurrentUser = Depends(require_user),
+    db: Session = Depends(get_db),
+):
     return templates.TemplateResponse(
         "place_new.html", {"request": request, "active_nav": "home"}
     )
@@ -96,10 +114,11 @@ def new_place(request: Request, db: Session = Depends(get_db)):
 @router.get("/lake/{slug}")
 def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
     lake = get_lake_by_slug(db, slug)
+    viewer = current_user(request)
     # Deliberately NOT redirecting to an in-progress session: conditions and
     # the map are exactly what you want to check while you are sitting there
     # fishing. The banner offers the way back instead.
-    live_session = active_session(db, lake)
+    live_session = active_session(db, lake, user_id=viewer.id) if viewer else None
 
     conditions = current_conditions(db, lake)
     days = recent_days(db, lake, days=5)
@@ -227,7 +246,11 @@ def lake_grid(
 
 
 @router.post("/lake/{slug}/refresh")
-def refresh_lake(slug: str, db: Session = Depends(get_db)):
+def refresh_lake(
+    slug: str,
+    user: CurrentUser = Depends(require_user),
+    db: Session = Depends(get_db),
+):
     lake = get_lake_by_slug(db, slug)
     ingest_forecast(db, lake)
     generate_predictions(db, lake)
@@ -242,10 +265,11 @@ def spot_start_form(
     lon: float,
     cell: str = "",
     score: float | None = None,
+    user: CurrentUser = Depends(require_user),
     db: Session = Depends(get_db),
 ):
     lake = get_lake_by_slug(db, slug)
-    if active_session(db, lake) is not None:
+    if active_session(db, lake, user_id=user.id) is not None:
         return RedirectResponse(url="/session/active")
     return templates.TemplateResponse(
         "spot_start.html",
@@ -270,6 +294,7 @@ def spot_start_submit(
     cell: str = Form(default=""),
     method: str = Form(...),
     rod_count: int = Form(...),
+    user: CurrentUser = Depends(require_user),
     db: Session = Depends(get_db),
 ):
     lake = get_lake_by_slug(db, slug)
@@ -277,12 +302,13 @@ def spot_start_submit(
         raise HTTPException(status_code=400, detail="unknown method")
     rod_count = max(1, min(6, rod_count))
 
-    if active_session(db, lake) is None:
+    if active_session(db, lake, user_id=user.id) is None:
         pred = latest_prediction(db, lake, horizon=0)
         start_session(
             db,
             lake,
             pred,
+            user_id=user.id,
             method=method,
             rod_count=rod_count,
             grid_cell=cell or None,

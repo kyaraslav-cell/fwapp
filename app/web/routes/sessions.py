@@ -8,7 +8,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.models import Catch
+from app.core.models import Catch, FishSession
 from app.notebook.sessions import (
     active_session,
     add_catch,
@@ -17,12 +17,28 @@ from app.notebook.sessions import (
     update_catch,
 )
 from app.notebook.species import favourite_species, list_species
-from app.web.deps import get_db, get_lake, templates
+from app.web.deps import CurrentUser, get_db, get_lake, require_user, templates
 
 router = APIRouter(prefix="/session")
 
 ALLOWED_PHOTO_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".heic"}
 MAX_PHOTO_BYTES = 8 * 1024 * 1024
+
+
+def owned_catch(db: Session, user: CurrentUser, catch_id: int) -> Catch:
+    """Fetch a catch, or 404 if it is not this angler's.
+
+    Without this, `/session/catch/17/edit` is an id anyone signed in can type,
+    and the notebook stops being private the moment there is a second account.
+    404 rather than 403 on purpose: 403 confirms the catch exists.
+    """
+    catch_row = db.get(Catch, catch_id)
+    if catch_row is None:
+        raise HTTPException(status_code=404, detail="catch not found")
+    session = db.get(FishSession, catch_row.session_id)
+    if session is None or session.user_id != user.id:
+        raise HTTPException(status_code=404, detail="catch not found")
+    return catch_row
 
 
 def _float_or_none(s: str) -> float | None:
@@ -56,9 +72,14 @@ async def _save_photo(photo: UploadFile | None) -> str | None:
 
 
 @router.get("/active")
-def active(request: Request, q: str = "", db: Session = Depends(get_db)):
+def active(
+    request: Request,
+    q: str = "",
+    user: CurrentUser = Depends(require_user),
+    db: Session = Depends(get_db),
+):
     lake = get_lake(db)
-    session = active_session(db, lake)
+    session = active_session(db, lake, user_id=user.id)
     if session is None:
         return RedirectResponse(url="/")
 
@@ -96,10 +117,11 @@ async def catch(
     bait: str = Form(default=""),
     notes: str = Form(default=""),
     photo: UploadFile | None = File(default=None),
+    user: CurrentUser = Depends(require_user),
     db: Session = Depends(get_db),
 ):
     lake = get_lake(db)
-    session = active_session(db, lake)
+    session = active_session(db, lake, user_id=user.id)
     if session is None:
         return RedirectResponse(url="/", status_code=303)
 
@@ -121,10 +143,13 @@ async def catch(
 
 
 @router.get("/catch/{catch_id}/edit")
-def edit_catch_form(catch_id: int, request: Request, db: Session = Depends(get_db)):
-    catch_row = db.get(Catch, catch_id)
-    if catch_row is None:
-        raise HTTPException(status_code=404, detail="catch not found")
+def edit_catch_form(
+    catch_id: int,
+    request: Request,
+    user: CurrentUser = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    catch_row = owned_catch(db, user, catch_id)
     species = list_species(db)
     current = next((s for s in species if s.slug == catch_row.species), None)
     return templates.TemplateResponse(
@@ -148,11 +173,10 @@ async def edit_catch(
     bait: str = Form(default=""),
     notes: str = Form(default=""),
     photo: UploadFile | None = File(default=None),
+    user: CurrentUser = Depends(require_user),
     db: Session = Depends(get_db),
 ):
-    catch_row = db.get(Catch, catch_id)
-    if catch_row is None:
-        raise HTTPException(status_code=404, detail="catch not found")
+    catch_row = owned_catch(db, user, catch_id)
     update_catch(
         db,
         catch_row,
@@ -167,17 +191,23 @@ async def edit_catch(
 
 
 @router.post("/catch/{catch_id}/delete")
-def remove_catch(catch_id: int, db: Session = Depends(get_db)):
-    catch_row = db.get(Catch, catch_id)
-    if catch_row is not None:
-        delete_catch(db, catch_row)
+def remove_catch(
+    catch_id: int,
+    user: CurrentUser = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    delete_catch(db, owned_catch(db, user, catch_id))
     return RedirectResponse(url="/session/active", status_code=303)
 
 
 @router.get("/end")
-def end_form(request: Request, db: Session = Depends(get_db)):
+def end_form(
+    request: Request,
+    user: CurrentUser = Depends(require_user),
+    db: Session = Depends(get_db),
+):
     lake = get_lake(db)
-    session = active_session(db, lake)
+    session = active_session(db, lake, user_id=user.id)
     if session is None:
         return RedirectResponse(url="/")
     n_catches = db.query(Catch).filter(Catch.session_id == session.id).count()
@@ -197,10 +227,11 @@ def end(
     reflection: str = Form(default=""),
     water_temp_measured_c: str = Form(default=""),
     water_clarity_cm: str = Form(default=""),
+    user: CurrentUser = Depends(require_user),
     db: Session = Depends(get_db),
 ):
     lake = get_lake(db)
-    session = active_session(db, lake)
+    session = active_session(db, lake, user_id=user.id)
     if session is None:
         return RedirectResponse(url="/", status_code=303)
 

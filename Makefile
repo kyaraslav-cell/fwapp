@@ -4,7 +4,7 @@ VENV := .venv/bin
 
 check:
 	$(VENV)/ruff check app tests
-	$(VENV)/mypy --strict app/core app/rules app/features
+	$(VENV)/mypy --strict app/core app/rules app/features app/auth
 	$(VENV)/pytest -q
 
 run:

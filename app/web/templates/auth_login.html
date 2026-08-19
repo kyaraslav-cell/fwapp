@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ t('auth.login.title') }} — Fishlog{% endblock %}
+{% block page_class %} narrow{% endblock %}
+{% block content %}
+<h1>{{ t('auth.login.title') }}</h1>
+<p class="auth-lede">{{ t('auth.login.lede') }}</p>
+
+{% if errors.get('form') %}
+<div class="form-error form-error-banner" role="alert">{{ t(errors['form']) }}</div>
+{% endif %}
+
+<form method="post" action="/auth/login" class="auth-form" novalidate>
+  <input type="hidden" name="next" value="{{ next }}">
+
+  <label class="field">
+    <span class="field-label">{{ t('auth.field.email') }}</span>
+    <input type="email" name="email" autocomplete="username" inputmode="email"
+           autocapitalize="none" spellcheck="false" required
+           value="{{ values.get('email', '') }}">
+  </label>
+
+  <label class="field">
+    <span class="field-label">{{ t('auth.field.password') }}</span>
+    <input type="password" name="password" autocomplete="current-password" required>
+  </label>
+
+  <button class="btn btn-primary" type="submit">{{ t('auth.login.submit') }}</button>
+</form>
+
+{% if google_enabled %}
+  {# Only rendered when a client id and secret are actually configured. A
+     button that leads to a 503 is worse than no button. #}
+  <div class="auth-or"><span>{{ t('auth.or') }}</span></div>
+  <a class="btn btn-google" href="/auth/google?next={{ next | urlencode }}">
+    <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">
+      <path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.3-.2-1.9H9v3.5h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z"/>
+      <path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.3c-.8.6-1.9.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18z"/>
+      <path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3z"/>
+      <path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6z"/>
+    </svg>
+    {{ t('auth.google.button') }}
+  </a>
+{% endif %}
+
+<p class="auth-switch">
+  {{ t('auth.login.no_account') }}
+  <a href="/auth/register?next={{ next | urlencode }}">{{ t('auth.register.title') }}</a>
+</p>
+{% endblock %}

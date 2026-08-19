@@ -25,6 +25,17 @@
            class="{{ 'active' if code == lang }}" title="{{ name }}">{{ code | upper }}</a>
         {% endfor %}
       </div>
+      {# Who is signed in, on every page. The notebook is private and the
+         conditions are not, so the angler has to be able to see at a glance
+         which of the two they are looking at. #}
+      {% if current_user %}
+      <form method="post" action="/auth/logout" class="account-form">
+        <span class="account-name" title="{{ current_user.email }}">{{ current_user.display_name }}</span>
+        <button type="submit" class="account-signout">{{ t('auth.signout') }}</button>
+      </form>
+      {% else %}
+      <a href="/auth/login?next={{ current_path | urlencode }}" class="account-signin">{{ t('auth.signin') }}</a>
+      {% endif %}
     </div>
   </div>
 

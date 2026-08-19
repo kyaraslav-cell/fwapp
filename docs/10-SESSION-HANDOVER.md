@@ -35,6 +35,9 @@ Branch: `claude/repository-edit-push-ggr229` on `kyaraslav-cell/fwapp`.
 | Catch weight/length sliders, bait, photo, edit, delete | works |
 | RU / PL / EN with on-page switcher | works |
 | Fish pin: held drag, dive, splash | works |
+| Water-type filter as a segmented switch | works |
+| Accounts: password sign-in, sessions, per-angler notebook | works |
+| Sign in with Google | built, **never run against Google** |
 
 **Run it:**
 ```bash
@@ -170,6 +173,12 @@ Ordered by how much it matters.
    `bank_aspect_deg` and `tree_line_height_m` are unpopulated.
 7. **Calibration loop unbuilt.** Phase 5 in the roadmap. Nothing yet measures
    whether any of this beats guessing.
+8. **Auth: three things deliberately left out** (ADR 0004). No password reset
+   (needs SMTP), no login rate limiting (needs a shared store - **build it
+   before this is on a public URL**), no email verification. The Google flow
+   has never reached Google from this sandbox; its first real exchange will be
+   on the owner's machine, and the redirect URI has to be registered in the
+   Google console first.
 
 ---
 
@@ -202,6 +211,8 @@ docs/09-BACKLOG.md            outstanding owner requests
 docs/10-SESSION-HANDOVER.md   this file
 docs/adr/0001                 foundational decisions
 docs/adr/0002                 provisional zone score + its provenance
+docs/adr/0004                 accounts, sign-in, and the public/private boundary
+app/auth/                     passwords, validation, tokens, google, service
 config/rules.v0.3.yaml        active ruleset (day score + zone score)
 config/species.yaml           25 species, sizes, icon shape, colour
 config/i18n/{en,pl,ru}.yaml   translations
