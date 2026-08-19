@@ -214,9 +214,5 @@ calendar:
   toggle: Kolejne dni
   no_data: brak danych
   badge: Prognoza
-  note: >
-    Kolor to prognoza dnia, zapisana przed tym dniem; godzina to okno świtu.
-    Wybór dnia przemalowuje mapę pod wiatr tego dnia - warunki powyżej
-    pozostają aktualne. Ostatnie dni są przygaszone: prognoza ciśnienia tak
-    daleko jest słaba.
+  note: Kolor to prognoza dnia - wybierz dzień, aby przemalować mapę; przygaszone dni są odległe i mniej pewne.
   forecast_only: Widok prognozy. Wybierz dziś, aby zacząć sesję.

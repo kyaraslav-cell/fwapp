@@ -217,9 +217,5 @@ calendar:
   toggle: Next days
   no_data: no data
   badge: Forecast
-  note: >
-    Colour is the day's outlook, written before the day; the time is the dawn
-    window. Picking a day recolours the map for that day's wind - the conditions
-    above stay on now. The last days are faded: the pressure forecast is weak
-    that far out.
+  note: Colour is the day's outlook - pick a day to recolour the map; faded days are far out and less certain.
   forecast_only: Forecast view. Pick today to start a session.
