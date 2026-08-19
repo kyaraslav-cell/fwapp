@@ -197,6 +197,7 @@ auth:
     google_failed: Google odrzuciło logowanie.
     google_unreachable: Brak połączenia z Google. Sprawdź sieć i spróbuj ponownie.
     google_unverified: To konto Google ma niezweryfikowany adres e-mail.
+    too_many: "Zbyt wiele prób - spróbuj ponownie za {minutes} min."
 
 weekday:
   mon: Pon

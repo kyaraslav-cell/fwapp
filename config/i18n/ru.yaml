@@ -197,6 +197,7 @@ auth:
     google_failed: Google отклонил вход.
     google_unreachable: Не удалось связаться с Google. Проверьте сеть и повторите.
     google_unverified: У этого аккаунта Google не подтверждён адрес почты.
+    too_many: "Слишком много попыток - попробуйте снова через {minutes} мин."
 
 weekday:
   mon: Пн

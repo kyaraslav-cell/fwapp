@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from dataclasses import dataclass
 
@@ -38,7 +39,7 @@ def _i18n_context(request: Request) -> dict[str, object]:
     return {
         "lang": lang,
         "languages": language_names(),
-        "t": lambda key: translate(lang, key),
+        "t": lambda key, **params: translate(lang, key, **params),
         "current_path": request.url.path,
         # Set by the middleware in app.py; absent on any request that bypassed
         # it, which must read as "signed out" rather than blow up.
@@ -72,6 +73,29 @@ def _local_datetime(iso_ts: str | None) -> str:
 
 templates.env.filters["localtime"] = _local_time
 templates.env.filters["localdatetime"] = _local_datetime
+
+
+def client_ip(request: Request) -> str | None:
+    """The address to rate-limit on, and the one decision that makes it safe.
+
+    `X-Forwarded-For` is a request header: anyone can write it. Trusting it by
+    default would let one machine present a fresh address on every attempt and
+    walk straight through the per-IP limit, and would let it forge somebody
+    else's address into the counter. So it is read **only** when
+    `FISHLOG_TRUST_PROXY=1` says this app is genuinely behind a proxy that sets
+    it (Caddy, or Tailscale funnel per `docs/10 §9`); otherwise the socket peer
+    is the truth.
+
+    Get this wrong in the other direction and every request appears to come
+    from the proxy - one address for the whole internet - so the per-IP limit
+    locks out everybody at once. Hence: opt in, deliberately, per deployment.
+    """
+    if os.environ.get("FISHLOG_TRUST_PROXY", "").strip() == "1":
+        forwarded = request.headers.get("x-forwarded-for", "")
+        first = forwarded.split(",")[0].strip()
+        if first:
+            return first[:64]
+    return request.client.host if request.client else None
 
 
 def get_db() -> Iterator[Session]:

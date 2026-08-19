@@ -7,7 +7,7 @@ model) picks this up cold. Read `CLAUDE.md` first, then this.
 
 ## 1. What exists right now
 
-A working FastAPI + SQLite app, 204 tests, `make check` green (ruff,
+A working FastAPI + SQLite app, 220 tests, `make check` green (ruff,
 `mypy --strict` on `app/core` `app/rules` `app/features` `app/auth` `app/jobs`
 `app/discover` `app/geo`, pytest).
 
@@ -41,6 +41,7 @@ Branch: `claude/repository-edit-push-ggr229` on `kyaraslav-cell/fwapp`.
 | Thermal-phase line on the lake page | **removed** — see backlog §14 |
 | Add a water by name: search, job queue, staged build | works, **never run against Nominatim/Overpass** |
 | Accounts: password sign-in, sessions, per-angler notebook | works |
+| Login + registration rate limiting | works |
 | Sign in with Google | built, **never run against Google** |
 
 **Run it:**
@@ -190,12 +191,14 @@ Ordered by how much it matters.
    `bank_aspect_deg` and `tree_line_height_m` are unpopulated.
 7. **Calibration loop unbuilt.** Phase 5 in the roadmap. Nothing yet measures
    whether any of this beats guessing.
-8. **Auth: three things deliberately left out** (ADR 0004). No password reset
-   (needs SMTP), no login rate limiting (needs a shared store - **build it
-   before this is on a public URL**), no email verification. The Google flow
-   has never reached Google from this sandbox; its first real exchange will be
-   on the owner's machine, and the redirect URI has to be registered in the
-   Google console first.
+8. **Auth: two things still left out** (ADR 0004 and its addendum). No
+   password reset (needs SMTP), no email verification. **Login rate limiting
+   is now built** - `app/auth/throttle.py`, three windows, checked before the
+   password is hashed. Behind a reverse proxy set `FISHLOG_TRUST_PROXY=1` or
+   every request counts as one address and the per-IP limit locks everyone
+   out at once. The Google flow has never reached Google from this sandbox;
+   its first real exchange will be on the owner's machine, and the redirect
+   URI has to be registered in the Google console first.
 
 ---
 

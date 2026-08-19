@@ -190,12 +190,17 @@ Third: a depth survey, which for 9 ha is a morning with a marker float.
   working.
 - Design decisions and what was left out: `docs/adr/0004-accounts-and-sign-in.md`.
 
+Rate limiting on both forms: `app/auth/throttle.py`, and the addendum to
+ADR 0004 for why it is three windows rather than one.
+
 **Still open, in the order they will hurt:**
 
-1. **Login rate limiting** before this is reachable from the internet.
-2. **Password reset** - needs an SMTP credential and a sending domain.
-3. **The Google flow has never talked to Google.** Register the redirect URI in
+1. **Password reset** - needs an SMTP credential and a sending domain.
+2. **The Google flow has never talked to Google.** Register the redirect URI in
    the Google console and sign in once on a real machine.
+3. **`FISHLOG_TRUST_PROXY=1` must be set** the day this goes behind Caddy or a
+   Tailscale funnel, or every request counts as one address and the per-IP
+   limit refuses everybody at once.
 
 ## 13. Day strip behind a calendar icon on the lake page · DONE (one caveat)
 

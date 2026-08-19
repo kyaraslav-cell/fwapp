@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -292,3 +292,30 @@ class Job(Base):
     created_at: Mapped[str] = mapped_column(String, nullable=False)
     started_at: Mapped[str | None] = mapped_column(String)
     finished_at: Mapped[str | None] = mapped_column(String)
+
+
+class LoginAttempt(Base):
+    """One sign-in failure, or one account creation, kept only long enough to
+    rate-limit the next one.
+
+    Deliberately *not* an audit log. Successful sign-ins are not recorded here
+    (`user.last_login_at` already carries that) and rows are pruned past the
+    longest rate-limit window, because a table of who tried to sign in from
+    where, kept forever, is a liability in a database whose backup strategy is
+    "copy the file" (`docs/05`).
+
+    `email` is the address as typed, normalised. It is stored rather than a
+    `user_id` because the address that matters most is one that has no account
+    behind it - that is what someone enumerating addresses is doing.
+    """
+
+    __tablename__ = "login_attempt"
+    __table_args__ = (Index("ix_login_attempt_kind_created", "kind", "created_at"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # "login_fail" or "register". Failures are cleared by a later success;
+    # registrations are not, since the account they made still exists.
+    kind: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str | None] = mapped_column(String)
+    ip: Mapped[str | None] = mapped_column(String)
+    created_at: Mapped[str] = mapped_column(String, nullable=False)

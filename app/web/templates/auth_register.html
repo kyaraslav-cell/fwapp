@@ -6,7 +6,7 @@
 <p class="auth-lede">{{ t('auth.register.lede') }}</p>
 
 {% if errors.get('form') %}
-<div class="form-error form-error-banner" role="alert">{{ t(errors['form']) }}</div>
+<div class="form-error form-error-banner" role="alert">{{ t(errors['form'], **error_args) }}</div>
 {% endif %}
 
 {# `novalidate` on purpose: the browser's own bubbles cannot be translated and

@@ -6,7 +6,7 @@
 <p class="auth-lede">{{ t('auth.login.lede') }}</p>
 
 {% if errors.get('form') %}
-<div class="form-error form-error-banner" role="alert">{{ t(errors['form']) }}</div>
+<div class="form-error form-error-banner" role="alert">{{ t(errors['form'], **error_args) }}</div>
 {% endif %}
 
 <form method="post" action="/auth/login" class="auth-form" novalidate>

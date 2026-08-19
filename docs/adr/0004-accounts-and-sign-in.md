@@ -159,3 +159,42 @@ short obvious-password list is worth more.
   than no door.
 - `mypy --strict` now covers `app/auth` as well as `app/core`, `app/rules` and
   `app/features`.
+
+---
+
+## Addendum — rate limiting, 2026-08-19
+
+The "not built" entry above is now built (`app/auth/throttle.py`), and one of
+its own premises turned out to be wrong.
+
+**"An in-memory counter would reset on every deploy" was the wrong objection.**
+The real objection is that an in-memory counter is not the app's storage model
+at all: this app already keeps its sessions, its jobs and its notebook in one
+SQLite file, and a counter is smaller than any of them. The store is a
+`login_attempt` table, pruned past the longest window it could still count in.
+Nothing external, nothing to reset.
+
+**Three windows, not the "per-IP and per-account" of the original entry.**
+Per-account alone, set tight enough to be useful, is a weapon: type somebody's
+address wrongly five times and they cannot sign in for a quarter of an hour.
+So the tight limit is on the **pair** (address *and* address-of-origin, 5 per
+15 min), the address alone is loose (20 per hour, which only a genuinely
+distributed attempt reaches), and the IP alone catches one password sprayed
+across many accounts (30 per 15 min). Registration is capped per IP at 5 an
+hour, counted on accounts actually created — a typo is not rationed.
+
+**The check runs before the password is hashed.** The scrypt cost that was the
+old mitigation is also the denial-of-service vector: half a second of *our*
+CPU per guess. Refusing after verifying would have left that half of the
+problem exactly where it was. `tests/test_throttle.py` makes
+`verify_password` raise, and asserts the refusal path never reaches it.
+
+**`X-Forwarded-For` is ignored unless `FISHLOG_TRUST_PROXY=1`.** It is a header,
+so anyone can write it; trusting it by default hands an attacker a fresh address
+per request and makes the per-IP rule decorative. Trusting it when there is no
+proxy is the opposite failure — every request appears to come from one address,
+and the per-IP limit locks out the world. It is therefore opt-in per deployment,
+and behind Caddy or Tailscale funnel (`docs/10 §9`) it must be set.
+
+Still not built, and still in that order: password reset (needs SMTP), email
+verification.
