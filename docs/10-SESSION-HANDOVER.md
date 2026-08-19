@@ -7,8 +7,9 @@ model) picks this up cold. Read `CLAUDE.md` first, then this.
 
 ## 1. What exists right now
 
-A working FastAPI + SQLite app, 109 tests, `make check` green (ruff,
-`mypy --strict` on `app/core` `app/rules` `app/features`, pytest).
+A working FastAPI + SQLite app, 204 tests, `make check` green (ruff,
+`mypy --strict` on `app/core` `app/rules` `app/features` `app/auth` `app/jobs`
+`app/discover` `app/geo`, pytest).
 
 Per-session detail lives in `docs/handoff/` — newest file first. Use the
 `session-start` and `session-end` skills.
@@ -84,6 +85,19 @@ These came from the owner directly and are not negotiable without asking.
     working branch, then straight into the default branch, and the site
     rebuilds. No waiting to be asked. (Superseded the earlier rule of merging
     only on request — the owner changed it.)
+14. **One sentence under a control, never a paragraph.** Explanatory text on a
+    UI element is capped at a single sentence. The owner cut the day strip's
+    note from five lines to one, twice. If something needs more explaining than
+    that, the control is wrong.
+15. **New features are MVP-first.** Lightweight, free to run, quick to build,
+    with real error handling, and a core process polished enough to be upgraded
+    later rather than rewritten. Better providers and larger scale come after
+    the backbone works — the owner said this in those words when scoping
+    add-a-water.
+16. **Never show a number the data cannot support.** "% chance of a fish"
+    needs calibration against logged sessions, and there are none. A colour
+    band is what the engine honestly produces. This generalises rule 2 from the
+    day score to anything the app might be tempted to quantify.
 
 ---
 
