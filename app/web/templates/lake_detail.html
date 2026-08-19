@@ -54,11 +54,6 @@
       <span class="day-chip-weekday">{{ t('weekday.' ~ day.weekday | lower) }}</span>
       <span class="day-chip-date">{{ day.day_of_month }}</span>
       <span class="day-chip-band band-{{ day.band_color if day.has_data else 'none' }}"></span>
-      {% if day.best_hours %}
-      <span class="day-chip-hours">{{ day.best_hours[0] }}</span>
-      {% else %}
-      <span class="day-chip-hours">{{ t('calendar.no_data') }}</span>
-      {% endif %}
     </button>
     {% endfor %}
   </div>
@@ -122,13 +117,12 @@
 
 <div class="section-label" style="margin-top: 20px;">{{ t('lake.where_to_fish') }}</div>
 
-<div class="season-line">
-  {{ t('lake.assuming') }} <strong>{{ t('phase.' ~ season.phase) }}</strong>
-  {# The caveat travels with the phase rather than being a fixed string: under
-     v0.4 it names the modelled water temperature and its trend, and only the
-     v0.3 fallback still says "assumed from the date". #}
-  <span class="season-caveat">— {{ season.caveat or t('season_caveat') }}</span>
-</div>
+{# The thermal phase used to be printed here as "Assuming spring warming - from
+   modelled water temperature...". Removed at the owner's request: it read as a
+   claim about the season, was wrong often enough to undermine the rest of the
+   page, and told the angler nothing they could act on. The phase itself still
+   drives the overlay - it is passed to /grid below - and the provenance note
+   under the map is what states the overlay is modelled and provisional. #}
 
 <div class="pin-dock">
   <svg class="fish-pin" id="fish-pin" viewBox="0 0 64 44" draggable="true" aria-label="{{ t('lake.pin_hint') }}">
@@ -204,14 +198,26 @@ const CALENDAR = [
     horizon: {{ day.horizon }},
     label: {{ (t('weekday.' ~ day.weekday | lower) ~ ' ' ~ day.day_of_month) | tojson }},
     windDir: {{ day.wind_dir if day.wind_dir is not none else 'null' }},
-    {# Two different silences: no pressure history at all (no number to show),
-       and a 6-hour change that matched none of the ruleset's regimes. Saying
-       "not enough history" next to a number would contradict itself. #}
-    reason: {% if day.has_data %}{{ (
-        t('dayreason.no_history') if day.dp_6h is none
-        else t('dayreason.' ~ (day.pressure_regime or 'unclear'))
-             ~ ' · ' ~ (day.dp_6h | round(1)) ~ ' hPa/6h'
-      ) | tojson }}{% else %}null{% endif %},
+    {# One sentence, in three parts: what the pressure is doing, by how much,
+       and how this ruleset rates that state. The rating is worked out from the
+       ruleset's own regime scores at render time, so it cannot drift away from
+       them - see regime_rating() in view_helpers.
+
+       Two different silences are told apart: no pressure history at all (no
+       number to show), and a change that matched none of the ruleset's
+       regimes. "Not enough history" beside a number would contradict itself. #}
+    reason: {% if not day.has_data %}null
+      {%- elif day.dp_6h is none -%}
+        {{ t('dayreason.no_history') | tojson }}
+      {%- else -%}
+        {{ (
+          t('dayreason.' ~ (day.pressure_regime or 'unclear'))
+          ~ ' ' ~ t('dayreason.change_down' if day.dp_6h < 0 else 'dayreason.change_up')
+                  .format(hpa=(day.dp_6h | abs | round(1)))
+          ~ (' — ' ~ t('dayreason.rating_' ~ day.regime_rating) if day.regime_rating else '')
+          ~ '.'
+        ) | tojson }}
+      {%- endif %},
     weather: {% if day.temp_max is not none %}{
       temp: {{ day.temp_max | round(0) | int }},
       windDir: {{ day.wind_dir if day.wind_dir is not none else 'null' }},

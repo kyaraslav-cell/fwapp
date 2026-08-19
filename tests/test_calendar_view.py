@@ -304,3 +304,40 @@ def test_a_day_the_forecast_missed_has_no_weather(db: Session, lake: Lake) -> No
     days = calendar_view(db, lake, 1, latest, {})
     assert days[1]["temp_max"] is None
     assert days[1]["wind_max"] is None
+
+
+def test_the_rating_is_derived_from_the_ruleset_not_written_down(db: Session, lake: Lake) -> None:
+    """Reorder the ruleset's regime scores and the sentence follows.
+
+    This is the test that keeps law 1 honest for the explanation line: which
+    pressure state is good is a weight in the YAML, and the wording under the
+    strip has to read it rather than repeat it.
+    """
+    from app.web.view_helpers import regime_rating
+
+    scores = {"falling_slow": 1.0, "stable": 0.6, "rising_slow": 0.4,
+              "falling_fast": 0.3, "rising_fast": -0.5}
+    assert regime_rating(scores, "falling_slow") == "best"
+    assert regime_rating(scores, "rising_fast") == "worst"
+
+    # The owner's real formula lands and inverts the ranking.
+    flipped = {name: -value for name, value in scores.items()}
+    assert regime_rating(flipped, "falling_slow") == "worst"
+    assert regime_rating(flipped, "rising_fast") == "best"
+
+
+def test_an_unscored_regime_gets_no_rating(db: Session, lake: Lake) -> None:
+    from app.web.view_helpers import regime_rating
+
+    assert regime_rating({"stable": 1.0}, None) is None
+    assert regime_rating({"stable": 1.0}, "not_a_regime") is None
+    assert regime_rating({}, "stable") is None
+
+
+def test_the_rating_travels_with_the_day(db: Session, lake: Lake) -> None:
+    write_prediction(db, lake, 1, "green", regime="rising_fast", dp_6h=5.0)
+    days = calendar_view(
+        db, lake, 1, latest, {},
+        regime_scores={"falling_slow": 1.0, "rising_fast": -0.5},
+    )
+    assert days[1]["regime_rating"] == "worst"

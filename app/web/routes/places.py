@@ -133,18 +133,24 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
     elif days and days[0]["wind_dir"] is not None:
         default_wind = days[0]["wind_dir"]
 
+    ruleset = load_active_ruleset()
+
     # The day strip. Bands come from stored prediction rows and are never
     # recomputed here (law 2); the per-day wind is what the map re-scores with
-    # when a day is picked.
+    # when a day is picked. The regime scores are passed in so the sentence
+    # under the strip can say how the ruleset rates that day's pressure without
+    # anyone writing that ranking down a second time.
     calendar_days = calendar_view(
         db,
         lake,
         OUTLOOK_DAYS,
         latest_prediction,
         forecast_day_summaries(db, lake, OUTLOOK_DAYS),
+        regime_scores=next(
+            (r for r in ruleset["rules"] if r["id"] == "pressure_trend"), {}
+        ).get("regime_scores", {}),
     )
 
-    ruleset = load_active_ruleset()
     zone_cfg = ruleset["zone_score"]
 
     # Thermal phase from modelled water temperature when the active ruleset

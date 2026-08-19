@@ -201,11 +201,13 @@ Third: a depth survey, which for 9 ha is a morning with a marker float.
 
 - Calendar icon beside the lake name, inside the lake page only. Tapping it
   rolls a strip of **today + 7 days** down in place; tapping again rolls it up.
-- Each day carries a **colour band and its dawn window**. No number: the day
-  score is never shown raw, and a "% chance of a fish" would claim a
-  calibration this project has not earned - there are no logged sessions to
-  calibrate against yet. When the calibration loop (phase 5) has a season of
-  data, that percentage becomes computable and this is where it goes.
+- Each chip carries a **weekday, a date and a colour band**. Nothing else -
+  the dawn window used to sit under the band and was removed as clutter. No
+  number: the day score is never shown raw, and a "% chance of a fish" would
+  claim a calibration this project has not earned - there are no logged
+  sessions to calibrate against yet. When the calibration loop (phase 5) has a
+  season of data, that percentage becomes computable and this is where it
+  goes.
 - Every band is read from a stored `prediction` row written before the day it
   describes (law 2). Nothing is recomputed at render time. A day with no row
   shows a hatched "no data" chip and is never filled in from its neighbour
@@ -213,10 +215,12 @@ Third: a depth survey, which for 9 ha is a morning with a marker float.
 - Picking a day **recolours the map overlay** for that day's mean forecast
   wind, **swaps the conditions card** to that day's forecast (marked as one,
   and labelled with the day), and puts **one sentence** under the strip saying
-  why the day scored as it did. That sentence is built from the regime name in
-  the stored prediction plus its 6-hour pressure change - the wording is in the
-  i18n catalogue and never restates a threshold, so changing the ruleset cannot
-  leave a translation lying.
+  why the day scored as it did: what the pressure is doing, by how much over
+  six hours, and how the ruleset rates that state. The rating is worked out
+  from the ruleset's own `regime_scores` at render time (`regime_rating()` in
+  `app/web/view_helpers.py`), so it inverts by itself if the owner's formula
+  inverts the weights - no translation ever restates which pressure is good.
+  Pinned by `tests/test_calendar_view.py`.
 - The strip closes on the icon, on a tap anywhere outside it, or on Escape.
   **Closing always returns to today** - map, card and the ability to start a
   session all come back to now in one action, so there is no stale state to
@@ -237,3 +241,18 @@ thermal half of the overlay is not a forecast.
 showing what was predicted beside what was actually caught. That view is the
 calibration loop's face and is empty until sessions are logged.
 
+## 14. The thermal-phase line on the lake page · REMOVED
+
+It printed *"Assuming spring warming — from modelled water temperature
+(15.8 °C, +0.4 °C/day)…"* above the map. Removed at the owner's request in
+August: it read as a claim about the season, was wrong often enough to
+undermine the rest of the page, and named nothing the angler could act on.
+
+**The phase itself is untouched** - it still drives the overlay and is passed to
+`/grid`. What went is the sentence about it. The provenance note under the map
+remains, and is now the only place the page states that the overlay is modelled
+and provisional. `tests/test_season.py` still asserts the phase never claims to
+be measured.
+
+If a phase display comes back, it needs to be something the angler can act on -
+a depth band or a bank, not the name of a season.

@@ -1392,8 +1392,8 @@ details.card[open] summary::before { content: "－ "; }
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  min-width: 58px;
-  padding: 8px 6px 7px;
+  min-width: 54px;
+  padding: 9px 8px 10px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -1415,10 +1415,10 @@ details.card[open] summary::before { content: "－ "; }
 /* The band. A bar, not a dot: at this size a dot reads as a bullet point and a
    bar reads as a measurement. */
 .day-chip-band {
-  width: 30px;
+  width: 28px;
   height: 6px;
   border-radius: 999px;
-  margin: 2px 0 1px;
+  margin: 3px 0 0;
 }
 
 .band-red    { background: #d9553f; }
@@ -1432,8 +1432,6 @@ details.card[open] summary::before { content: "－ "; }
     45deg, var(--border), var(--border) 2px, transparent 2px, transparent 4px
   );
 }
-
-.day-chip-hours { font-size: 0.62rem; color: var(--muted); white-space: nowrap; }
 
 .day-chip.is-today { border-color: var(--primary); }
 

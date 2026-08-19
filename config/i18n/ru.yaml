@@ -38,7 +38,6 @@ lake:
   temp: Темп.
   pressure: Давление
   where_to_fish: Где ловить
-  assuming: Предполагаем
   pin_hint: Перетащите рыбку на карту — или просто коснитесь воды — чтобы выбрать место.
   legend_low: Плохо
   legend_high: Лучше всего
@@ -136,9 +135,6 @@ phase:
   summer_stagnation: летняя стагнация
   autumn_cooling: осеннее охлаждение
 
-season_caveat: >
-  Предположено по дате, а не измерено. Настоящую фазу определяет температура
-  воды — холодный май или тёплый апрель собьют это предположение.
 
 # Day-quality band. The ruleset stores an English label, and a prediction row
 # is immutable (law 2), so the label cannot be rewritten per language - the
@@ -212,7 +208,6 @@ weekday:
 
 calendar:
   toggle: Ближайшие дни
-  no_data: нет данных
   badge: Прогноз
   note: "Цвет - прогноз на день: выберите день, чтобы перекрасить карту; приглушённые дни дальние и менее надёжные."
   no_reason: На этот день прогноз не записан.
@@ -226,3 +221,10 @@ dayreason:
   rising_fast: Давление быстро растёт
   unclear: Нет явного тренда давления
   no_history: Мало истории давления
+  change_down: "({hpa} гПа падения за шесть часов)"
+  change_up: "({hpa} гПа роста за шесть часов)"
+  rating_best: оценивается как лучшее из состояний давления
+  rating_good: оценивается высоко
+  rating_middling: оценивается средне
+  rating_poor: оценивается низко
+  rating_worst: оценивается как худшее из состояний давления

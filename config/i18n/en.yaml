@@ -38,7 +38,6 @@ lake:
   temp: Temp
   pressure: Pressure
   where_to_fish: Where to fish
-  assuming: Assuming
   pin_hint: Drag the fish onto the map — or just tap the water — to pick your spot.
   legend_low: Poor
   legend_high: Best
@@ -136,9 +135,6 @@ phase:
   summer_stagnation: summer stagnation
   autumn_cooling: autumn cooling
 
-season_caveat: >
-  Assumed from the date, not measured. Water temperature drives the real
-  phase — a cold May or a warm April will fool this.
 
 # Day-quality band. The ruleset stores an English label, and a prediction row
 # is immutable (law 2), so the label cannot be rewritten per language - the
@@ -215,7 +211,6 @@ weekday:
 
 calendar:
   toggle: Next days
-  no_data: no data
   badge: Forecast
   note: Colour is the day's outlook - pick a day to recolour the map; faded days are far out and less certain.
   no_reason: No prediction was written for that day.
@@ -234,3 +229,10 @@ dayreason:
   rising_fast: Pressure climbing fast
   unclear: No clear pressure trend
   no_history: Not enough pressure history yet
+  change_down: "({hpa} hPa down over six hours)"
+  change_up: "({hpa} hPa up over six hours)"
+  rating_best: rated the best of the pressure states
+  rating_good: rated well
+  rating_middling: rated middling
+  rating_poor: rated low
+  rating_worst: rated the worst of the pressure states

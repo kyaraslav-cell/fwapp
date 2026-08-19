@@ -37,6 +37,7 @@ Branch: `claude/repository-edit-push-ggr229` on `kyaraslav-cell/fwapp`.
 | Fish pin: held drag, dive, splash | works |
 | Water-type filter as a segmented switch | works |
 | Day strip (today + 7) behind a calendar icon, map re-scores per day | works |
+| Thermal-phase line on the lake page | **removed** — see backlog §14 |
 | Accounts: password sign-in, sessions, per-angler notebook | works |
 | Sign in with Google | built, **never run against Google** |
 

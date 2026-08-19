@@ -38,7 +38,6 @@ lake:
   temp: Temp.
   pressure: Ciśnienie
   where_to_fish: Gdzie łowić
-  assuming: Zakładam
   pin_hint: Przeciągnij rybkę na mapę — albo po prostu dotknij wody — aby wybrać miejsce.
   legend_low: Słabo
   legend_high: Najlepiej
@@ -136,9 +135,6 @@ phase:
   summer_stagnation: letnia stagnacja
   autumn_cooling: jesienne wychładzanie
 
-season_caveat: >
-  Przyjęte z daty, nie zmierzone. O prawdziwej fazie decyduje temperatura wody
-  — zimny maj albo ciepły kwiecień zmylą to założenie.
 
 # Day-quality band. The ruleset stores an English label, and a prediction row
 # is immutable (law 2), so the label cannot be rewritten per language - the
@@ -212,7 +208,6 @@ weekday:
 
 calendar:
   toggle: Kolejne dni
-  no_data: brak danych
   badge: Prognoza
   note: Kolor to prognoza dnia - wybierz dzień, aby przemalować mapę; przygaszone dni są odległe i mniej pewne.
   no_reason: Dla tego dnia nie zapisano prognozy.
@@ -226,3 +221,10 @@ dayreason:
   rising_fast: Ciśnienie szybko rośnie
   unclear: Brak wyraźnego trendu ciśnienia
   no_history: Za mało historii ciśnienia
+  change_down: "({hpa} hPa spadku w sześć godzin)"
+  change_up: "({hpa} hPa wzrostu w sześć godzin)"
+  rating_best: oceniane najlepiej ze stanów ciśnienia
+  rating_good: oceniane wysoko
+  rating_middling: oceniane średnio
+  rating_poor: oceniane nisko
+  rating_worst: oceniane najgorzej ze stanów ciśnienia

@@ -56,12 +56,40 @@ def outlook_view(
 CONFIDENT_HORIZON_DAYS = 5
 
 
+def regime_rating(regime_scores: dict[str, float], regime: str | None) -> str | None:
+    """Where this pressure state ranks among the ones the ruleset knows.
+
+    Returns one of best / good / middling / poor / worst, which the page turns
+    into words. Derived from `regime_scores` at render time and never written
+    down anywhere else: which pressure state is good is fishing knowledge and
+    lives in the YAML (law 1). A sentence that hardcoded "falling is best"
+    would be a second, silent copy of that rule - and the wrong one the day the
+    owner's real formula replaces it.
+    """
+    if regime is None or regime not in regime_scores:
+        return None
+    ordered = sorted(regime_scores.items(), key=lambda kv: kv[1], reverse=True)
+    names = [name for name, _ in ordered]
+    position = names.index(regime)
+    last = len(names) - 1
+    if position == 0:
+        return "best"
+    if position == last:
+        return "worst"
+    if position <= last // 3:
+        return "good"
+    if position >= last - last // 3:
+        return "poor"
+    return "middling"
+
+
 def calendar_view(
     db: Session,
     lake: Lake,
     days: int,
     latest_prediction_fn: Any,
     forecast_summaries: dict[str, dict[str, Any]],
+    regime_scores: dict[str, float] | None = None,
 ) -> list[dict[str, Any]]:
     """One entry per day from today to `days` ahead, for the day strip.
 
@@ -109,6 +137,9 @@ def calendar_view(
                 # never disagree.
                 "pressure_regime": payload.get("pressure_regime") if payload else None,
                 "dp_6h": payload.get("dp_6h") if payload else None,
+                "regime_rating": regime_rating(
+                    regime_scores or {}, payload.get("pressure_regime") if payload else None
+                ),
                 # The bearing the map re-scores with when this day is picked.
                 # None for today, and for any day the forecast did not cover.
                 "wind_dir": summary.get("wind_dir"),
