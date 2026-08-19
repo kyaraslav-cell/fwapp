@@ -41,6 +41,12 @@
   </a>
   {% else %}
   <form method="post" action="/places/new" class="candidate-form">
+    {# The search that produced this list, carried through the POST so that a
+       refusal can redraw the list instead of emptying it. Without it the
+       angler is told "not a water" and left with a blank page and no way to
+       pick a different result - which is how one wrong tap turned into
+       "the app cannot add my lake". #}
+    <input type="hidden" name="q" value="{{ query }}">
     <input type="hidden" name="name" value="{{ c.name }}">
     <input type="hidden" name="display_name" value="{{ c.display_name }}">
     <input type="hidden" name="lat" value="{{ c.lat }}">

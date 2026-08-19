@@ -8,6 +8,7 @@ could be tested from this sandbox at all (docs/10 §6).
 
 from __future__ import annotations
 
+import pathlib
 from datetime import timedelta
 
 import pytest
@@ -260,3 +261,95 @@ def test_big_waters_get_bigger_cells_and_stay_sendable() -> None:
 
 def test_cell_size_never_goes_below_the_floor() -> None:
     assert cell_size_for_area(0.001) == 5.0
+
+
+def test_a_refusal_leaves_the_other_results_on_screen(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Being told "not a water" must not also take away the right answer.
+
+    The correct result is usually one row below the one that was tapped.
+    Emptying the list turns one wrong tap into "this app cannot add my lake" -
+    which is how the jsonv2 bug was reported, and the reason it took a fortnight
+    to look at.
+
+    Driven through the real app: the query has to survive the POST as a hidden
+    field for this to work at all, and only the running form proves it does.
+    """
+    from fastapi.testclient import TestClient
+
+    from app.auth import passwords
+    from app.discover import nominatim as nominatim_module
+
+    village = Candidate(
+        name="Zegrze",
+        display_name="Zegrze, powiat legionowski, Poland",
+        lat=52.45,
+        lon=21.05,
+        osm_type="node",
+        osm_id=1,
+        kind="place=village",
+        area_ha=None,
+        is_water=False,
+    )
+    lake = Candidate(
+        name="Zalew Zegrzynski",
+        display_name="Zalew Zegrzynski, Poland",
+        lat=52.44,
+        lon=21.06,
+        osm_type="relation",
+        osm_id=2,
+        kind="natural=water",
+        area_ha=3300.0,
+        is_water=True,
+    )
+    monkeypatch.setattr(
+        nominatim_module, "search", lambda name, **kw: [village, lake]
+    )
+
+    monkeypatch.setenv("FISHLOG_DB_PATH", str(tmp_path / "refusal.db"))
+    monkeypatch.setenv("FISHLOG_MEDIA_DIR", str(tmp_path / "media"))
+    monkeypatch.setattr(passwords, "DEFAULT_N", 1 << 12)
+
+    import app.core.db as db_module
+
+    monkeypatch.setattr(db_module, "_engine", None)
+    monkeypatch.setattr(db_module, "_SessionLocal", None)
+
+    from app.web import app as app_module
+
+    client = TestClient(app_module.create_app())
+    db_module.init_db()
+    client.post(
+        "/auth/register",
+        data={
+            "email": "angler@example.com",
+            "display_name": "Ann",
+            "password": "bream-on-the-margin",
+            "password_confirm": "bream-on-the-margin",
+        },
+        follow_redirects=False,
+    )
+
+    response = client.post(
+        "/places/new",
+        data={
+            "q": "Zalew Zegrzynski",
+            "name": "Zegrze",
+            "display_name": "Zegrze, powiat legionowski, Poland",
+            "lat": "52.45",
+            "lon": "21.05",
+            "osm_type": "node",
+            "osm_id": "1",
+            "area_ha": "",
+            "is_water": "0",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 422
+    assert "Zalew Zegrzynski" in response.text, (
+        "the refusal emptied the list, so the lake one row down was unreachable"
+    )
+    # And the tag is printed, so a correct refusal is legible as one.
+    assert "place=village" in response.text

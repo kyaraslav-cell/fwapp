@@ -91,6 +91,7 @@ def add(
     osm_id: int = Form(default=0),
     area_ha: str = Form(default=""),
     is_water: str = Form(default="1"),
+    q: str = Form(default=""),
     user: CurrentUser = Depends(require_user),
     db: Session = Depends(get_db),
 ) -> Response:
@@ -116,21 +117,21 @@ def add(
     try:
         result = service.add_water(db, candidate, user_id=user.id)
     except service.QuotaExceededError:
-        return _render(
+        return _refused(
             request,
+            db,
+            query=q or name,
             status_code=429,
-            query=name,
-            searched=True,
             error="discover.error.quota",
             quota_left=0,
             quota_reset=_local(service.next_quota_reset(db, user.id)),
         )
     except service.NotAWaterError:
-        return _render(
+        return _refused(
             request,
+            db,
+            query=q or name,
             status_code=422,
-            query=name,
-            searched=True,
             error="discover.error.not_water",
             quota_left=service.quota_left(db, user.id),
         )
@@ -138,6 +139,41 @@ def add(
     # Either way the angler lands on the water's page - a duplicate add opens
     # the water that already exists rather than making a second copy of it.
     return RedirectResponse(url=f"/lake/{result.lake.slug}", status_code=303)
+
+
+def _refused(
+    request: Request,
+    db: Session,
+    *,
+    query: str,
+    status_code: int,
+    error: str,
+    **context: Any,
+) -> Response:
+    """Say no, and leave the list on the screen.
+
+    A refusal used to render with no candidates at all, so being told "that is
+    not a water" also took away every other result - including the right one,
+    one row further down. The angler's only move was to retype the search.
+
+    Redrawing the list is free: `nominatim.search` caches per process, so this
+    is a dictionary lookup and not a second call against a service that allows
+    one request a second. If the cache has been lost the search is simply not
+    redrawn - a refusal must never become a geocoder error.
+    """
+    try:
+        candidates = [_row(db, c) for c in nominatim.search(query)] if query else []
+    except nominatim.NominatimError:
+        candidates = []
+    return _render(
+        request,
+        status_code=status_code,
+        query=query,
+        searched=True,
+        error=error,
+        candidates=candidates,
+        **context,
+    )
 
 
 def _row(db: Session, candidate: Candidate) -> dict[str, Any]:

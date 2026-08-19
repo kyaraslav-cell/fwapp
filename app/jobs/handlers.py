@@ -80,7 +80,16 @@ def handle_outline(db: Session, job: Job) -> str:
     # the two marks a mapped lake as unmapped forever over one bad minute.
     # `OverpassUnavailableError` is deliberately not caught - the runner turns
     # it into a backed-off retry, which is exactly the wanted behaviour.
-    outline = fetch_osm_outline_strict(lake.centroid_lat, lake.centroid_lon)
+    # By OSM id when the geocoder gave one: it is the object the angler
+    # actually picked, and it makes the whole proximity question - and its
+    # radius - go away. The area is the fallback's radius hint.
+    outline = fetch_osm_outline_strict(
+        lake.centroid_lat,
+        lake.centroid_lon,
+        osm_type=lake.osm_type,
+        osm_id=lake.osm_id,
+        area_ha=lake.area_ha,
+    )
     if outline is None:
         # Overpass answered and there is no polygon there. That is a fact about
         # the water, not a failure of this job, so it is recorded and the retry

@@ -202,7 +202,7 @@ there actually is.
 
 ---
 
-## 11. The jsonv2 field-name bug — read this before writing another fake
+## 11. Why a 3 300 ha reservoir could not be added — four bugs, one report
 
 **Symptom:** every search result, including Zalew Zegrzyński at 3 300 ha, came
 back marked "not a water", and adding one was refused. It read exactly like a
@@ -228,3 +228,46 @@ cannot resurrect this.
 hint of what the result actually was. It now prints the OSM tag beside the
 badge — `place=village` is a correct refusal, an empty tag is a broken parser,
 and the two were indistinguishable for as long as this bug lived.
+
+### The other three, found by following the first
+
+The jsonv2 field name was only what stopped the *first* screen. Behind it were
+three more, each of which alone would have lost the lake, and all of them
+specific to a water bigger than the one this was built against.
+
+**Relations were silently skipped.** An Overpass `way` carries a top-level
+`geometry`; a `relation` does not — its shape is in `members`, each with a
+role. `fetch_osm_outline_strict` read only `geometry`, so every multipolygon
+water produced no candidate at all and the lake reported *"no water polygon in
+OpenStreetMap near this point"*. That is not a small subset: it is every water
+with an island, and every water big enough that more than one person mapped it.
+The message was confident, wrong, and unfalsifiable from the page.
+
+**The outer boundary arrives in pieces.** Even once members are read, none of
+them is closed; a large shoreline is however many ways the mappers split it
+into, in whatever direction each was drawn. `_stitch` joins them head-to-tail
+and head-to-head, and **drops** anything that will not close. A half-traced
+shoreline shut with a straight line across the water is the same fiction as the
+circle fallback ADR 0005 §4 refuses.
+
+**The search radius was a fixed 500 m.** Overpass measures `around` to a way's
+*geometry*, so on a reservoir whose centroid sits a kilometre or more from any
+bank, nothing is within 500 m and the answer is an honest, useless empty set.
+Two changes: the radius now scales from the water's area (equivalent-circle
+radius × 1.5, capped at 20 km), and — better — when the geocoder gave an OSM
+id, the outline is fetched **by that id** and the proximity question does not
+arise at all. Nominatim already told us which object the angler picked; asking
+"what water is near this point" instead threw that away and re-derived it worse.
+
+**And a refusal emptied the list.** Being told "that is not a water" also
+removed every other result, including the right one a row below. The angler's
+only move was to retype the search — which is how one wrong tap gets reported
+as "the app cannot add my lake". The search now rides through the POST as a
+hidden field and the list is redrawn from the process cache.
+
+### Still owed
+
+Islands are dropped. `_rings_of` returns outer rings only, because the grid
+builder takes a single ring — a lake scored as if its island were water is a
+smaller error than no lake at all, but it is still an error, and on Zegrze it
+is a real one. Fixing it means teaching `app/geo/grid.py` about holes.
