@@ -128,18 +128,18 @@ def recent_days(db: Session, lake: Lake, days: int = 5) -> list[dict[str, Any]]:
     return out
 
 
-def forecast_day_winds(db: Session, lake: Lake, days: int) -> dict[str, float | None]:
-    """Mean wind direction per forecast day, keyed by local date.
+def forecast_day_summaries(db: Session, lake: Lake, days: int) -> dict[str, dict[str, Any]]:
+    """One summary per forecast day, keyed by local date.
 
-    The calendar needs one bearing per day to re-score the map with. A daily
-    circular mean is the honest resolution to ask for: the zone score is
-    provisional and displayed as a percentile, so resolving wind finer than
-    "roughly from there, that day" would be false precision - the same reason
-    `tools/build_static.py` buckets the published overlay to 30 degrees.
+    The day strip needs two things from this: a bearing to re-score the map
+    with, and the weather to show in the conditions card while that day is
+    selected. A daily aggregate is the honest resolution to offer - the zone
+    score is provisional and displayed as a percentile, so resolving finer than
+    "roughly this, that day" would be false precision.
 
-    Forecast rows only (is_forecast = 1). Today is deliberately absent: the map
-    already scores today from the live reading, and mixing a day-mean into that
-    would quietly change what "now" means.
+    Forecast rows only (is_forecast = 1). Today is deliberately absent: today's
+    card shows the live reading, and a day mean would quietly change what "now"
+    means on the one day the angler can act on.
     """
     horizon_end = utcnow() + timedelta(days=days + 1)
     rows = db.execute(
@@ -153,12 +153,25 @@ def forecast_day_winds(db: Session, lake: Lake, days: int) -> dict[str, float | 
         .order_by(WeatherHourly.ts_utc)
     ).scalars().all()
 
-    buckets: dict[str, list[float]] = defaultdict(list)
+    buckets: dict[str, list[WeatherHourly]] = defaultdict(list)
     for row in rows:
-        if row.wind_direction_10m is None:
-            continue
-        buckets[to_display(parse_iso(row.ts_utc)).date().isoformat()].append(
-            row.wind_direction_10m
-        )
+        buckets[to_display(parse_iso(row.ts_utc)).date().isoformat()].append(row)
 
-    return {day: _circular_mean_deg(values) for day, values in buckets.items()}
+    summaries: dict[str, dict[str, Any]] = {}
+    for day, entries in buckets.items():
+        temps = [e.temperature_2m for e in entries if e.temperature_2m is not None]
+        winds = [e.wind_speed_10m for e in entries if e.wind_speed_10m is not None]
+        press = [e.pressure_msl for e in entries if e.pressure_msl is not None]
+        wind_dir = _circular_mean_deg(
+            [e.wind_direction_10m for e in entries if e.wind_direction_10m is not None]
+        )
+        summaries[day] = {
+            "wind_dir": wind_dir,
+            "wind_compass": _compass(wind_dir),
+            "wind_max": round(max(winds), 1) if winds else None,
+            "temp_min": round(min(temps), 1) if temps else None,
+            "temp_max": round(max(temps), 1) if temps else None,
+            "pressure_hpa": round(sum(press) / len(press)) if press else None,
+            "n_hours": len(entries),
+        }
+    return summaries

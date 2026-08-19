@@ -1471,3 +1471,10 @@ details.card[open] summary::before { content: "－ "; }
   color: var(--primary-text);
   pointer-events: none;
 }
+
+/* The conditions card while a forecast day is selected. Same card, quietly
+   marked, so a glance tells you it is not a reading. */
+.now-card.is-forecast {
+  border: 1px dashed var(--border);
+  background: linear-gradient(135deg, var(--surface), var(--surface-alt));
+}

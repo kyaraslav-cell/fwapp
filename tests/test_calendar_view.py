@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.core.models import Base, Lake, Prediction, WeatherHourly
 from app.core.time import iso, to_display, utcnow
 from app.web.view_helpers import CONFIDENT_HORIZON_DAYS, calendar_view
-from app.web.weather_table import forecast_day_winds
+from app.web.weather_table import forecast_day_summaries
 
 
 @pytest.fixture()
@@ -43,7 +43,14 @@ def lake(db: Session) -> Lake:
     return row
 
 
-def write_prediction(db: Session, lake: Lake, horizon: int, colour: str) -> Prediction:
+def write_prediction(
+    db: Session,
+    lake: Lake,
+    horizon: int,
+    colour: str,
+    regime: str | None = "falling_slow",
+    dp_6h: float | None = -1.4,
+) -> Prediction:
     target = to_display(utcnow()).date() + timedelta(days=horizon)
     start = utcnow().replace(hour=4, minute=47)
     payload = {
@@ -56,6 +63,8 @@ def write_prediction(db: Session, lake: Lake, horizon: int, colour: str) -> Pred
         ],
         "reasons": [],
         "per_rule_contributions": {},
+        "pressure_regime": regime,
+        "dp_6h": dp_6h,
     }
     row = Prediction(
         lake_id=lake.id,
@@ -147,8 +156,8 @@ def test_today_carries_no_forecast_wind(db: Session, lake: Lake) -> None:
         1,
         latest,
         {
-            today.isoformat(): 90.0,
-            (today + timedelta(days=1)).isoformat(): 270.0,
+            today.isoformat(): {"wind_dir": 90.0},
+            (today + timedelta(days=1)).isoformat(): {"wind_dir": 270.0},
         },
     )
 
@@ -203,9 +212,9 @@ def test_forecast_winds_are_averaged_per_day(db: Session, lake: Lake) -> None:
         add_hour(db, lake, base + timedelta(hours=offset), bearing, is_forecast=1)
     db.flush()
 
-    winds = forecast_day_winds(db, lake, 7)
+    summaries = forecast_day_summaries(db, lake, 7)
     day = to_display(base).date().isoformat()
-    assert winds[day] == 90.0
+    assert summaries[day]["wind_dir"] == 90.0
 
 
 def test_the_average_wraps_around_north(db: Session, lake: Lake) -> None:
@@ -216,8 +225,8 @@ def test_the_average_wraps_around_north(db: Session, lake: Lake) -> None:
     add_hour(db, lake, base + timedelta(hours=1), 10.0, is_forecast=1)
     db.flush()
 
-    winds = forecast_day_winds(db, lake, 7)
-    assert winds[to_display(base).date().isoformat()] == 0.0
+    summaries = forecast_day_summaries(db, lake, 7)
+    assert summaries[to_display(base).date().isoformat()]["wind_dir"] == 0.0
 
 
 def test_observations_are_not_treated_as_forecast(db: Session, lake: Lake) -> None:
@@ -226,4 +235,72 @@ def test_observations_are_not_treated_as_forecast(db: Session, lake: Lake) -> No
     add_hour(db, lake, tomorrow, 123.0, is_forecast=0)
     db.flush()
 
-    assert forecast_day_winds(db, lake, 7) == {}
+    assert forecast_day_summaries(db, lake, 7) == {}
+
+
+# ---------------------------------------------------------------------------
+# What a picked day hands to the page
+# ---------------------------------------------------------------------------
+
+
+def test_a_day_carries_the_regime_that_explains_its_colour(db: Session, lake: Lake) -> None:
+    """The sentence under the strip is built from these two, not from prose.
+
+    Keeping the regime name and the number separate is what lets the wording be
+    translated without anybody restating a threshold in a language file.
+    """
+    write_prediction(db, lake, 1, "green", regime="falling_fast", dp_6h=-4.2)
+    days = calendar_view(db, lake, 1, latest, {})
+
+    assert days[1]["pressure_regime"] == "falling_fast"
+    assert days[1]["dp_6h"] == -4.2
+
+
+def test_a_day_with_no_prediction_explains_nothing(db: Session, lake: Lake) -> None:
+    days = calendar_view(db, lake, 1, latest, {})
+    assert days[1]["pressure_regime"] is None
+    assert days[1]["dp_6h"] is None
+
+
+def test_a_forecast_day_carries_its_own_weather(db: Session, lake: Lake) -> None:
+    """The conditions card takes these while that day is selected."""
+    write_prediction(db, lake, 1, "green")
+    tomorrow = (to_display(utcnow()).date() + timedelta(days=1)).isoformat()
+
+    days = calendar_view(
+        db,
+        lake,
+        1,
+        latest,
+        {tomorrow: {
+            "wind_dir": 270.0, "wind_compass": "W", "wind_max": 6.4,
+            "temp_min": 11.0, "temp_max": 19.5, "pressure_hpa": 1011,
+        }},
+    )
+
+    assert days[1]["temp_max"] == 19.5
+    assert days[1]["wind_compass"] == "W"
+    assert days[1]["wind_max"] == 6.4
+    assert days[1]["pressure_hpa"] == 1011
+
+
+def test_today_never_takes_a_forecast_summary(db: Session, lake: Lake) -> None:
+    """Today's card shows the live reading. A day mean is not a reading."""
+    write_prediction(db, lake, 0, "green")
+    today = to_display(utcnow()).date().isoformat()
+
+    days = calendar_view(
+        db, lake, 0, latest,
+        {today: {"wind_dir": 270.0, "wind_compass": "W", "temp_max": 30.0, "pressure_hpa": 999}},
+    )
+
+    assert days[0]["temp_max"] is None
+    assert days[0]["wind_dir"] is None
+    assert days[0]["pressure_hpa"] is None
+
+
+def test_a_day_the_forecast_missed_has_no_weather(db: Session, lake: Lake) -> None:
+    write_prediction(db, lake, 1, "green")
+    days = calendar_view(db, lake, 1, latest, {})
+    assert days[1]["temp_max"] is None
+    assert days[1]["wind_max"] is None

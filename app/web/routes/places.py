@@ -29,7 +29,7 @@ from app.web.deps import (
     templates,
 )
 from app.web.view_helpers import calendar_view, current_conditions, prediction_view
-from app.web.weather_table import current_reading, forecast_day_winds, recent_days
+from app.web.weather_table import current_reading, forecast_day_summaries, recent_days
 
 router = APIRouter()
 
@@ -141,7 +141,7 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
         lake,
         OUTLOOK_DAYS,
         latest_prediction,
-        forecast_day_winds(db, lake, OUTLOOK_DAYS),
+        forecast_day_summaries(db, lake, OUTLOOK_DAYS),
     )
 
     ruleset = load_active_ruleset()

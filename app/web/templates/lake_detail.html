@@ -48,9 +48,9 @@
             class="day-chip{{ ' is-today' if day.is_today }}{{ ' is-selected' if day.is_today }}{{ ' is-far' if day.is_far }}{{ ' is-empty' if not day.has_data }}"
             data-horizon="{{ day.horizon }}"
             data-wind="{{ day.wind_dir if day.wind_dir is not none else '' }}"
-            data-label="{{ day.label }}"
+            data-label="{{ t('weekday.' ~ day.weekday | lower) }} {{ day.day_of_month }}"
             aria-pressed="{{ 'true' if day.is_today else 'false' }}"
-            title="{{ day.label }}{% if day.best_hours %} · {{ day.best_hours | join(', ') }}{% endif %}">
+            title="{{ t('weekday.' ~ day.weekday | lower) }} {{ day.day_of_month }}{% if day.best_hours %} · {{ day.best_hours | join(', ') }}{% endif %}">
       <span class="day-chip-weekday">{{ t('weekday.' ~ day.weekday | lower) }}</span>
       <span class="day-chip-date">{{ day.day_of_month }}</span>
       <span class="day-chip-band band-{{ day.band_color if day.has_data else 'none' }}"></span>
@@ -62,16 +62,18 @@
     </button>
     {% endfor %}
   </div>
-  <p class="day-strip-note">{{ t('calendar.note') }}</p>
+  {# One sentence. Either the standing note, or - once a day is picked - why
+     that day scored the way it did. Never both, and never more than one. #}
+  <p class="day-strip-note" id="day-strip-note">{{ t('calendar.note') }}</p>
 </div>
 {% endif %}
 
 {% if now_wx %}
-<div class="now-card">
-  <div class="now-temp">{{ now_wx.temp_c | round(0) | int }}<span>°C</span></div>
+<div class="now-card" id="now-card">
+  <div class="now-temp" id="now-temp">{{ now_wx.temp_c | round(0) | int }}<span>°C</span></div>
   <div class="now-meta">
-    <div class="now-label">{{ t('lake.right_now') }} · {{ now_wx.local_time }}</div>
-    <div>
+    <div class="now-label" id="now-label">{{ t('lake.right_now') }} · {{ now_wx.local_time }}</div>
+    <div id="now-detail">
       {% if now_wx.wind_dir is not none %}
       <span class="wind-arrow" style="transform: rotate({{ (now_wx.wind_dir + 180) % 360 }}deg);">↑</span>
       {{ now_wx.wind_compass }} {{ now_wx.wind_speed }} m/s ·
@@ -192,11 +194,42 @@ const PHASE = "{{ season.phase }}";
 // sets STATIC_GRID to their directory; live serving leaves it null.
 const STATIC_GRID = {{ static_grid | tojson }};
 const STATIC_GRID_STEP = {{ static_grid_step }};
+// One entry per day in the strip. Built here rather than assembled in the
+// browser so the reason sentence is translated by the same catalogue as the
+// rest of the page, and so the numbers on it come straight from the stored
+// prediction row rather than from anything recomputed client-side.
+const CALENDAR = [
+{% for day in calendar_days %}
+  {
+    horizon: {{ day.horizon }},
+    label: {{ (t('weekday.' ~ day.weekday | lower) ~ ' ' ~ day.day_of_month) | tojson }},
+    windDir: {{ day.wind_dir if day.wind_dir is not none else 'null' }},
+    {# Two different silences: no pressure history at all (no number to show),
+       and a 6-hour change that matched none of the ruleset's regimes. Saying
+       "not enough history" next to a number would contradict itself. #}
+    reason: {% if day.has_data %}{{ (
+        t('dayreason.no_history') if day.dp_6h is none
+        else t('dayreason.' ~ (day.pressure_regime or 'unclear'))
+             ~ ' · ' ~ (day.dp_6h | round(1)) ~ ' hPa/6h'
+      ) | tojson }}{% else %}null{% endif %},
+    weather: {% if day.temp_max is not none %}{
+      temp: {{ day.temp_max | round(0) | int }},
+      windDir: {{ day.wind_dir if day.wind_dir is not none else 'null' }},
+      windCompass: {{ day.wind_compass | tojson }},
+      windMax: {{ day.wind_max if day.wind_max is not none else 'null' }},
+      pressure: {{ day.pressure_hpa if day.pressure_hpa is not none else 'null' }}
+    }{% else %}null{% endif %}
+  }{{ "," if not loop.last }}
+{% endfor %}
+];
+
 const I18N = {
   fish_here: {{ t('lake.fish_here') | tojson }},
   start_session: {{ t('lake.start_session_link') | tojson }},
   forecast_only: {{ t('calendar.forecast_only') | tojson }},
-  forecast_badge: {{ t('calendar.badge') | tojson }}
+  forecast_badge: {{ t('calendar.badge') | tojson }},
+  calendar_note: {{ t('calendar.note') | tojson }},
+  no_reason: {{ t('calendar.no_reason') | tojson }}
 };
 let currentWind = DEFAULT_WIND !== null ? DEFAULT_WIND : 270;
 const TODAY_WIND = currentWind;
@@ -437,65 +470,138 @@ function splash(point) {
   return parts;
 }
 
-// The day strip: roll it down, and recolour the map for the picked day.
+// The day strip.
 //
-// Only the overlay changes. The conditions card and the weather table keep
-// showing now, which is what the owner asked for - so the badge over the map
-// carries the day instead, and the fish pin stops offering to start a session.
+// Picking a day recolours the map for that day's wind, swaps the conditions
+// card to that day's forecast, and puts one sentence under the strip saying
+// why the day scored the way it did. Closing the strip - by the icon, by
+// tapping outside it, or with Escape - always lands back on today, so the map
+// and the card are never left showing a day the angler cannot fish.
 const calendarToggle = document.getElementById('calendar-toggle');
 const dayStrip = document.getElementById('day-strip');
 const dayBadge = document.getElementById('map-day-badge');
+const dayNote = document.getElementById('day-strip-note');
+const nowCard = document.getElementById('now-card');
+const nowTemp = document.getElementById('now-temp');
+const nowLabel = document.getElementById('now-label');
+const nowDetail = document.getElementById('now-detail');
+
+// What the card said about right now, kept so closing the strip can put it
+// back exactly - re-deriving it from the forecast would be a different number.
+const NOW_SNAPSHOT = nowCard ? {
+  temp: nowTemp.innerHTML,
+  label: nowLabel.textContent,
+  detail: nowDetail.innerHTML
+} : null;
+
+function dayData(horizon) {
+  return CALENDAR.find(d => d.horizon === horizon) || null;
+}
+
+function windArrow(deg) {
+  if (deg === null || deg === undefined) return '';
+  return `<span class="wind-arrow" style="transform: rotate(${(deg + 180) % 360}deg);">↑</span> `;
+}
+
+function showDay(chip) {
+  const horizon = parseInt(chip.dataset.horizon, 10);
+  const day = dayData(horizon);
+  const isToday = horizon === 0;
+
+  dayStrip.querySelectorAll('.day-chip').forEach(c => {
+    c.classList.remove('is-selected');
+    c.setAttribute('aria-pressed', 'false');
+  });
+  chip.classList.add('is-selected');
+  chip.setAttribute('aria-pressed', 'true');
+
+  if (isToday) {
+    forecastDay = null;
+    currentWind = TODAY_WIND;
+    dayBadge.setAttribute('hidden', '');
+    dayNote.textContent = I18N.calendar_note;
+    if (NOW_SNAPSHOT) {
+      nowTemp.innerHTML = NOW_SNAPSHOT.temp;
+      nowLabel.textContent = NOW_SNAPSHOT.label;
+      nowDetail.innerHTML = NOW_SNAPSHOT.detail;
+      nowCard.classList.remove('is-forecast');
+    }
+  } else {
+    forecastDay = chip.dataset.label;
+    dayBadge.textContent = I18N.forecast_badge + ' · ' + chip.dataset.label;
+    dayBadge.removeAttribute('hidden');
+    // A day the forecast never reached keeps the wind already on the map
+    // rather than being handed an invented one; its chip says "no data".
+    if (day && day.windDir !== null) currentWind = day.windDir;
+    dayNote.textContent = (day && day.reason) ? day.reason : I18N.no_reason;
+
+    if (NOW_SNAPSHOT && day && day.weather) {
+      const w = day.weather;
+      nowTemp.innerHTML = w.temp + '<span>°C</span>';
+      nowLabel.textContent = I18N.forecast_badge + ' · ' + day.label;
+      const wind = w.windMax !== null
+        ? `${windArrow(w.windDir)}${w.windCompass} ${w.windMax} m/s · ` : '';
+      nowDetail.innerHTML = wind + (w.pressure !== null ? w.pressure + ' hPa' : '');
+      nowCard.classList.add('is-forecast');
+    }
+  }
+
+  // A marker left from another day would read as a chosen spot for a day that
+  // is no longer selected.
+  if (marker && map) { map.removeLayer(marker); marker = null; }
+  loadGrid();
+}
+
+function openStrip() {
+  dayStrip.removeAttribute('hidden');
+  calendarToggle.setAttribute('aria-expanded', 'true');
+  calendarToggle.classList.add('is-open');
+  dayStrip.style.setProperty('--roll-height', dayStrip.scrollHeight + 'px');
+  dayStrip.classList.add('is-rolling');
+  requestAnimationFrame(() => dayStrip.classList.add('is-open'));
+}
+
+function closeStrip() {
+  if (dayStrip.hasAttribute('hidden')) return;
+  // Closing means back to today: the map, the card and the ability to start a
+  // session all return to now in one action, so there is no state to remember.
+  const today = dayStrip.querySelector('.day-chip[data-horizon="0"]');
+  if (today) showDay(today);
+  dayStrip.classList.remove('is-open');
+  calendarToggle.setAttribute('aria-expanded', 'false');
+  calendarToggle.classList.remove('is-open');
+  // Wait out the roll before hiding, or the strip vanishes instead of closing.
+  const hide = () => dayStrip.setAttribute('hidden', '');
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) hide();
+  else setTimeout(hide, 260);
+}
 
 if (calendarToggle && dayStrip) {
-  calendarToggle.addEventListener('click', () => {
-    const open = dayStrip.hasAttribute('hidden');
-    dayStrip.toggleAttribute('hidden', !open);
-    calendarToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    calendarToggle.classList.toggle('is-open', open);
-    if (open) {
-      // Roll: measured height, so the strip slides rather than appearing.
-      dayStrip.style.setProperty('--roll-height', dayStrip.scrollHeight + 'px');
-      dayStrip.classList.add('is-rolling');
-      requestAnimationFrame(() => dayStrip.classList.add('is-open'));
-    } else {
-      dayStrip.classList.remove('is-open', 'is-rolling');
-    }
+  calendarToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (dayStrip.hasAttribute('hidden')) openStrip(); else closeStrip();
   });
 
   dayStrip.querySelectorAll('.day-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      dayStrip.querySelectorAll('.day-chip').forEach(c => {
-        c.classList.remove('is-selected');
-        c.setAttribute('aria-pressed', 'false');
-      });
-      chip.classList.add('is-selected');
-      chip.setAttribute('aria-pressed', 'true');
+    chip.addEventListener('click', () => showDay(chip));
+  });
 
-      const isToday = chip.dataset.horizon === '0';
-      const wind = parseFloat(chip.dataset.wind);
+  // Tap anywhere else to close. `pointerdown` rather than `click` so it fires
+  // before the map's own handlers on touch, and the strip is not left open
+  // over a map the finger has already moved. Taps inside the strip, on the
+  // icon, or on the map badge do not count as outside.
+  document.addEventListener('pointerdown', (e) => {
+    if (dayStrip.hasAttribute('hidden')) return;
+    if (dayStrip.contains(e.target) || calendarToggle.contains(e.target)) return;
+    closeStrip();
+  });
 
-      if (isToday) {
-        forecastDay = null;
-        currentWind = TODAY_WIND;
-        dayBadge.setAttribute('hidden', '');
-      } else {
-        forecastDay = chip.dataset.label;
-        dayBadge.textContent = I18N.forecast_badge + ' · ' + chip.dataset.label;
-        dayBadge.removeAttribute('hidden');
-        // A day the forecast never covered keeps the wind it had rather than
-        // inventing one - the chip already says it has no data.
-        if (!Number.isNaN(wind)) currentWind = wind;
-      }
-
-      // A marker left over from another day would look like a chosen spot for
-      // a day that is not selected any more.
-      if (marker) { map.removeLayer(marker); marker = null; }
-      loadGrid();
-    });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeStrip();
   });
 }
 
-// Weather rows recolour the map for that day's wind.
+// Weather rows recolour the map for that day's wind.// Weather rows recolour the map for that day's wind.
 document.querySelectorAll('#weather-table tbody tr').forEach(tr => {
   tr.addEventListener('click', () => {
     const wind = tr.dataset.wind;
@@ -503,15 +609,9 @@ document.querySelectorAll('#weather-table tbody tr').forEach(tr => {
     document.querySelectorAll('#weather-table tbody tr').forEach(r => r.classList.remove('selected'));
     tr.classList.add('selected');
     // One selector at a time: a highlighted forecast chip and a highlighted
-    // past row would be two answers to "which day is the map showing".
-    if (dayStrip) {
-      dayStrip.querySelectorAll('.day-chip').forEach(c => {
-        c.classList.remove('is-selected');
-        c.setAttribute('aria-pressed', 'false');
-      });
-    }
-    forecastDay = null;
-    if (dayBadge) dayBadge.setAttribute('hidden', '');
+    // past row would be two answers to "which day is the map showing". The
+    // strip closes, which also returns the card and the session button to now.
+    closeStrip();
     currentWind = parseFloat(wind);
     loadGrid();
   });

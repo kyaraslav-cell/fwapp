@@ -61,7 +61,7 @@ def calendar_view(
     lake: Lake,
     days: int,
     latest_prediction_fn: Any,
-    forecast_winds: dict[str, float | None],
+    forecast_summaries: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """One entry per day from today to `days` ahead, for the day strip.
 
@@ -89,6 +89,10 @@ def calendar_view(
                 end = to_display(parse_iso(window["end"])).strftime("%H:%M")
                 best_hours.append(f"{start}\u2013{end}")
 
+        # The weather that day, for the conditions card while it is selected.
+        # Today never takes one: its card shows the live reading.
+        summary = {} if horizon == 0 else forecast_summaries.get(target.isoformat(), {})
+
         entries.append(
             {
                 "date": target.isoformat(),
@@ -99,10 +103,20 @@ def calendar_view(
                 "has_data": payload is not None,
                 "band_color": payload["band_color"] if payload else None,
                 "best_hours": best_hours,
+                # Why the colour is what it is. The regime is a name the ruleset
+                # assigned (data, not code); the sentence around it is looked up
+                # per language in the template, so the number and the wording
+                # never disagree.
+                "pressure_regime": payload.get("pressure_regime") if payload else None,
+                "dp_6h": payload.get("dp_6h") if payload else None,
                 # The bearing the map re-scores with when this day is picked.
-                # None for today: today's overlay uses the live reading, not a
-                # day mean, and for any day the forecast did not cover.
-                "wind_dir": None if horizon == 0 else forecast_winds.get(target.isoformat()),
+                # None for today, and for any day the forecast did not cover.
+                "wind_dir": summary.get("wind_dir"),
+                "wind_compass": summary.get("wind_compass"),
+                "wind_max": summary.get("wind_max"),
+                "temp_max": summary.get("temp_max"),
+                "temp_min": summary.get("temp_min"),
+                "pressure_hpa": summary.get("pressure_hpa"),
                 "is_today": horizon == 0,
                 "is_far": horizon > CONFIDENT_HORIZON_DAYS,
             }

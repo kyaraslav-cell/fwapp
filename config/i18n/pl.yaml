@@ -215,4 +215,14 @@ calendar:
   no_data: brak danych
   badge: Prognoza
   note: Kolor to prognoza dnia - wybierz dzień, aby przemalować mapę; przygaszone dni są odległe i mniej pewne.
+  no_reason: Dla tego dnia nie zapisano prognozy.
   forecast_only: Widok prognozy. Wybierz dziś, aby zacząć sesję.
+
+dayreason:
+  falling_fast: Ciśnienie spada gwałtownie
+  falling_slow: Ciśnienie łagodnie opada
+  stable: Ciśnienie stabilne
+  rising_slow: Ciśnienie powoli rośnie
+  rising_fast: Ciśnienie szybko rośnie
+  unclear: Brak wyraźnego trendu ciśnienia
+  no_history: Za mało historii ciśnienia

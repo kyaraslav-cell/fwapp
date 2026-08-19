@@ -218,4 +218,19 @@ calendar:
   no_data: no data
   badge: Forecast
   note: Colour is the day's outlook - pick a day to recolour the map; faded days are far out and less certain.
+  no_reason: No prediction was written for that day.
   forecast_only: Forecast view. Pick today to start a session.
+
+# Why a day scored what it did - one clause, appended to the pressure change.
+# The regime names come from config/rules.v*.yaml; only the wording is here.
+# Deliberately neutral: which regime is *good* is a weight in the ruleset and
+# would go stale in here the first time the owner changes it. The colour on the
+# chip already carries good or bad.
+dayreason:
+  falling_fast: Pressure dropping sharply
+  falling_slow: Pressure easing off
+  stable: Pressure steady
+  rising_slow: Pressure creeping up
+  rising_fast: Pressure climbing fast
+  unclear: No clear pressure trend
+  no_history: Not enough pressure history yet

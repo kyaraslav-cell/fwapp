@@ -211,9 +211,16 @@ Third: a depth survey, which for 9 ha is a morning with a marker float.
   shows a hatched "no data" chip and is never filled in from its neighbour
   (law 4).
 - Picking a day **recolours the map overlay** for that day's mean forecast
-  wind. The conditions card and the weather table deliberately keep showing
-  now, at the owner's request, so a badge over the map names the day being
-  drawn.
+  wind, **swaps the conditions card** to that day's forecast (marked as one,
+  and labelled with the day), and puts **one sentence** under the strip saying
+  why the day scored as it did. That sentence is built from the regime name in
+  the stored prediction plus its 6-hour pressure change - the wording is in the
+  i18n catalogue and never restates a threshold, so changing the ruleset cannot
+  leave a translation lying.
+- The strip closes on the icon, on a tap anywhere outside it, or on Escape.
+  **Closing always returns to today** - map, card and the ability to start a
+  session all come back to now in one action, so there is no stale state to
+  notice.
 - **A session cannot be started from a forecast day.** Tapping the map while
   one is selected names the day and offers no start link - a session is always
   logged against now.
