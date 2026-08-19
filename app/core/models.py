@@ -319,3 +319,44 @@ class LoginAttempt(Base):
     email: Mapped[str | None] = mapped_column(String)
     ip: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[str] = mapped_column(String, nullable=False)
+
+
+class WaterFact(Base):
+    """One publicly documented claim about one water, and the page it came from.
+
+    Its own table, never `weather_hourly` and never a `derived_*` table. Those
+    two are records of what was measured and what was computed from
+    measurements; this is a record of what somebody on the internet wrote, which
+    is a different kind of thing and must not be mixed into either (law 4).
+
+    **Nothing here feeds the score.** ADR 0005 §2 allows collected facts to feed
+    terms the engine already has, but only once a human has confirmed them -
+    `verified_by_owner`. An unconfirmed claim reaching the ranking would make a
+    calibration miss unattributable, which is the one failure the whole
+    calibration loop exists to avoid.
+
+    Refreshing sets `superseded_at` on the old rows rather than updating them,
+    so a fact that changed can still be told from a fact that was withdrawn.
+
+    `source_ok`: 1 the URL answered, 0 it returned 404/410, NULL never checked
+    (no network, or the check itself failed). NULL is not evidence either way.
+    """
+
+    __tablename__ = "water_fact"
+    __table_args__ = (Index("ix_water_fact_lake_topic", "lake_id", "topic"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    lake_id: Mapped[int] = mapped_column(Integer, ForeignKey("lake.id"), nullable=False)
+    topic: Mapped[str] = mapped_column(String, nullable=False)
+    key: Mapped[str] = mapped_column(String, nullable=False)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    source_url: Mapped[str] = mapped_column(String, nullable=False)
+    source_title: Mapped[str | None] = mapped_column(String)
+    source_ok: Mapped[int | None] = mapped_column(Integer)
+    confidence: Mapped[str] = mapped_column(String, nullable=False)
+    # Which model said it, so an answer can be attributed after the default
+    # model id has moved on.
+    model: Mapped[str] = mapped_column(String, nullable=False)
+    collected_at: Mapped[str] = mapped_column(String, nullable=False)
+    superseded_at: Mapped[str | None] = mapped_column(String)
+    verified_by_owner: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

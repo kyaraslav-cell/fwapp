@@ -103,3 +103,30 @@ those.
 - None of the network paths can be exercised from the build sandbox
   (`docs/10 §6`). Every client fails closed and is tested against fakes; the
   first real search will be on the owner's machine.
+
+---
+
+## Addendum — the Gemini pass as built, 2026-08-19
+
+§2 said "the AI supplies facts, never coefficients". Building it turned that
+principle into three mechanisms, because a principle nobody enforced would have
+lasted exactly until the first useful-looking number.
+
+1. **A closed topic list.** Six topics, in code, in `app/intel/facts.py`. A
+   claim under any other topic is dropped. An open vocabulary would have been
+   the way a "depth multiplier for this lake" eventually arrived.
+2. **A claim with no citable URL is not stored at all.** Not stored with a null
+   source — dropped. A column that is sometimes empty gets read as "source
+   unknown" within a month, and the whole value of this feature is that a claim
+   about the owner's own water can be checked in one tap.
+3. **Facts do not reach the score, verified or not.** §2 permitted them to feed
+   terms the engine already has; that permission is not exercised, and
+   `verified_by_owner` exists as the gate for the day it is. Nothing sets it
+   yet.
+
+**The known weakness, stated plainly:** an ungrounded model can fabricate a URL
+that looks exactly like a real one. The mitigation is a HEAD check per URL
+whose three outcomes are *answered*, *404*, and *could not check* — the last
+of which drops nothing, because our being offline says nothing about the
+citation. The real fix is search grounding, which could not be combined with a
+strict response schema when this was written. `docs/13 §10` carries the trade.

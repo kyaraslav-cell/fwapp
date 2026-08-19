@@ -254,3 +254,15 @@ build:
   grid: Budujemy siatkę stref. Nakładka pojawi się po zakończeniu.
   no_outline: OpenStreetMap nie ma linii brzegowej tego akwenu, więc nie ma nakładki stref. Reszta działa.
   failed: Coś w przygotowaniu tego akwenu się nie powiodło. Spróbujemy ponownie; mapa i prognoza działają.
+
+intel:
+  title: Wiedza lokalna
+  note: Zebrane ze stron publicznych i niezweryfikowane - otwórz źródło, aby sprawdzić.
+  source_dead: martwy link
+  topic:
+    species: Występujące ryby
+    depth: Głębokość
+    bottom: Dno
+    access: Dostęp
+    rules: Zasady i zezwolenia
+    stocking: Zarybianie

@@ -19,6 +19,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.auth import passwords
+from app.jobs.handlers import NEW_WATER_PIPELINE
 
 
 @pytest.fixture()
@@ -317,7 +318,11 @@ def test_adding_a_water_creates_it_and_queues_the_work(client: TestClient) -> No
     with session_scope() as db:
         lake = db.query(Lake).filter(Lake.slug == "jezioro-zegrzynskie").one()
         assert lake.origin == "discovered"
-        assert db.query(Job).filter(Job.lake_id == lake.id).count() == 4
+        # Against the pipeline itself, not a literal: a fifth stage should
+        # extend this test, not break it.
+        assert db.query(Job).filter(Job.lake_id == lake.id).count() == len(
+            NEW_WATER_PIPELINE
+        )
 
 
 def test_a_water_with_no_outline_still_has_a_working_page(client: TestClient) -> None:

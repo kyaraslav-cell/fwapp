@@ -111,3 +111,91 @@ throttled process-wide, not just per user.
   closed bowl and flow is not modelled at all.
 - Per-lake formula coefficients. The AI supplies *facts*, never weights
   (ADR 0005 §2).
+
+---
+
+## 10. The Gemini pass — what it collects, and what it is not allowed to do
+
+Built 2026-08-19. `app/intel/`, job kind `intel`, last in the pipeline because
+nothing waits on it and it is the only stage that costs money.
+
+### The shape
+
+```
+lake name + coordinates
+        │
+        ▼  one call, temperature 0, responseMimeType=application/json
+   Gemini, answering against a fixed responseSchema
+        │
+        ▼  app/intel/facts.py
+   every claim without a citable http(s) URL is DROPPED
+        │
+        ▼  one HEAD per unique URL
+   source_ok: 1 answered · 0 returned 404/410 · NULL never checked
+        │
+        ▼  app/intel/service.py
+   water_fact rows, verified_by_owner = 0, previous rows superseded
+```
+
+### The six topics, and why the list is closed
+
+`species`, `depth`, `bottom`, `access`, `rules`, `stocking`. A claim under any
+other topic is dropped, and this is the enforcement of ADR 0005 §2 rather than
+a tidiness preference: an open vocabulary is the crack through which a
+"recommended depth multiplier" eventually arrives. A per-water coefficient
+invented by a model is fishing knowledge with no evidence behind it, and it
+makes a calibration miss unattributable — the one thing the whole calibration
+loop exists to prevent. `tests/test_intel.py` feeds it `weights`, `score` and
+`best_times` and asserts all three are refused.
+
+### Nothing collected here reaches the score
+
+ADR 0005 §2 permits collected facts to feed terms the engine already has. They
+do not, and will not until a human has confirmed them — `verified_by_owner`,
+which nothing currently sets. The facts are shown to the angler, marked
+unverified, with their source as a link, and the angler decides. There is no
+code path from `water_fact` into `zone_score`, the day score or the ranking.
+
+### The citation is the design, and its weakness is known
+
+A model answering without a search tool can write a URL that never existed, and
+it will look exactly like one that did. Three things follow:
+
+1. a claim with no usable URL is dropped rather than stored with an empty
+   column that later reads as "source unknown";
+2. each unique URL is HEAD-checked once; a definite 404/410 is marked and shown
+   as **link dead** beside the claim, which is kept because pages move;
+3. a check that could not run leaves NULL and drops nothing. Our own machine
+   being offline is not evidence against somebody's citation.
+
+**The upgrade, when this proves insufficient:** search grounding
+(`tools: [{"google_search": {}}]`), which returns real retrieved URLs. It could
+not be combined with `responseSchema` at the time this was written, so it would
+mean parsing loose text — a worse trade for an MVP than a strict shape plus a
+HEAD check. Revisit with a real answer in hand.
+
+### Failure, in every direction
+
+| What fails | What happens |
+|---|---|
+| no `FISHLOG_GEMINI_API_KEY` | job succeeds, reports "skipped". A deployment that has not switched this on is not a broken water |
+| the answer is empty | success. For most small waters this is the true answer, and a prompt that does not make it acceptable gets a confident invention instead |
+| quota, 4xx, 5xx | job fails visibly and backs off; the water keeps everything else it has |
+| answer blocked | fails with the `finishReason`, so a safety block and a quota refusal are not the same log line |
+| answer is not JSON | fails saying so, despite the schema |
+| every claim unsourced | success, zero facts stored, the count of drops in the log |
+
+### Costs
+
+One call per water, plus one per monthly refresh. Nothing else in the app calls
+it. `FISHLOG_GEMINI_MODEL` overrides the default model id, because the model id
+is the part that goes stale and should be an environment change rather than a
+redeploy.
+
+### Known gap
+
+The collected prose is English (the prompt asks for it), so the values inside
+the section are not translated the way the labels around them are. Translating
+them would mean either a second model call per language or storing a claim
+three times; neither is worth it before the first real pass shows how much text
+there actually is.

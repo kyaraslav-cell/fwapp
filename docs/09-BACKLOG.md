@@ -272,16 +272,20 @@ forecast, grid — while the angler already has a satellite map and a pin.
 
 Design and reasoning: `docs/13-ADD-A-WATER.md`, `docs/adr/0005-adding-waters.md`.
 
+The **Gemini pass is now built** (`app/intel/`, job kind `intel`, table
+`water_fact`, shown on the lake page as "Local knowledge"). Six closed topics,
+every claim dropped unless it cites an http(s) URL, each URL HEAD-checked, and
+nothing it collects reaches the score. `docs/13 §10` and the addendum to
+ADR 0005. **Never run against Gemini** — no key and no network here.
+
 **Not built yet, in the order they matter:**
 
-1. **The Gemini pass.** The job kind is not wired. This is the local-knowledge
-   step — species, bottom, access, rules — and it supplies *facts only*, never
-   formula weights (ADR 0005 §2).
-2. **Rivers.** Beat boundaries are findable, but flow is not modelled at all.
-3. **Raster auto-tracing** for waters OSM has no polygon for. Deliberately
+1. **Rivers.** Beat boundaries are findable, but flow is not modelled at all.
+2. **Raster auto-tracing** for waters OSM has no polygon for. Deliberately
    deferred until the named-water path shows how often it is actually needed;
    it needs numpy and a GeoTIFF reader, so it gets its own ADR.
-4. **A live run.** Nothing here has ever reached Nominatim or Overpass — the
+3. **A live run.** Nothing here has ever reached Nominatim, Overpass or
+   Gemini — the
    sandbox has no outbound network. The pipeline was driven end to end against
    a stubbed geocoder and a real queue; the first true search will be on the
    owner's machine, and `docs/13 §8` is the table of what should happen when

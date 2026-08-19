@@ -1516,3 +1516,76 @@ details.card[open] summary::before { content: "－ "; }
   background: #fbe6e2;
   color: var(--accent-coral-text);
 }
+
+/* ---------- collected local knowledge ---------- */
+/* Deliberately quieter than the weather card above it. Nothing in here has
+   been verified by anybody, and it must not read with the same authority as a
+   measurement. Hence muted text, no colour band, and the source link carrying
+   the only emphasis in the row - the source is the part worth tapping. */
+
+.intel-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: -4px 0 10px;
+}
+
+.intel-card { padding: 4px 14px 10px; }
+
+.intel-topic + .intel-topic {
+  border-top: 1px solid var(--border);
+}
+
+.intel-topic-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 0 4px;
+}
+
+.intel-list { list-style: none; margin: 0; padding: 0 0 8px; }
+
+.intel-fact {
+  font-size: 0.88rem;
+  line-height: 1.45;
+  padding: 5px 0;
+}
+
+.intel-key {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.intel-key::after { content: " — "; font-weight: 400; color: var(--muted); }
+
+.intel-value { color: var(--text); }
+
+.intel-source {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.74rem;
+  color: var(--primary-strong);
+  text-decoration: none;
+  border-bottom: 1px solid var(--primary);
+  max-width: 14em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.intel-source:hover { border-bottom-color: var(--primary-strong); }
+
+/* A source that answered 404. The claim is kept and shown - the page may have
+   moved - but it must not look like one that checked out. */
+.intel-source-dead {
+  color: var(--muted);
+  border-bottom-style: dotted;
+}
+
+.intel-dead {
+  font-size: 0.7rem;
+  color: var(--danger-strong);
+  margin-left: 4px;
+}

@@ -7,9 +7,9 @@ model) picks this up cold. Read `CLAUDE.md` first, then this.
 
 ## 1. What exists right now
 
-A working FastAPI + SQLite app, 220 tests, `make check` green (ruff,
+A working FastAPI + SQLite app, 246 tests, `make check` green (ruff,
 `mypy --strict` on `app/core` `app/rules` `app/features` `app/auth` `app/jobs`
-`app/discover` `app/geo`, pytest).
+`app/discover` `app/geo` `app/intel`, pytest).
 
 Per-session detail lives in `docs/handoff/` — newest file first. Use the
 `session-start` and `session-end` skills.
@@ -42,6 +42,7 @@ Branch: `claude/repository-edit-push-ggr229` on `kyaraslav-cell/fwapp`.
 | Add a water by name: search, job queue, staged build | works, **never run against Nominatim/Overpass** |
 | Accounts: password sign-in, sessions, per-angler notebook | works |
 | Login + registration rate limiting | works |
+| Gemini local-knowledge pass (`intel` job, `water_fact`) | built, **never run against Gemini** |
 | Sign in with Google | built, **never run against Google** |
 
 **Run it:**

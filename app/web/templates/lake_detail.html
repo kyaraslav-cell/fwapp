@@ -177,6 +177,38 @@
   </a>
 </div>
 
+{% if intel %}
+{# Collected local knowledge. Rendered only when there is some: a section that
+   announces its own emptiness on every small pond is clutter.
+
+   Every claim shows its source as a link, because the source is the only thing
+   that makes it checkable - and the one sentence under the label says plainly
+   that nothing here has been verified. None of it reaches the score
+   (ADR 0005 §2); it is here for the angler to judge. #}
+<div class="section-label" style="margin-top: 22px;">{{ t('intel.title') }}</div>
+<p class="intel-note">{{ t('intel.note') }}</p>
+
+<div class="card intel-card">
+  {% for topic, rows in intel.items() %}
+  <div class="intel-topic">
+    <div class="intel-topic-label">{{ t('intel.topic.' ~ topic) }}</div>
+    <ul class="intel-list">
+      {% for row in rows %}
+      <li class="intel-fact">
+        <span class="intel-key">{{ row.key }}</span>
+        <span class="intel-value">{{ row.value }}</span>
+        <a class="intel-source{{ ' intel-source-dead' if row.source_ok == 0 }}"
+           href="{{ row.source_url }}" target="_blank" rel="noopener noreferrer nofollow"
+           title="{{ row.source_url }}">{{ row.source_title }}</a>
+        {% if row.source_ok == 0 %}<span class="intel-dead">{{ t('intel.source_dead') }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <form method="post" action="/lake/{{ lake.slug }}/refresh" style="margin-top: 16px;">
   <button class="btn btn-ghost" type="submit">{{ t('lake.refresh') }}</button>
 </form>

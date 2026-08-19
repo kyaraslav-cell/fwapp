@@ -14,6 +14,7 @@ from app.core.time import parse_iso, to_display, utcnow
 from app.features.season import derive_season
 from app.geo import service as geo_service
 from app.ingest.open_meteo import ingest_forecast
+from app.intel import service as intel_service
 from app.notebook import water_type as water_type_mod
 from app.notebook.sessions import METHODS, active_session, lake_stats, start_session
 from app.predict.daily import OUTLOOK_DAYS, generate_predictions, latest_prediction
@@ -193,6 +194,10 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
             "days_json": json.dumps(days),
             "outline_json": json.dumps(outline) if outline else "null",
             "outline_source": lake.outline_source or "unknown",
+            # Collected local knowledge. Empty for almost every water, which is
+            # the honest state and renders as nothing at all rather than as an
+            # empty section announcing its own emptiness.
+            "intel": intel_service.facts_by_topic(db, lake.id),
             "build": build,
             "grid_meta": json.dumps(
                 {

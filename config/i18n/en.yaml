@@ -265,3 +265,18 @@ build:
   grid: Building the zone grid. The overlay appears when it is done.
   no_outline: OpenStreetMap has no shoreline for this water, so there is no zone overlay. Everything else works.
   failed: Something in preparing this water failed. It will be retried; the map and the forecast still work.
+
+# Local knowledge collected from public pages. The note is one sentence by the
+# owner's standing rule, and it has to carry the whole caveat: nothing here has
+# been verified and none of it reaches the score.
+intel:
+  title: Local knowledge
+  note: Collected from public pages and not verified - open a source to check it.
+  source_dead: link dead
+  topic:
+    species: Fish present
+    depth: Depth
+    bottom: Bottom
+    access: Access
+    rules: Rules and permits
+    stocking: Stocking

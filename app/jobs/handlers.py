@@ -26,6 +26,8 @@ from app.geo.grid import polygon_area_ha
 from app.geo.outline import fetch_osm_outline_strict
 from app.ingest.archive import backfill
 from app.ingest.open_meteo import ingest_forecast
+from app.intel import gemini
+from app.intel import service as intel_service
 from app.predict.daily import generate_predictions
 
 logger = logging.getLogger("fishlog.jobs")
@@ -34,10 +36,13 @@ OUTLINE = "outline"
 WEATHER = "weather_backfill"
 FORECAST = "forecast"
 GRID = "grid"
+INTEL = "intel"
 
 # The order a newly discovered water is built in. Outline first because the grid
 # needs it; weather before forecast because the pressure norm needs history.
-NEW_WATER_PIPELINE = (OUTLINE, WEATHER, FORECAST, GRID)
+# Intel last: it is the only step nothing else waits on, and the only one that
+# costs money, so it runs after the water is already usable.
+NEW_WATER_PIPELINE = (OUTLINE, WEATHER, FORECAST, GRID, INTEL)
 
 # One year, not the archive module's default three. The pressure norm needs
 # 8760 hours and no more, and a new water should be usable today.
@@ -130,9 +135,61 @@ def handle_grid(db: Session, job: Job) -> str:
     return f"grid built: {grid.n_rows}x{grid.n_cols}, {len(grid.cells)} cells at {cell_m} m"
 
 
+def handle_intel(db: Session, job: Job) -> str:
+    """Collect what is publicly documented about this water, or say why not.
+
+    Three things this deliberately does *not* do.
+
+    It does not fail when there is no API key. A missing key is a deployment
+    that has not switched this on, not a broken water, and a red job on the
+    lake page would tell the angler something is wrong when nothing is.
+
+    It does not fail when the answer is empty. Most small waters have nothing
+    written about them, and "nothing found" is the correct answer for those -
+    turning it into an error would push the next retry towards inventing
+    something.
+
+    It does not touch the score. Facts land in `water_fact` marked unverified
+    and stay out of every ranking until a human confirms them (ADR 0005 §2).
+    """
+    lake = _lake(db, job)
+    config = gemini.load_config()
+    if config is None:
+        return "no Gemini API key configured, skipped"
+
+    collection = gemini.collect(
+        config, name=lake.name, lat=lake.centroid_lat, lon=lake.centroid_lon
+    )
+    stored = intel_service.store(
+        db,
+        lake.id,
+        collection.facts,
+        model=collection.model,
+        source_ok=collection.source_ok,
+    )
+    if collection.rejected:
+        # Kept in the job row rather than only in the log: "11 of 12 claims had
+        # no source" is the diagnosis when this feature starts misbehaving, and
+        # a short list of facts on the page looks the same either way.
+        logger.info(
+            "intel for %s dropped %d claims: %s",
+            lake.slug,
+            len(collection.rejected),
+            "; ".join(collection.rejected[:10]),
+        )
+    unreachable = sum(1 for ok in collection.source_ok.values() if not ok)
+    detail = f"{stored} facts stored"
+    if collection.rejected:
+        detail += f", {len(collection.rejected)} dropped"
+    if unreachable:
+        detail += f", {unreachable} source(s) did not answer"
+    return detail
+
+
 HANDLERS: dict[str, Callable[[Session, Job], str]] = {
     OUTLINE: handle_outline,
     WEATHER: handle_weather,
     FORECAST: handle_forecast,
     GRID: handle_grid,
+    INTEL: handle_intel,
 }
