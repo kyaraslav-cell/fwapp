@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.models import Catch, FishSession, Lake, Prediction
@@ -157,12 +157,28 @@ def list_sessions(
         query.order_by(FishSession.started_at.desc()).limit(limit)
     ).scalars().all()
 
+    # One grouped query for every session's fish, not one query per session.
+    # The loop this replaced ran 201 queries for a 200-session season, and the
+    # season is the point of the project - this page gets slower every trip.
+    #
+    # A session with no catches has no row here at all, which is exactly why
+    # the lookup below defaults to 0 rather than skipping: **a blank session is
+    # data** (law 3), it must appear in the list, and its CPUE is a real zero.
+    ids = [s.id for s in sessions]
+    counts: dict[int, int] = {}
+    if ids:
+        counts = {
+            int(session_id): int(total or 0)
+            for session_id, total in db.execute(
+                select(Catch.session_id, func.sum(Catch.count))
+                .where(Catch.session_id.in_(ids))
+                .group_by(Catch.session_id)
+            ).all()
+        }
+
     summaries = []
     for s in sessions:
-        total_fish = db.execute(
-            select(Catch).where(Catch.session_id == s.id)
-        ).scalars().all()
-        fish_count = sum(c.count for c in total_fish)
+        fish_count = counts.get(s.id, 0)
         hours = (s.effort_minutes or 0) / 60.0
         cpue = fish_count / hours if hours > 0 else 0.0
         summaries.append(SessionSummary(session=s, total_fish=fish_count, cpue=round(cpue, 2)))

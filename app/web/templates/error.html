@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ t(title_key) }} — Fishlog{% endblock %}
+{% block page_class %} narrow{% endblock %}
+{% block content %}
+{# One template for both 404 and 500. The difference between them is a key and
+   a link, not a layout - and an angler in the rain needs the way back more
+   than they need to know which of the two it was. #}
+<div class="error-page">
+  <div class="error-code">{{ status_code }}</div>
+  <h1>{{ t(title_key) }}</h1>
+  <p class="auth-lede">{{ t(body_key) }}</p>
+  <a class="btn btn-primary" href="/">{{ t('error.home') }}</a>
+</div>
+{% endblock %}

@@ -280,3 +280,14 @@ intel:
     access: Access
     rules: Rules and permits
     stocking: Stocking
+
+# 404 and 500. Two sentences total - whoever is reading this did not mean to
+# be here and wants the way back, not an explanation.
+error:
+  home: Back to your places
+  not_found:
+    title: Not here
+    body: That page does not exist, or the water was removed.
+  server:
+    title: Something broke
+    body: This one is our fault - it has been logged. Try again in a moment.

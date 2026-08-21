@@ -5,8 +5,8 @@ from contextlib import asynccontextmanager
 from typing import Any
 from urllib.parse import quote
 
-from fastapi import Depends, FastAPI, Request
-from fastapi.responses import RedirectResponse, Response
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import get_settings
@@ -16,7 +16,14 @@ from app.core.seed import ensure_lake_seeded
 from app.ingest.open_meteo import ingest_forecast
 from app.ingest.scheduler import build_scheduler
 from app.predict.daily import generate_predictions
-from app.web.deps import NotSignedInError, require_user, resolve_request_user
+from app.web import health as health_check
+from app.web import security
+from app.web.deps import (
+    NotSignedInError,
+    require_user,
+    resolve_request_user,
+    templates,
+)
 from app.web.routes import auth, discover, history, places, sessions
 
 logging.basicConfig(level=logging.INFO)
@@ -54,6 +61,20 @@ def create_app() -> FastAPI:
     app.mount("/media", StaticFiles(directory=str(media_dir)), name="media")
 
     @app.middleware("http")
+    async def security_headers(request: Request, call_next: Any) -> Response:
+        """Applied to everything, including /static, /media and error pages.
+
+        Outermost on purpose: a response that escapes the inner middleware -
+        an unhandled exception, a 404 from the router, a file served straight
+        off disk by StaticFiles - is exactly the one that would otherwise go
+        out bare. See app/web/security.py for why each header is here.
+        """
+        response: Response = await call_next(request)
+        for name, value in security.headers_for(request.url.scheme).items():
+            response.headers.setdefault(name, value)
+        return response
+
+    @app.middleware("http")
     async def attach_current_user(request: Request, call_next: Any) -> Response:
         """Resolve the auth cookie once per request, before anything renders.
 
@@ -75,6 +96,68 @@ def create_app() -> FastAPI:
         return RedirectResponse(
             url=f"/auth/login?next={quote(exc.next_path, safe='/?=&')}",
             status_code=303,
+        )
+
+    def _error_page(request: Request, status_code: int, kind: str) -> Response:
+        """An error an angler can act on, in their own language.
+
+        HTMX partials and anything asking for JSON get JSON: swapping an error
+        page into a fragment of a working page produces something that looks
+        broken in a much more confusing way than a plain message.
+        """
+        wants_html = "text/html" in request.headers.get("accept", "") and not (
+            request.headers.get("hx-request")
+        )
+        if not wants_html:
+            return JSONResponse({"detail": kind}, status_code=status_code)
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "active_nav": None,
+                "status_code": status_code,
+                "title_key": f"error.{kind}.title",
+                "body_key": f"error.{kind}.body",
+            },
+            status_code=status_code,
+        )
+
+    @app.exception_handler(404)
+    async def not_found(request: Request, exc: Any) -> Response:
+        return _error_page(request, 404, "not_found")
+
+    @app.exception_handler(HTTPException)
+    async def http_error(request: Request, exc: HTTPException) -> Response:
+        if exc.status_code == 404:
+            return _error_page(request, 404, "not_found")
+        if exc.status_code >= 500:
+            return _error_page(request, exc.status_code, "server")
+        return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+
+    @app.exception_handler(Exception)
+    async def unhandled(request: Request, exc: Exception) -> Response:
+        """Never show a stack trace to an angler, always write one to the log.
+
+        FastAPI's default is to re-raise, which in production means the ASGI
+        server's bare 500 - no styling, no language, no way back.
+        """
+        logging.getLogger("fishlog").exception("unhandled error on %s", request.url.path)
+        return _error_page(request, 500, "server")
+
+    @app.get("/health")
+    def health(request: Request) -> Response:
+        """Not "is the process up" - "is the weather it is serving still true".
+
+        Public and deliberately dull; see app/web/health.py.
+        """
+        with session_scope() as db:
+            report = health_check.check(db)
+        return JSONResponse(
+            report.as_dict(),
+            status_code=report.http_status,
+            # A cached healthcheck is a healthcheck that lies for as long as
+            # the cache lives.
+            headers={"Cache-Control": "no-store"},
         )
 
     app.include_router(auth.router)

@@ -266,3 +266,12 @@ intel:
     access: Dostęp
     rules: Zasady i zezwolenia
     stocking: Zarybianie
+
+error:
+  home: Wróć do łowisk
+  not_found:
+    title: Nie ma tu nic
+    body: Ta strona nie istnieje albo łowisko zostało usunięte.
+  server:
+    title: Coś się zepsuło
+    body: To nasza wina - zostało zapisane w logach. Spróbuj za chwilę.

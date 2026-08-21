@@ -129,6 +129,11 @@ class Prediction(Base):
 
 class FishSession(Base):
     __tablename__ = "session"
+    # SQLite indexes primary keys and unique constraints and nothing else, so
+    # a foreign key is a full table scan until it is indexed by hand. These
+    # three are the notebook's read paths: "my sessions on this water" runs on
+    # every history page, and both catch lookups run once per session shown.
+    __table_args__ = (Index("ix_session_lake_user", "lake_id", "user_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     lake_id: Mapped[int] = mapped_column(Integer, ForeignKey("lake.id"), nullable=False)
@@ -161,6 +166,7 @@ class FishSession(Base):
 
 class SessionLeg(Base):
     __tablename__ = "session_leg"
+    __table_args__ = (Index("ix_session_leg_session", "session_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     session_id: Mapped[int] = mapped_column(Integer, ForeignKey("session.id"), nullable=False)
@@ -171,6 +177,7 @@ class SessionLeg(Base):
 
 class Catch(Base):
     __tablename__ = "catch"
+    __table_args__ = (Index("ix_catch_session", "session_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     session_id: Mapped[int] = mapped_column(Integer, ForeignKey("session.id"), nullable=False)

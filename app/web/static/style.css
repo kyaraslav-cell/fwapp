@@ -1589,3 +1589,20 @@ details.card[open] summary::before { content: "－ "; }
   color: var(--danger-strong);
   margin-left: 4px;
 }
+
+/* ---------- 404 / 500 ---------- */
+/* Reached by someone who did not mean to be here, quite possibly one-handed
+   on a riverbank. Big number, one sentence, one button back. */
+
+.error-page { text-align: center; padding: 32px 0; }
+
+.error-code {
+  font-size: 3.2rem;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.error-page h1 { margin-bottom: 6px; }
+.error-page .auth-lede { margin-bottom: 20px; }

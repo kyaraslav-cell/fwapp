@@ -14,7 +14,7 @@ Nothing here is built yet. Each item names its cost honestly.
 Ordered by what hurts soonest. The first four are small; the fifth is the one
 that changes the product.
 
-### A1. No security headers at all · ~30 lines
+### A1. No security headers at all · **DONE** — `app/web/security.py`
 
 `grep -rn "Content-Security-Policy" app/` returns nothing. On a public URL that
 means:
@@ -55,7 +55,7 @@ Downscale to ~1600 px on the long edge and strip EXIF on write. Keeps the
 photo useful for identification, drops the size by ~10×, removes the leak.
 Needs Pillow — a new dependency, so an ADR first (`CLAUDE.md` stack rules).
 
-### A3. `list_sessions` runs one query per session · ~10 lines
+### A3. `list_sessions` runs one query per session · **DONE**
 
 `app/notebook/sessions.py:151` selects the sessions, then line 163 selects that
 session's catches **inside the loop**. A season of 200 sessions is 201 queries
@@ -67,7 +67,7 @@ While there: **no index on `session.user_id`, `catch.session_id`, or
 Every history page is a full scan of both tables today. Three `Index(...)`
 lines.
 
-### A4. No `/health`, no 404 page, no 500 page
+### A4. No `/health`, no 404 page, no 500 page · **DONE**
 
 - **`/health` is required by `docs/05`** and does not exist. It should expose
   the last successful ingest time, because a silently dead ingest serves
@@ -210,3 +210,50 @@ survives even if the machine does not.
 B3 and B4 are the two that would most obviously attract a stranger; both are
 worth doing once the app is reliably reachable, and neither is worth doing
 before A5.
+
+---
+
+## What A1, A3 and A4 turned into
+
+**A1.** `app/web/security.py`, applied by the outermost middleware in
+`app/web/app.py` so that the responses which skip the router — a 404, a static
+file, an unhandled exception — are covered too. Those are precisely the ones
+that would otherwise go out bare.
+
+Verified by loading the home page, the lake page, login and register in a real
+browser under the real policy: **zero CSP violations**, and the inline map and
+day-strip scripts ran. One honest gap: the sandbox blocks unpkg.com, so
+`script-src https://unpkg.com` was never exercised against a Leaflet that
+actually loaded. The first real page load on the owner's machine confirms it —
+if the map is blank and the console says "Refused to load", that line is why.
+
+`'unsafe-inline'` for scripts remains the weak point and is documented as such
+in the module. Removing it means nonces through every template, or moving the
+inline blocks into `/static`. Worth doing; it was not worth blocking on.
+
+**A3.** One grouped `SELECT ... GROUP BY session_id` replaces the per-session
+query. The test counts queries rather than timing them — a timing assertion
+passes on a fast machine with the bug still in place — and asserts a bounded
+count for twelve sessions, half of them blank. **Blank sessions still appear,
+with a real zero** (law 3): they have no row in the grouped result, so the
+lookup defaults rather than skipping.
+
+Three indexes added, and `create_missing_indexes` in `app/core/migrate.py` to
+go with them — because `create_all` skips a table that already exists **and
+skips its indexes with it**, so without it every index added from now on would
+reach fresh installs only, and the owner's own database, the one with the
+season in it, would keep scanning forever.
+
+**A4.** `/health` reports `ok` / `stale` / `unknown` and answers **503 for
+anything but ok** — a monitor that checks the status code, which is most of
+them, must not see green while the app serves last week's forecast. It reads
+the database rather than calling Open-Meteo: a healthcheck that fails when
+Open-Meteo is briefly slow pages somebody at 3 a.m. for nothing.
+
+404 and 500 now render a page in the angler's own language with one button
+back; HTMX and JSON requests still get JSON, because swapping an error page
+into a fragment of a working page looks broken in a much more confusing way.
+Rendered in all three languages and looked at.
+
+Still open from this document: **A2** (photo downscale and EXIF strip),
+**A5** (offline), and all of part B.

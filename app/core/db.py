@@ -7,7 +7,7 @@ from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
-from app.core.migrate import add_missing_columns
+from app.core.migrate import add_missing_columns, create_missing_indexes
 from app.core.models import Base
 
 _engine: Engine | None = None
@@ -38,6 +38,8 @@ def init_db() -> None:
     engine = get_engine()
     Base.metadata.create_all(engine)
     add_missing_columns(engine)
+    # Separately, because create_all skips the indexes of a table it skipped.
+    create_missing_indexes(engine)
 
 
 @contextmanager
