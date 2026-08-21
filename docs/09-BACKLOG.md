@@ -291,3 +291,15 @@ ADR 0005. **Never run against Gemini** — no key and no network here.
    owner's machine, and `docs/13 §8` is the table of what should happen when
    each part fails.
 
+
+
+## 16. Pre-launch review · TODO — see `docs/15-PRE-LAUNCH-REVIEW.md`
+
+A read of the codebase before it goes on a real machine. Five things to fix
+(security headers, photo downscale + EXIF strip, the `list_sessions` N+1 and
+missing FK indexes, `/health` and error pages, and offline support) and six
+directions for the product (prediction-vs-reality, angler-marked features,
+legality checks, a shareable session card, CSV export, moon phase).
+
+The one that matters most: **the app does not work without a signal, and the
+bank is where it is used.** `docs/15 §A5`.
