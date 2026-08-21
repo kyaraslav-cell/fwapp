@@ -271,3 +271,39 @@ Islands are dropped. `_rings_of` returns outer rings only, because the grid
 builder takes a single ring — a lake scored as if its island were water is a
 smaller error than no lake at all, but it is still an error, and on Zegrze it
 is a real one. Fixing it means teaching `app/geo/grid.py` about holes.
+
+### What the first live run said
+
+Run on a machine with a network, 2026-08-19, against the real services:
+
+```
+[  ok  ] search:   1 result, 1 water, top = 'Zalew Zegrzyński' (water=reservoir)
+[  ok  ] outline:  polygon of 2668 points via relation   [2.4s]
+[  ok  ] forecast: 48 hours, pressure 1005–1009 hPa      [0.1s]
+```
+
+Two things in that worth keeping.
+
+**The tag is `water=reservoir`, not `natural=water`.** Nominatim reports the
+most specific tag, so the accepted-type list earns its entries: had `("water",
+"reservoir")` been missing, this water would have been refused as "not a water"
+for a completely different reason from the jsonv2 bug, and looked identical.
+
+**It logged "no OSM polygon contained … - using the nearest instead" on a by-id
+fetch.** Harmless on that run - one ring came back, so nearest and largest were
+the same object - but the rule was wrong. Nominatim's point for a long
+reservoir is a *label* position and need not lie inside the shoreline at all.
+With two rings, "nearest to the label" would have handed back whichever small
+side basin sat closest to it instead of the 3 300 ha main body.
+
+So the tie-break now depends on how the question was asked: **by id, the
+largest ring wins** (every ring belongs to the object the angler picked, so the
+only question is which part is the water body); **by proximity, containment
+still beats size** (the candidates include waters nobody asked for - the Wkra's
+polygon is far larger than Pomocnia's). `choose_ring` in `app/geo/outline.py`,
+pinned by `tests/test_outline_relations.py`.
+
+`make preflight` now prints the polygon's area beside its point count, and the
+area the geocoder expected. A shoreline of the right shape and a tenth of the
+right size is indistinguishable in a point count, and picking a side basin over
+the main body is exactly the failure that would produce one.

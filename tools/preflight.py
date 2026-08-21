@@ -161,7 +161,17 @@ def section_overpass() -> bool:
                 "to mean a relation was being skipped — docs/13 §11."
             )
         ring = outline["coordinates"][0]
-        return f"polygon of {len(ring)} points via {osm_type or 'proximity'}"
+        # The area is the part worth reading: a shoreline of the right shape
+        # and a tenth of the right size looks identical in a point count, and
+        # picking a side basin instead of the main body is a real failure mode.
+        from app.geo.grid import polygon_area_ha
+
+        area_ha = polygon_area_ha(outline)
+        expected = f", geocoder said ~{area:.0f} ha" if area else ""
+        return (
+            f"polygon of {len(ring)} points, {area_ha:.0f} ha"
+            f"{expected}, via {osm_type or 'proximity'}"
+        )
 
     return _reach("outline", probe)
 

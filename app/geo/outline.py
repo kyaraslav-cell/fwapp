@@ -138,19 +138,46 @@ def fetch_osm_outline_strict(
         logger.warning("Overpass returned no usable water polygon near %s,%s", lat, lon)
         return None
 
-    # Containment first. Picking the biggest polygon is wrong near a river:
-    # the water we want is the one the lake's own coordinates fall inside.
+    ring = choose_ring(candidates, lon, lat, by_id=bool(osm_type and osm_id))
+    return {"type": "Polygon", "coordinates": [ring]}
+
+
+def choose_ring(
+    candidates: list[tuple[list[list[float]], float]],
+    lon: float,
+    lat: float,
+    *,
+    by_id: bool,
+) -> list[list[float]]:
+    """Which of the returned rings is the water. The rule depends on how we asked.
+
+    **By id**, every ring belongs to the object the angler already picked, so
+    the only question left is which part of it is the water body - and that is
+    the largest. "Nearest to the centroid" is actively wrong here: Nominatim's
+    point for a long reservoir is a *label* position, and on the first real run
+    against Zalew Zegrzynski it fell outside the stitched shoreline entirely.
+    Nearest would then have preferred whichever small side basin happened to lie
+    closest to that label over the 3 300 ha main body.
+
+    **By proximity**, the candidates include waters nobody asked for - the Wkra
+    runs past Pomocnia and its polygon is far larger than the lake - so
+    containment decides and nearest is the fallback. That is the original rule
+    (`tests/test_outline_selection.py`) and it is unchanged.
+    """
+    if by_id:
+        if len(candidates) > 1:
+            logger.info("%d rings for the requested object; using the largest", len(candidates))
+        return max(candidates, key=lambda c: c[1])[0]
+
     containing = [(ring, area) for ring, area in candidates if _point_in_ring(lon, lat, ring)]
     if containing:
-        ring, _ = max(containing, key=lambda c: c[1])
-        return {"type": "Polygon", "coordinates": [ring]}
+        return max(containing, key=lambda c: c[1])[0]
 
     # Nothing contains the point (coordinates slightly off, or a crude
     # outline): fall back to whichever polygon comes nearest to it, NOT the
     # largest one.
-    ring = min(candidates, key=lambda c: _min_distance_deg(lon, lat, c[0]))[0]
     logger.warning("no OSM polygon contained %s,%s - using the nearest instead", lat, lon)
-    return {"type": "Polygon", "coordinates": [ring]}
+    return min(candidates, key=lambda c: _min_distance_deg(lon, lat, c[0]))[0]
 
 
 def _point_in_ring(x: float, y: float, ring: list[list[float]]) -> bool:

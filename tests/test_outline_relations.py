@@ -253,3 +253,72 @@ def test_an_unexpected_osm_type_is_treated_as_a_way_not_injected() -> None:
     query text. The id is cast to int for the same reason."""
     assert "way(7)" in _query_by_id("node", 7)
     assert "way(7)" in _query_by_id("'; out meta; //", 7)
+
+
+# --------------------------------------------------------------------------
+# Which ring is the water — the rule differs by how we asked
+# --------------------------------------------------------------------------
+
+
+def ring(x0: float, y0: float, x1: float, y1: float) -> list[list[float]]:
+    return [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]]
+
+
+def with_area(r: list[list[float]]) -> tuple[list[list[float]], float]:
+    from app.geo.outline import _ring_area_deg
+
+    return (r, _ring_area_deg(r))
+
+
+# The main body, and a small side basin nearer the label point than the body's
+# own edge. This is the Zegrze shape: a long reservoir whose geocoded point is
+# a label position that need not fall inside the shoreline at all.
+MAIN = with_area(ring(21.00, 52.40, 21.30, 52.48))
+SIDE = with_area(ring(20.90, 52.50, 20.92, 52.51))
+LABEL_LON, LABEL_LAT = 20.91, 52.505  # inside the side basin, outside the body
+
+
+def test_by_id_the_largest_ring_wins() -> None:
+    """We asked for one object; every ring is part of it, so size decides.
+
+    The first live run logged "no OSM polygon contained 52.4416,21.0561 - using
+    the nearest instead" on a by-id fetch. Harmless with one ring; with two it
+    would have handed back a side basin as the lake.
+    """
+    from app.geo.outline import choose_ring
+
+    chosen = choose_ring([SIDE, MAIN], LABEL_LON, LABEL_LAT, by_id=True)
+    assert chosen == MAIN[0], "a by-id fetch preferred a side basin over the water body"
+
+
+def test_by_id_does_not_need_the_point_inside_anything() -> None:
+    from app.geo.outline import choose_ring
+
+    assert choose_ring([MAIN], 0.0, 0.0, by_id=True) == MAIN[0]
+
+
+def test_by_proximity_containment_still_beats_size() -> None:
+    """The Wkra rule, unchanged: the river's polygon is bigger than the lake's.
+
+    A by-id fetch and a proximity fetch must not share a tie-break - this is
+    the case the id rule would get wrong, which is why it is scoped to id
+    queries only.
+    """
+    from app.geo.outline import choose_ring
+
+    lake = with_area(ring(20.670, 52.540, 20.682, 52.546))
+    river = with_area(ring(20.690, 52.520, 20.700, 52.570))
+    inside_lake = (20.676, 52.543)
+
+    chosen = choose_ring([river, lake], *inside_lake, by_id=False)
+    assert chosen == lake[0], "the river was picked over the lake containing the point"
+
+
+def test_by_proximity_falls_back_to_nearest_not_largest() -> None:
+    from app.geo.outline import choose_ring
+
+    near_small = with_area(ring(20.900, 52.500, 20.902, 52.501))
+    far_large = with_area(ring(21.500, 52.000, 21.900, 52.400))
+
+    chosen = choose_ring([far_large, near_small], 20.899, 52.4995, by_id=False)
+    assert chosen == near_small[0]
