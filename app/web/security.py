@@ -37,6 +37,20 @@ this is the second lock on the same door.
 ever be framed, and "End session" is a one-tap destructive control - exactly
 what clickjacking is for.
 
+The one exception, opt-in and never on by default: a **dev container preview
+pane is an iframe**. VS Code's Simple Browser framed the app, the browser
+refused, and the page showed "refused to connect" - which reads exactly like a
+dead server and is not. `FISHLOG_FRAME_ANCESTORS` replaces `'none'` with an
+explicit ancestor list for that case, and drops `X-Frame-Options` while it is
+set, because that header has no allowlist worth using: `ALLOW-FROM` is dead in
+every current browser, so `SAMEORIGIN` or `DENY` are the only real values and
+neither describes "framed by the editor". `frame-ancestors` is the modern
+control and the one that can be narrow.
+
+Set it to the editor's origin - `https://*.app.github.dev` - never to `*`. And
+it belongs in a dev container's environment, not in a deployment: opening the
+forwarded port in a real browser tab needs none of this.
+
 **`Referrer-Policy: strict-origin-when-cross-origin`.** Without it, following a
 collected-knowledge source link sends the full URL of the page it was on. Lake
 slugs are not secret, but there is no reason to hand every cited site a
@@ -49,6 +63,7 @@ developer's browser - a genuinely annoying thing to undo.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Mapping
 
 LEAFLET = "https://unpkg.com"
@@ -56,7 +71,18 @@ TILES = "https://*.arcgisonline.com https://server.arcgisonline.com"
 FONTS_CSS = "https://fonts.googleapis.com"
 FONTS_FILES = "https://fonts.gstatic.com"
 
-CSP = "; ".join(
+def frame_ancestors() -> str:
+    """`'none'` unless a dev container has explicitly asked to be allowed.
+
+    Read at call time rather than at import, so a test can set it and so the
+    value is never baked into a module-level constant that looks like policy.
+    """
+    allowed = os.environ.get("FISHLOG_FRAME_ANCESTORS", "").strip()
+    return allowed or "'none'"
+
+
+def _csp(ancestors: str) -> str:
+    return "; ".join(
     (
         "default-src 'self'",
         # 'unsafe-inline' is the known weak point - see the module docstring.
@@ -68,11 +94,16 @@ CSP = "; ".join(
         f"img-src 'self' data: {TILES} {LEAFLET}",
         "connect-src 'self'",
         "form-action 'self'",
-        "frame-ancestors 'none'",
+        f"frame-ancestors {ancestors}",
         "base-uri 'self'",
         "object-src 'none'",
     )
 )
+
+
+# The default policy, for tests and for reading. The served value is built per
+# request by `headers_for`, because the ancestor list is environment-dependent.
+CSP = _csp("'none'")
 
 # Two years, and `preload` is deliberately NOT set: preloading is a one-way
 # door enforced by browser vendors, and this app has no domain of its own yet.
@@ -92,6 +123,15 @@ BASE_HEADERS: Mapping[str, str] = {
 def headers_for(scheme: str) -> dict[str, str]:
     """The headers to apply, given the scheme this request arrived over."""
     headers = dict(BASE_HEADERS)
+
+    ancestors = frame_ancestors()
+    if ancestors != "'none'":
+        # An explicit ancestor list only means anything through CSP; leaving
+        # `X-Frame-Options: DENY` alongside it would have the legacy header
+        # veto the modern one and the preview would still be blank.
+        headers["Content-Security-Policy"] = _csp(ancestors)
+        headers.pop("X-Frame-Options", None)
+
     if scheme == "https":
         headers["Strict-Transport-Security"] = HSTS
     return headers

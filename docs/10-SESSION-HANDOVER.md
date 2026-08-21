@@ -330,6 +330,7 @@ exits non-zero when a section fails.
 | `FISHLOG_GEMINI_MODEL` | overriding a stale model id | the default in `app/intel/gemini.py` |
 | `FISHLOG_GOOGLE_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | Sign in with Google | the button is not rendered at all |
 | `FISHLOG_TRUST_PROXY=1` | reading `X-Forwarded-For` | the socket peer is the address |
+| `FISHLOG_FRAME_ANCESTORS` | a dev container preview pane framing the app | `frame-ancestors 'none'`, and the pane shows "refused to connect" |
 
 A Gemini key comes from https://aistudio.google.com/apikey. The free tier
 covers this comfortably: one call per water added, plus one per monthly

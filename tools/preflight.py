@@ -74,11 +74,24 @@ def section_env() -> bool:
         "FISHLOG_GOOGLE_CLIENT_SECRET": "sign in with Google",
         "FISHLOG_GOOGLE_REDIRECT_URI": "sign in with Google",
         "FISHLOG_TRUST_PROXY": "only behind a reverse proxy",
+        "FISHLOG_FRAME_ANCESTORS": "dev container preview pane only",
     }
     for name, purpose in wanted.items():
         value = os.environ.get(name, "")
-        shown = value if name.endswith(("_URI", "_MODEL", "_PROXY")) else masked(value)
+        shown = (
+            value
+            if name.endswith(("_URI", "_MODEL", "_PROXY", "_ANCESTORS"))
+            else masked(value)
+        )
         line(OK if value else INFO, f"{name} = {shown or '(not set)'}  — {purpose}")
+
+    if os.environ.get("FISHLOG_FRAME_ANCESTORS", "").strip():
+        line(
+            INFO,
+            "FRAME_ANCESTORS is set: this app can be framed, and "
+            "X-Frame-Options is dropped while it is. Correct for an editor "
+            "preview pane; never set it on a deployment.",
+        )
 
     if os.environ.get("FISHLOG_TRUST_PROXY") == "1":
         line(

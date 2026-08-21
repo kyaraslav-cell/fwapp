@@ -365,3 +365,47 @@ def test_an_index_added_later_reaches_an_existing_database(
         assert "ix_catch_added_later" not in create_missing_indexes(engine)
     finally:
         Base.metadata.tables["catch"].indexes.discard(added)
+
+
+# --------------------------------------------------------------------------
+# The dev-container preview exception
+# --------------------------------------------------------------------------
+
+
+def test_framing_is_denied_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Nothing opts in unless somebody deliberately sets the variable."""
+    monkeypatch.delenv("FISHLOG_FRAME_ANCESTORS", raising=False)
+    headers = security.headers_for("https")
+    assert headers["X-Frame-Options"] == "DENY"
+    assert "frame-ancestors 'none'" in headers["Content-Security-Policy"]
+
+
+def test_an_explicit_ancestor_list_is_honoured(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A dev container preview pane is an iframe.
+
+    VS Code's Simple Browser framed the app, `frame-ancestors 'none'` refused,
+    and the pane showed "refused to connect" - indistinguishable from a dead
+    server. This is the opt-in for that, and only that.
+    """
+    monkeypatch.setenv("FISHLOG_FRAME_ANCESTORS", "https://*.app.github.dev")
+    headers = security.headers_for("https")
+    assert "frame-ancestors https://*.app.github.dev" in headers["Content-Security-Policy"]
+
+
+def test_x_frame_options_is_dropped_when_an_ancestor_is_allowed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Otherwise the legacy header vetoes the modern one and the pane stays blank.
+
+    `X-Frame-Options` has no usable allowlist - `ALLOW-FROM` is dead in every
+    current browser - so DENY alongside a CSP ancestor list is a contradiction
+    that browsers resolve in favour of DENY.
+    """
+    monkeypatch.setenv("FISHLOG_FRAME_ANCESTORS", "https://*.app.github.dev")
+    assert "X-Frame-Options" not in security.headers_for("https")
+
+
+def test_the_default_policy_constant_is_still_the_locked_one() -> None:
+    """`security.CSP` is read by other tests and by people; it must not drift
+    to whatever the current environment happens to allow."""
+    assert "frame-ancestors 'none'" in security.CSP
