@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.models import Catch, FishSession
+from app.media import images
 from app.notebook.sessions import (
     active_session,
     add_catch,
@@ -54,6 +55,13 @@ def _int_or_none(s: str) -> int | None:
 
 
 async def _save_photo(photo: UploadFile | None) -> str | None:
+    """Store a catch photo - re-encoded, oriented, and without its EXIF.
+
+    The bytes that arrive are never the bytes written (ADR 0006). The filename
+    check stays, because refusing obvious rubbish before decoding it is free,
+    but it is a *filename* - the decode is what actually decides. Every stored
+    photo is a `.jpg`, whatever was uploaded.
+    """
     if photo is None or not photo.filename:
         return None
     suffix = Path(photo.filename).suffix.lower()
@@ -62,12 +70,25 @@ async def _save_photo(photo: UploadFile | None) -> str | None:
 
     data = await photo.read()
     if len(data) > MAX_PHOTO_BYTES:
+        # The cap now bounds what is *accepted*; what is kept is far smaller.
         raise HTTPException(status_code=400, detail="photo larger than 8 MB")
+
+    try:
+        stored = images.process(data)
+    except images.UnsupportedImageError:
+        # An iPhone photo this build cannot decode. Saying so beats storing a
+        # file the angler's own browser will refuse to display.
+        raise HTTPException(
+            status_code=400,
+            detail="this server cannot read HEIC photos - send a JPEG",
+        ) from None
+    except images.NotAnImageError:
+        raise HTTPException(status_code=400, detail="that file is not an image") from None
 
     media_dir = get_settings().media_dir
     media_dir.mkdir(parents=True, exist_ok=True)
-    name = f"{secrets.token_hex(8)}{suffix}"
-    (media_dir / name).write_bytes(data)
+    name = f"{secrets.token_hex(8)}{images.OUTPUT_SUFFIX}"
+    (media_dir / name).write_bytes(stored)
     return f"/media/{name}"
 
 

@@ -296,8 +296,9 @@ ADR 0005. **Never run against Gemini** — no key and no network here.
 ## 16. Pre-launch review · TODO — see `docs/15-PRE-LAUNCH-REVIEW.md`
 
 A read of the codebase before it goes on a real machine. Five things to fix
-(security headers, photo downscale + EXIF strip, the `list_sessions` N+1 and
-missing FK indexes, `/health` and error pages, and offline support) and six
+(**four now done**: security headers, photo downscale + EXIF strip, the
+`list_sessions` N+1 and missing FK indexes, `/health` and error pages —
+**offline support is the one left**) and six
 directions for the product (prediction-vs-reality, angler-marked features,
 legality checks, a shareable session card, CSV export, moon phase).
 

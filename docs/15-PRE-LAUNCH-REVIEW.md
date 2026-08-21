@@ -36,7 +36,7 @@ One middleware in `app/web/app.py`. The only real work is writing a CSP that
 does not break Leaflet and the inline scripts already in the templates —
 which is itself worth knowing before launch, not after.
 
-### A2. Uploaded photos are stored whole, with their EXIF · ~40 lines
+### A2. Uploaded photos are stored whole, with their EXIF · **DONE** — ADR 0006
 
 `app/web/routes/sessions.py` caps at 8 MB and writes the file as it arrives.
 Two consequences:
@@ -255,5 +255,28 @@ back; HTMX and JSON requests still get JSON, because swapping an error page
 into a fragment of a working page looks broken in a much more confusing way.
 Rendered in all three languages and looked at.
 
-Still open from this document: **A2** (photo downscale and EXIF strip),
-**A5** (offline), and all of part B.
+**A2.** `app/media/images.py`, ADR 0006. Every upload is decoded, oriented,
+re-drawn onto a clean canvas, shrunk to 1600 px and re-encoded as JPEG — the
+bytes that arrive are never the bytes stored.
+
+The order is the whole trick: **orientation is applied before the EXIF is
+discarded.** Strip first and every portrait phone photo lands sideways, which
+is the most common way this function is written wrong. The test uses a
+non-square fixture so a rotation that did not happen cannot hide, and it fails
+when the transpose is removed.
+
+Metadata is removed by copying the pixels onto a new canvas rather than by
+asking the encoder to omit it, and the test asserts on the **stored bytes** —
+"we passed no `exif=` argument" is not a property anyone can check a year
+later. It fails when the EXIF is passed through.
+
+Measured on a photographic 3000 px test image: 325 KB → 53 KB, **6.1× smaller**,
+GPS gone, and put side by side at display size to confirm the fish still reads.
+
+HEIC is now refused with a message telling the angler to send a JPEG, sniffed
+from the file's own bytes rather than its name. Previously it was accepted and
+then could not be displayed by their own browser. `pillow-heif` is the answer
+if real iPhone uploads turn out to arrive that way — ADR 0006 says why that is
+not being decided in advance.
+
+Still open from this document: **A5** (offline), and all of part B.

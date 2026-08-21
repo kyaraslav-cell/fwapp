@@ -7,7 +7,7 @@ model) picks this up cold. Read `CLAUDE.md` first, then this.
 
 ## 1. What exists right now
 
-A working FastAPI + SQLite app, 302 tests, `make check` green (ruff,
+A working FastAPI + SQLite app, 316 tests, `make check` green (ruff,
 `mypy --strict` on `app/core` `app/rules` `app/features` `app/auth` `app/jobs`
 `app/discover` `app/geo` `app/intel`, pytest).
 
@@ -45,6 +45,7 @@ Branch: `claude/repository-edit-push-ggr229` on `kyaraslav-cell/fwapp`.
 | Login + registration rate limiting | works |
 | Security headers (CSP, nosniff, frame, HSTS) | works |
 | `/health`, 404 and 500 pages | works |
+| Catch photos: oriented, downscaled, EXIF stripped | works |
 | Gemini local-knowledge pass (`intel` job, `water_fact`) | built, **never run against Gemini** |
 | Sign in with Google | built, **never run against Google** |
 

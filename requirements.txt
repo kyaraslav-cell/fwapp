@@ -9,3 +9,5 @@ shapely==2.1.2
 pyproj==3.7.2
 astral==3.2
 python-multipart==0.0.20
+# Catch photos: orientation, downscale, EXIF strip. ADR 0006.
+pillow==11.1.0

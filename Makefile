@@ -4,7 +4,7 @@ VENV := .venv/bin
 
 check:
 	$(VENV)/ruff check app tests
-	$(VENV)/mypy --strict app/core app/rules app/features app/auth app/jobs app/discover app/geo app/intel
+	$(VENV)/mypy --strict app/core app/rules app/features app/auth app/jobs app/discover app/geo app/intel app/media
 	$(VENV)/pytest -q
 
 run:
