@@ -307,9 +307,15 @@ looks like it does.
 **Check it actually works — the important part:**
 
 ```bash
-make preflight               # env, nominatim, overpass, open-meteo, gemini
+make preflight               # deps, env, nominatim, overpass, open-meteo, gemini
 make preflight ARGS=gemini   # just one section
+make install                 # after any pull that touched requirements.txt
 ```
+
+The **deps** section runs before anything that imports app code. A virtualenv
+older than a line in `requirements.txt` otherwise surfaces as
+`ModuleNotFoundError` from the import machinery, which names the missing module
+and not the reason - that is how Pillow presented after ADR 0006.
 
 `tools/preflight.py` calls each real service and says which layer refused.
 Nothing in this app has ever reached any of them from the build sandbox

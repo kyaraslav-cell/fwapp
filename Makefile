@@ -1,6 +1,6 @@
 VENV := .venv/bin
 
-.PHONY: check run dev preflight
+.PHONY: check run dev preflight install
 
 check:
 	$(VENV)/ruff check app tests
@@ -19,3 +19,9 @@ dev:
 # runs one section.
 preflight:
 	$(VENV)/python tools/preflight.py $(ARGS)
+
+# After pulling anything that touched requirements.txt. A dependency added on
+# another machine does not install itself, and the symptom is an import
+# traceback that names the missing module rather than the reason.
+install:
+	$(VENV)/pip install -r requirements-dev.txt

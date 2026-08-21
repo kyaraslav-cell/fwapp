@@ -89,6 +89,59 @@ def section_env() -> bool:
     return True
 
 
+def section_deps() -> bool:
+    """Is this virtualenv actually what `requirements.txt` asks for?
+
+    Added after `uvicorn` died with `ModuleNotFoundError: No module named
+    'PIL'`. Pillow had been added to `requirements.txt` days earlier; the
+    virtualenv predated it. A dependency does not install itself, and the
+    symptom is a forty-line traceback from the import machinery that names the
+    missing module and not the reason.
+
+    A stale environment is the single most common way a working checkout
+    refuses to run, and it is entirely diagnosable in advance - so it goes
+    first, before any section that imports app code.
+    """
+    print("\n== dependencies ==")
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version as installed_version
+
+    requirements = pathlib.Path(__file__).resolve().parent.parent / "requirements.txt"
+    missing: list[str] = []
+    wrong: list[str] = []
+
+    for raw in requirements.read_text(encoding="utf-8").splitlines():
+        # Not `line` - that is the reporting helper above, and shadowing it
+        # here turns every success message into a TypeError.
+        entry = raw.split("#")[0].strip()
+        if not entry or "==" not in entry:
+            continue
+        name, _, wanted = entry.partition("==")
+        # `uvicorn[standard]` - the extras are not part of the package name.
+        name = name.split("[")[0].strip()
+        try:
+            have = installed_version(name)
+        except PackageNotFoundError:
+            missing.append(f"{name}=={wanted}")
+            continue
+        if have != wanted.strip():
+            wrong.append(f"{name}: have {have}, want {wanted.strip()}")
+
+    if not missing and not wrong:
+        line(OK, "every pinned dependency is installed at its pinned version")
+        return True
+
+    for item in missing:
+        line(BAD, f"not installed: {item}")
+    for item in wrong:
+        line(BAD, f"wrong version: {item}")
+    line(
+        INFO,
+        "fix with:  .venv/bin/pip install -r requirements-dev.txt   (or `make install`)",
+    )
+    return False
+
+
 def _reach(name: str, call: object) -> bool:
     """Run one probe, and name the layer that refused rather than the exception."""
     started = time.monotonic()
@@ -241,6 +294,9 @@ def section_gemini() -> bool:
 
 SECTIONS = {
     "env": section_env,
+    # Before anything that imports app code: a stale virtualenv makes every
+    # later section fail with a traceback that names the wrong culprit.
+    "deps": section_deps,
     "nominatim": section_nominatim,
     "overpass": section_overpass,
     "openmeteo": section_openmeteo,
@@ -256,8 +312,9 @@ def main(argv: list[str]) -> int:
         print(f"available: {', '.join(SECTIONS)}")
         return 2
 
-    # env always runs first: every other section depends on what it loaded.
-    ordered = ["env"] + [n for n in wanted if n != "env"]
+    # env then deps first, always: every other section depends on what env
+    # loaded, and on the packages deps checks for.
+    ordered = ["env", "deps"] + [n for n in wanted if n not in ("env", "deps")]
     results = {name: SECTIONS[name]() for name in dict.fromkeys(ordered)}
 
     print("\n== summary ==")

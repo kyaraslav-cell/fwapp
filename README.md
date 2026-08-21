@@ -75,8 +75,13 @@ your shell always wins over the file.
 
 ```bash
 cp .env.example .env
-make preflight        # calls every external service and says which one refused
+make preflight        # checks the venv, then calls every external service
 ```
+
+`make preflight` starts with the dependencies, so a virtualenv that predates a
+line in `requirements.txt` is reported as one clear line rather than as an
+import traceback when the server starts. `make install` is the fix, and is
+worth running after any pull that touched `requirements.txt`.
 
 `make preflight` is worth running once on any new machine. Everything this app
 talks to — Nominatim, Overpass, Open-Meteo, Google, Gemini — is unreachable
