@@ -126,3 +126,30 @@ def test_the_example_file_and_the_tests_do_not_trip_it() -> None:
     ):
         match = ASSIGNMENT.search(benign)
         assert match is None or PLACEHOLDERS.match(match.group(1)), benign
+
+
+def test_every_source_file_is_actually_tracked() -> None:
+    """A file git is ignoring is a file CI does not have.
+
+    `app/media/` was created, imported, and passed the whole suite locally -
+    then the Pages build died on `ModuleNotFoundError: No module named
+    'app.media'`, because `.gitignore` carried an unanchored `media/` meant for
+    the uploaded-photos directory and it swallowed the package.
+
+    Nothing local can catch that: the files are on disk, so imports work and
+    `make check` is green. Only a fresh clone disagrees. This test is the fresh
+    clone's opinion, available before the push.
+    """
+    tracked = {p.relative_to(REPO) for p in tracked_files()}
+
+    on_disk = {
+        p.relative_to(REPO)
+        for p in list(REPO.glob("app/**/*.py")) + list(REPO.glob("tests/**/*.py"))
+        if "__pycache__" not in p.parts
+    }
+
+    untracked = sorted(str(p) for p in on_disk - tracked)
+    assert not untracked, (
+        "these source files exist locally but git is ignoring them, so CI and a "
+        "fresh clone will not have them:\n  " + "\n  ".join(untracked)
+    )

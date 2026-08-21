@@ -5,7 +5,11 @@ venv/
 *.db
 *.db-shm
 *.db-wal
-media/
+# Uploaded catch photos, at the repository root only. NOT anchored, this
+# pattern matched any directory named `media` at any depth - and silently
+# swallowed the whole `app/media/` package, which then failed only in CI on a
+# fresh clone. The leading slash is the entire fix.
+/media/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
