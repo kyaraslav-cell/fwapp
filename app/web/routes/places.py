@@ -13,6 +13,7 @@ from app.core.models import Lake
 from app.core.time import parse_iso, to_display, utcnow
 from app.features.season import derive_season
 from app.geo import service as geo_service
+from app.geo.thumbnail import outline_thumbnail_path
 from app.ingest.open_meteo import ingest_forecast
 from app.intel import service as intel_service
 from app.notebook import water_type as water_type_mod
@@ -80,6 +81,9 @@ def home(request: Request, water: str = "", db: Session = Depends(get_db)):
     for lk in lakes:
         view = prediction_view(latest_prediction(db, lk, horizon=0))
         n_sessions, last_visited = lake_stats(db, lk, user_id=viewer_id)
+        # Reuses the same outline every lake page already draws on its map -
+        # no extra fetch, just a local file/DB read (`water_outline` above).
+        outline = water_outline(db, lk)
         cards.append(
             {
                 "slug": lk.slug,
@@ -93,6 +97,7 @@ def home(request: Request, water: str = "", db: Session = Depends(get_db)):
                 "band_color": view["band_color"] if view else None,
                 "band_label": view["band_label"] if view else None,
                 "water_type": water_type_mod.normalise(lk.water_type),
+                "thumb_path": outline_thumbnail_path(outline) if outline else None,
             }
         )
 

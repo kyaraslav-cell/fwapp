@@ -36,7 +36,16 @@
 {% for c in cards %}
 <a href="/lake/{{ c.slug }}" style="text-decoration:none; color:inherit;">
   <div class="place-card">
+    {% if c.thumb_path %}
+    {# The water's own outline, already fetched for its map (`water_outline`
+       in app/web/routes/places.py) - traced instead of a satellite crop so
+       this costs no extra fetch and no per-lake storage. #}
+    <svg class="place-thumb" viewBox="0 0 56 56" aria-hidden="true">
+      <path d="{{ c.thumb_path }}" fill="var(--surface)" />
+    </svg>
+    {% else %}
     <div class="place-thumb"></div>
+    {% endif %}
     <div class="place-info">
       <div class="place-name">{{ c.name }}</div>
       <div class="place-meta">

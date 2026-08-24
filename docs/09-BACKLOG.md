@@ -336,7 +336,7 @@ Three things the owner asked for on 2026-08-24, after seeing the app running
 for real for the first time. Not started - written down so the brief survives
 to whichever session picks each one up.
 
-**19a. A lake thumbnail on the home/places list.** Every water card
+**19a. A lake thumbnail on the home/places list · DONE, 2026-08-24.** Every water card
 (`app/web/templates/*.html`, the places list) currently shows a generic teal
 gradient square regardless of which lake it is. Wanted: a small icon that is
 *this water's actual shape* - "can be a satellite image, small resolution, so
@@ -356,6 +356,19 @@ it's lightweight". Two designs worth weighing before coding:
 Recommend starting with the outline trace - it's free, already-available data,
 and ships the actual differentiator (Pomocnia's round bowl vs. Zegrzyński's
 long reservoir look nothing alike as silhouettes alone).
+
+**Built: the outline trace, not the satellite crop.** `app/geo/thumbnail.py`
+(`outline_thumbnail_path`, pure, no I/O) turns a lake's `outline_geojson` outer
+ring into a small SVG path — downsampled to at most 120 points regardless of
+how dense the real shoreline is (Zegrzyński's outer ring alone runs ~2 700
+points), so the icon stays cheap however large the water. `home()` in
+`app/web/routes/places.py` reuses the same `water_outline()` call the lake
+page's own map already makes — no extra fetch. Rendered white on the existing
+gradient tile in `home.html`; a lake with no outline yet falls back to the
+plain gradient square, unchanged. **Verified by rendering** (`tests/
+test_thumbnail.py` covers the geometry; the actual visual result was screenshotted
+live and the two real lakes are clearly, correctly distinct shapes — Pomocnia
+a rounded bowl, Zegrzyński a long branching reservoir).
 
 **19b. Weather cross-checked against a second source.** The owner compared the
 app's numbers against Google's weather for the same place and saw them differ.
