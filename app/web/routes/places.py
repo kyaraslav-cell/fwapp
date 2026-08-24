@@ -197,7 +197,9 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
             # Collected local knowledge. Empty for almost every water, which is
             # the honest state and renders as nothing at all rather than as an
             # empty section announcing its own emptiness.
-            "intel": intel_service.facts_by_topic(db, lake.id),
+            "intel": intel_service.facts_by_topic(
+                db, lake.id, normalise(request.cookies.get(COOKIE_NAME))
+            ),
             "build": build,
             "grid_meta": json.dumps(
                 {

@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import pathlib
 from collections.abc import Iterator
+from dataclasses import replace
 from typing import Any
 
 import httpx
@@ -215,6 +216,13 @@ def test_the_prompt_makes_an_empty_answer_acceptable() -> None:
     assert "url" in prompt.lower()
 
 
+def test_the_prompt_caps_stocking_to_one_fact() -> None:
+    """The 'essentials, not a data dump' rule - one row per stocked species
+    was the single biggest source of clutter on a real, real water."""
+    prompt = gemini.build_prompt("Jezioro Testowe", 52.6, 20.5)
+    assert "one `stocking` fact" in prompt
+
+
 def test_a_refused_call_raises_with_the_status_in_it() -> None:
     with fake_client({"error": "quota"}, status=429) as client:
         with pytest.raises(gemini.GeminiError, match="429"):
@@ -257,6 +265,53 @@ def test_a_403_on_head_is_not_taken_as_a_dead_link() -> None:
     with fake_client(envelope({"facts": [SOURCED]}), head_status=403) as client:
         collection = gemini.collect(CONFIG, name="X", lat=1.0, lon=1.0, client=client)
     assert collection.source_ok[SOURCED["source_url"]] is True
+
+
+# --------------------------------------------------------------------------
+# Translation - a second call, not a second research pass
+# --------------------------------------------------------------------------
+
+
+def test_translate_facts_is_a_noop_on_an_empty_list() -> None:
+    """No network call at all when there is nothing to translate."""
+    assert gemini.translate_facts(CONFIG, [], "pl", "Polish") == []
+
+
+def test_translate_facts_reassembles_by_id_not_by_order() -> None:
+    """The model may reorder or drop items; `id` is what keeps a translated
+    value from landing on the wrong fact."""
+    en_facts, _ = parse_facts(
+        {"facts": [SOURCED, {**SOURCED, "key": "bream", "value": "Bream too."}]}
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        # Answers out of order and skips id 1 entirely.
+        return httpx.Response(
+            200,
+            json=envelope(
+                {"items": [{"id": 0, "key": "płoć", "value": "Płoć dominuje."}]}
+            ),
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        translated = gemini.translate_facts(
+            CONFIG, en_facts, "pl", "Polish", client=client
+        )
+
+    assert len(translated) == 1
+    assert translated[0].key == "płoć"
+    assert translated[0].lang == "pl"
+    # Structural fields carry over unchanged - only wording was asked for.
+    assert translated[0].source_url == SOURCED["source_url"]
+    assert translated[0].topic == SOURCED["topic"]
+    assert translated[0].confidence == SOURCED["confidence"]
+
+
+def test_a_refused_translation_raises_rather_than_inventing_text() -> None:
+    en_facts, _ = parse_facts({"facts": [SOURCED]})
+    with fake_client({"error": "quota"}, status=429) as client:
+        with pytest.raises(gemini.GeminiError, match="429"):
+            gemini.translate_facts(CONFIG, en_facts, "pl", "Polish", client=client)
 
 
 # --------------------------------------------------------------------------
@@ -313,6 +368,22 @@ def test_facts_are_grouped_in_topic_order(db: Session, lake: Lake) -> None:
     assert list(intel_service.facts_by_topic(db, lake.id)) == ["species", "depth", "rules"]
 
 
+def test_each_language_shows_its_own_wording(db: Session, lake: Lake) -> None:
+    en, _ = parse_facts({"facts": [SOURCED]})
+    pl = [replace(en[0], key="płoć", value="Płoć dominuje.", lang="pl")]
+    intel_service.store(db, lake.id, en + pl, model="gemini-test")
+    assert intel_service.current_facts(db, lake.id, "en")[0].key == "roach"
+    assert intel_service.current_facts(db, lake.id, "pl")[0].key == "płoć"
+
+
+def test_a_language_with_nothing_falls_back_to_english(db: Session, lake: Lake) -> None:
+    """A failed Russian translation pass must not blank the section for a
+    Russian-reading angler - English beats nothing."""
+    en, _ = parse_facts({"facts": [SOURCED]})
+    intel_service.store(db, lake.id, en, model="gemini-test")
+    assert intel_service.current_facts(db, lake.id, "ru")[0].key == "roach"
+
+
 # --------------------------------------------------------------------------
 # The job
 # --------------------------------------------------------------------------
@@ -360,12 +431,47 @@ def test_the_job_stores_what_it_collected(
         )
 
     monkeypatch.setattr(gemini, "collect", fake_collect)
+    # No real network for the translation pass either - one fact translated
+    # into each language, cheaply, so the job's own plumbing is what is under
+    # test here, not Gemini's translation quality.
+    monkeypatch.setattr(
+        gemini,
+        "translate_facts",
+        lambda config, facts, lang, language_name, **kw: [
+            replace(f, key=f"{f.key}-{lang}", value=f"{f.value} ({lang})", lang=lang)
+            for f in facts
+        ],
+    )
     outcome = handlers.handle_intel(db, _job(db, lake))
-    assert "1 facts stored" in outcome
+    assert "3 facts stored" in outcome  # 1 en + 1 pl + 1 ru
     assert "1 dropped" in outcome
     stored = intel_service.current_facts(db, lake.id)
     assert [f.key for f in stored] == ["roach"]
     assert stored[0].source_ok == 1
+    assert intel_service.current_facts(db, lake.id, "pl")[0].key == "roach-pl"
+    assert intel_service.current_facts(db, lake.id, "ru")[0].key == "roach-ru"
+
+
+def test_a_translation_failure_does_not_fail_the_job(
+    db: Session, lake: Lake, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """English still stores even if Gemini's translation call errors out."""
+    monkeypatch.setenv("FISHLOG_GEMINI_API_KEY", "k")
+
+    def fake_collect(config: gemini.GeminiConfig, **kwargs: Any) -> gemini.Collection:
+        facts, _ = parse_facts({"facts": [SOURCED]})
+        return gemini.Collection(facts=facts, rejected=[], model=config.model, source_ok={})
+
+    def fake_translate(*args: Any, **kwargs: Any) -> list:
+        raise gemini.GeminiError("quota exceeded")
+
+    monkeypatch.setattr(gemini, "collect", fake_collect)
+    monkeypatch.setattr(gemini, "translate_facts", fake_translate)
+    outcome = handlers.handle_intel(db, _job(db, lake))
+    assert "1 facts stored" in outcome
+    assert intel_service.current_facts(db, lake.id, "pl") == intel_service.current_facts(
+        db, lake.id, "en"
+    )
 
 
 def test_the_job_is_last_in_the_pipeline(monkeypatch: pytest.MonkeyPatch) -> None:

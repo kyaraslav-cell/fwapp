@@ -361,6 +361,12 @@ class WaterFact(Base):
     source_title: Mapped[str | None] = mapped_column(String)
     source_ok: Mapped[int | None] = mapped_column(Integer)
     confidence: Mapped[str] = mapped_column(String, nullable=False)
+    # NULL is a row written before translation existed - `app/intel/service.py`
+    # reads that as "en". Nullable rather than NOT NULL with a default because
+    # `app/core/migrate.py` only ever ADDs nullable columns to an existing
+    # SQLite table; a NOT NULL column with no inline DEFAULT breaks that ALTER
+    # on a table that already has rows, which this one does.
+    lang: Mapped[str | None] = mapped_column(String)
     # Which model said it, so an answer can be attributed after the default
     # model id has moved on.
     model: Mapped[str] = mapped_column(String, nullable=False)

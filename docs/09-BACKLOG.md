@@ -276,7 +276,18 @@ The **Gemini pass is now built** (`app/intel/`, job kind `intel`, table
 `water_fact`, shown on the lake page as "Local knowledge"). Six closed topics,
 every claim dropped unless it cites an http(s) URL, each URL HEAD-checked, and
 nothing it collects reaches the score. `docs/13 §10` and the addendum to
-ADR 0005. **Never run against Gemini** — no key and no network here.
+ADR 0005. **Now translated into all three site languages and trimmed to
+essentials** — see `docs/handoff/2026-08-24-2152-...md`: `MAX_FACTS` 24→14,
+`stocking` capped to one summarising fact instead of one row per species, and
+a second Gemini call translates the kept English facts into Polish and Russian
+rather than re-researching per language (`WaterFact.lang`, falls back to
+English if a translation pass fails).
+
+3. **A live run — DONE, 2026-08-24.** Nominatim, Overpass, Open-Meteo and
+   Gemini all reached and working: `zalew-zegrzynski` was added live (outline
+   2046.8 ha real OSM shoreline, 8784 h weather backfill, 4985-cell grid,
+   intel pass in all 3 languages). `docs/13 §8`'s failure table has not needed
+   to be exercised yet — nothing failed.
 
 **Not built yet, in the order they matter:**
 
@@ -284,12 +295,6 @@ ADR 0005. **Never run against Gemini** — no key and no network here.
 2. **Raster auto-tracing** for waters OSM has no polygon for. Deliberately
    deferred until the named-water path shows how often it is actually needed;
    it needs numpy and a GeoTIFF reader, so it gets its own ADR.
-3. **A live run.** Nothing here has ever reached Nominatim, Overpass or
-   Gemini — the
-   sandbox has no outbound network. The pipeline was driven end to end against
-   a stubbed geocoder and a real queue; the first true search will be on the
-   owner's machine, and `docs/13 §8` is the table of what should happen when
-   each part fails.
 
 
 
@@ -324,3 +329,76 @@ fish.
 `app/geo/grid.py` takes a single ring. Zalew Zegrzyński has islands and is
 currently scored as though they were water. Recorded honestly in `docs/13 §11`
 rather than fixed quietly.
+
+## 19. From the first live session on the owner's machine · TODO
+
+Three things the owner asked for on 2026-08-24, after seeing the app running
+for real for the first time. Not started - written down so the brief survives
+to whichever session picks each one up.
+
+**19a. A lake thumbnail on the home/places list.** Every water card
+(`app/web/templates/*.html`, the places list) currently shows a generic teal
+gradient square regardless of which lake it is. Wanted: a small icon that is
+*this water's actual shape* - "can be a satellite image, small resolution, so
+it's lightweight". Two designs worth weighing before coding:
+- **Trace the stored outline.** `Lake.outline_geojson` is already fetched and
+  cached per water (real OSM shoreline, `docs/10 §1`) - render it as a small
+  filled silhouette (SVG path or a tiny rasterised PNG, generated once when the
+  outline job finishes, cached like everything else in `app/jobs/handlers.py`).
+  No new external dependency, no per-request cost, matches rule 15 (MVP,
+  lightweight, free).
+- **A real satellite crop.** Truer to what the owner asked for literally, but
+  needs a tile source (Esri, already used for the map background per `docs/10
+  §6` — untested from this sandbox) cropped to the lake's bounding box and
+  downsampled hard (thumbnail-sized, so bandwidth stays trivial). Costs one
+  fetch per water at add-time, cacheable forever after since a lake's shape
+  does not move.
+Recommend starting with the outline trace - it's free, already-available data,
+and ships the actual differentiator (Pomocnia's round bowl vs. Zegrzyński's
+long reservoir look nothing alike as silhouettes alone).
+
+**19b. Weather cross-checked against a second source.** The owner compared the
+app's numbers against Google's weather for the same place and saw them differ.
+**Read `CLAUDE.md` before touching this**: *"There is exactly one weather
+series for the whole lake"* and law 4 (never fabricate an observation) argue
+against silently blending in a second live source - that would make it
+unclear which number a stored `prediction` was ever computed from, which is
+exactly what law 2's immutability exists to keep provable. Before adding
+anything, this needs investigating, not assuming a bug:
+1. Confirm the ingest is asking Open-Meteo for the right coordinates and the
+   right variable (`temperature_2m` at 2 m, not surface skin temp) -
+   `app/ingest/open_meteo.py`.
+2. Confirm the *display* layer converts UTC to `Europe/Warsaw` correctly
+   (`app/core/time.py`) - a display-only offset bug would look exactly like a
+   "wrong temperature" complaint.
+3. If both check out, some divergence from Google's own forecast model is
+   normal - two different weather models over the same hour routinely differ
+   by a degree or two. The honest fix then is not matching Google, it's making
+   the app's own provenance visible enough (source, run time, "forecast" vs
+   "observed") that the owner can tell divergence from a bug at a glance.
+Only after that investigation, if the owner still wants a second live source
+shown alongside the first for comparison, does that become a design decision
+(and a law 4 conversation) rather than a bug fix.
+
+**19c. A background job for a higher-resolution heat map on large waters.**
+Grid cell size already scales with area (`geo_service.cell_size_for_area`) -
+Zalew Zegrzyński (2046.8 ha) came out at 64 m cells / 4985 cells versus
+Pomocnia's 5 m / ~3564 cells for 9 ha. The owner wants big waters rendered
+finer, but computed **in the background, for today only**, "essential but
+should not cost a lot of resources" - i.e. not a blocking on-demand
+recompute, and not attempting all 8 forecast days at high resolution.
+Sketch, for whoever builds it:
+- A resolution floor/ceiling by `area_ha` (mirroring `cell_size_for_area`'s
+  existing scaling, just extended rather than replacing it), gated behind a
+  size threshold so small lakes are untouched.
+- A new job kind alongside `outline`/`grid`/`forecast`/`intel`
+  (`app/jobs/handlers.py`, `NEW_WATER_PIPELINE`) that runs once daily per
+  qualifying lake - `build_scheduler` in `app/ingest/scheduler.py` already
+  has a daily-cadence pattern to copy (`run_monthly_refresh_job`'s sibling).
+  Compute for **today's** wind direction/phase only, cache the result (a
+  second, finer `Grid`/scored-cell set, keyed by lake + date), and serve it
+  from `/lake/{slug}/grid` when a hi-res cache exists and the request is for
+  today; fall back to the existing on-demand coarse grid for every other day
+  and for lakes below the size threshold.
+- Cost stays bounded because it is one recompute per qualifying lake per day,
+  not per request and not per forecast day.

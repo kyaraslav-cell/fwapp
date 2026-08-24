@@ -36,12 +36,12 @@ from __future__ import annotations
 import json
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 import httpx
 
-from app.intel.facts import CONFIDENCE, TOPICS, Fact, parse_facts
+from app.intel.facts import CONFIDENCE, MAX_KEY_CHARS, MAX_VALUE_CHARS, TOPICS, Fact, parse_facts
 
 logger = logging.getLogger("fishlog.intel.gemini")
 
@@ -49,7 +49,16 @@ API_ROOT = "https://generativelanguage.googleapis.com/v1beta/models"
 DEFAULT_MODEL = "gemini-2.5-flash"
 TIMEOUT_S = 60.0
 SOURCE_CHECK_TIMEOUT_S = 8.0
-MAX_FACTS = 24
+# Was 24. A page of one fact per stocked species read as a data dump rather
+# than a briefing - the owner's word was "essentials". Rule 8 below folds
+# stocking into one fact, so this cap now bounds the five substantive topics.
+MAX_FACTS = 14
+
+# The languages the rest of the site already switches between (`app/core/i18n.py`).
+# Facts are collected once in English, then this module's own translation call
+# - not a second research pass - produces the other two, so every language
+# shows the same claims from the same sources.
+TRANSLATABLE_LANGUAGES: tuple[tuple[str, str], ...] = (("pl", "Polish"), ("ru", "Russian"))
 
 
 class GeminiNotConfiguredError(RuntimeError):
@@ -148,18 +157,23 @@ def build_prompt(name: str, lat: float, lon: float, country: str = "Poland") -> 
         "(the angling club, the operator, a public register), medium for a "
         "reputable secondary source, low for a forum post or a listing site.\n"
         "6. Answer in English. Keep each value under 300 characters.\n"
-        f"7. At most {MAX_FACTS} facts."
+        f"7. At most {MAX_FACTS} facts.\n"
+        "8. This is a short briefing, not a data dump: pick what would "
+        "actually change an angler's plan for a session, drop the rest. For "
+        "`stocking`, one fact summarising the plan (what is stocked, roughly "
+        "how much, how often) beats a row per species - never state more than "
+        "one `stocking` fact."
     )
 
 
-def _request_body(prompt: str) -> dict[str, Any]:
+def _request_body(prompt: str, schema: dict[str, Any] = RESPONSE_SCHEMA) -> dict[str, Any]:
     return {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {
             # A lookup, not a composition. Nothing here is improved by variety.
             "temperature": 0.0,
             "responseMimeType": "application/json",
-            "responseSchema": RESPONSE_SCHEMA,
+            "responseSchema": schema,
         },
     }
 
@@ -259,3 +273,110 @@ def collect(
     return Collection(
         facts=facts, rejected=rejected, model=config.model, source_ok=source_ok
     )
+
+
+# Translation, not a second research pass. `id` round-trips each item so a
+# reordered or partially-dropped answer still lines back up with the right
+# fact instead of silently pairing the wrong key with the wrong value.
+TRANSLATE_SCHEMA: dict[str, Any] = {
+    "type": "OBJECT",
+    "properties": {
+        "items": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "id": {"type": "INTEGER"},
+                    "key": {"type": "STRING"},
+                    "value": {"type": "STRING"},
+                },
+                "required": ["id", "key", "value"],
+            },
+        }
+    },
+    "required": ["items"],
+}
+
+
+def build_translate_prompt(facts: list[Fact], language_name: str) -> str:
+    items = [{"id": i, "key": f.key, "value": f.value} for i, f in enumerate(facts)]
+    return (
+        f"Translate the `key` and `value` of each item below into natural, "
+        f"fluent {language_name}, for an angler reading a fishing app. Keep "
+        f"the meaning exact - translate the wording only, do not add, remove "
+        f"or guess at anything. Species names, numbers and units must stay "
+        f"accurate. Return every `id` exactly once.\n\n"
+        f"{json.dumps(items, ensure_ascii=False)}"
+    )
+
+
+def translate_facts(
+    config: GeminiConfig,
+    facts: list[Fact],
+    lang: str,
+    language_name: str,
+    *,
+    client: httpx.Client | None = None,
+) -> list[Fact]:
+    """`facts` (lang="en") -> the same claims, same sources, in `lang`.
+
+    Topic, source_url, source_title and confidence are copied through
+    unchanged - only wording is asked for, so only wording can come back
+    different. An item the model drops or answers with an empty key/value is
+    left out rather than falling back to English silently mislabelled as
+    `lang`; a caller that wants every language populated should treat a short
+    result as partial, not fail the whole pass over it.
+    """
+    if not facts:
+        return []
+
+    owned = client is None
+    session = client or httpx.Client(timeout=TIMEOUT_S)
+    try:
+        response = session.post(
+            f"{API_ROOT}/{config.model}:generateContent",
+            headers={"x-goog-api-key": config.api_key},
+            json=_request_body(
+                build_translate_prompt(facts, language_name), TRANSLATE_SCHEMA
+            ),
+        )
+        if response.status_code != 200:
+            raise GeminiError(
+                f"translate returned {response.status_code}: {response.text[:300]}"
+            )
+        envelope: dict[str, Any] = response.json()
+    finally:
+        if owned:
+            session.close()
+
+    text = _text_of(envelope)
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise GeminiError(f"translation was not JSON despite the schema: {exc}") from exc
+
+    items = payload.get("items")
+    if not isinstance(items, list):
+        raise GeminiError("translation carried no 'items' list")
+
+    by_id: dict[int, tuple[str, str]] = {}
+    for raw in items:
+        if not isinstance(raw, dict):
+            continue
+        try:
+            idx = int(raw["id"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        key = str(raw.get("key") or "").strip()[:MAX_KEY_CHARS]
+        value = str(raw.get("value") or "").strip()[:MAX_VALUE_CHARS]
+        if key and value:
+            by_id[idx] = (key, value)
+
+    translated: list[Fact] = []
+    for i, fact in enumerate(facts):
+        pair = by_id.get(i)
+        if pair is None:
+            continue
+        key, value = pair
+        translated.append(replace(fact, key=key, value=value, lang=lang))
+    return translated

@@ -47,10 +47,10 @@ Every finished change is merged there and pushed (rule 13).
 | Security headers (CSP, nosniff, frame, HSTS) | works |
 | `/health`, 404 and 500 pages | works |
 | Catch photos: oriented, downscaled, EXIF stripped | works |
-| Nominatim / Overpass / Open-Meteo | **run for real**, `make preflight` |
+| Nominatim / Overpass / Open-Meteo | **run for real**, live on the owner's machine (`zalew-zegrzynski` added 2026-08-24) |
 | Offline / service worker | **not built** — `docs/15 §A5`, the biggest gap |
-| Gemini local-knowledge pass (`intel` job, `water_fact`) | built, **never run against Gemini** |
-| Sign in with Google | built, **never run against Google** |
+| Gemini local-knowledge pass (`intel` job, `water_fact`) | **run for real**, 2026-08-24 — translated into all 3 site languages, trimmed to essentials (`docs/handoff/2026-08-24-2152-...md`) |
+| Sign in with Google | wired and verified end-to-end (real client id, correct redirect, correct consent-screen URL) — the human consent click-through is the owner's to complete |
 
 **Run it:**
 ```bash

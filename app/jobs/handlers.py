@@ -160,6 +160,14 @@ def handle_intel(db: Session, job: Job) -> str:
 
     It does not touch the score. Facts land in `water_fact` marked unverified
     and stay out of every ranking until a human confirms them (ADR 0005 §2).
+
+    Collected once, in English, then translated rather than re-researched per
+    language (`app/intel/gemini.py`) - the site switches between three
+    languages (`app/core/i18n.py`) and every one of them must show the same
+    claims from the same sources, not a second independent lookup that could
+    drift. A translation that fails for one language is not this job failing -
+    `intel_service.current_facts` falls back to English for a viewer in that
+    language rather than showing nothing.
     """
     lake = _lake(db, job)
     config = gemini.load_config()
@@ -169,10 +177,25 @@ def handle_intel(db: Session, job: Job) -> str:
     collection = gemini.collect(
         config, name=lake.name, lat=lake.centroid_lat, lon=lake.centroid_lon
     )
+    all_facts = list(collection.facts)
+    translated_counts: dict[str, int] = {}
+    for lang, language_name in gemini.TRANSLATABLE_LANGUAGES:
+        try:
+            translated = gemini.translate_facts(
+                config, collection.facts, lang, language_name
+            )
+        except gemini.GeminiError as exc:
+            logger.info(
+                "intel translation to %s failed for %s: %s", lang, lake.slug, exc
+            )
+            translated = []
+        translated_counts[lang] = len(translated)
+        all_facts.extend(translated)
+
     stored = intel_service.store(
         db,
         lake.id,
-        collection.facts,
+        all_facts,
         model=collection.model,
         source_ok=collection.source_ok,
     )
@@ -187,7 +210,11 @@ def handle_intel(db: Session, job: Job) -> str:
             "; ".join(collection.rejected[:10]),
         )
     unreachable = sum(1 for ok in collection.source_ok.values() if not ok)
-    detail = f"{stored} facts stored"
+    detail = (
+        f"{stored} facts stored ({len(collection.facts)} en, "
+        + ", ".join(f"{n} {lang}" for lang, n in translated_counts.items())
+        + ")"
+    )
     if collection.rejected:
         detail += f", {len(collection.rejected)} dropped"
     if unreachable:

@@ -57,6 +57,10 @@ class Fact:
     source_url: str
     source_title: str
     confidence: str
+    # Not part of the model's JSON answer - `app/intel/gemini.py` stamps this
+    # on after the fact, once per language pass. "en" for the original
+    # collection, "pl"/"ru" for a translation of it.
+    lang: str = "en"
 
 
 class RejectedFact(RuntimeError):
