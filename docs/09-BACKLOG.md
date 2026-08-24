@@ -304,3 +304,23 @@ legality checks, a shareable session card, CSV export, moon phase).
 
 The one that matters most: **the app does not work without a signal, and the
 bank is where it is used.** `docs/15 §A5`.
+
+## 17. Offline is the one pre-launch item left · TODO
+
+`docs/15 §A5`. Four of the five are done (security headers, `/health` + error
+pages, the N+1 + indexes, photo processing). This is the fifth, the largest,
+and the one that decides whether the app works where it is used: at a PZW water
+with one bar, the lake page will not load and **a caught fish cannot be
+logged**.
+
+Needs its own ADR before any code — an outbox is a second source of truth for
+as long as the signal is down. Each queued catch must carry **its own**
+timestamp (law 2, and CPUE) and an idempotency key, or a retry double-logs a
+fish.
+
+## 18. Islands are dropped from a water's outline · TODO
+
+`_rings_of` in `app/geo/outline.py` returns outer rings only, because
+`app/geo/grid.py` takes a single ring. Zalew Zegrzyński has islands and is
+currently scored as though they were water. Recorded honestly in `docs/13 §11`
+rather than fixed quietly.

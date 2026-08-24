@@ -7,14 +7,15 @@ model) picks this up cold. Read `CLAUDE.md` first, then this.
 
 ## 1. What exists right now
 
-A working FastAPI + SQLite app, 316 tests, `make check` green (ruff,
+A working FastAPI + SQLite app, 321 tests, `make check` green (ruff,
 `mypy --strict` on `app/core` `app/rules` `app/features` `app/auth` `app/jobs`
 `app/discover` `app/geo` `app/intel`, pytest).
 
 Per-session detail lives in `docs/handoff/` — newest file first. Use the
 `session-start` and `session-end` skills.
 
-Branch: `claude/repository-edit-push-ggr229` on `kyaraslav-cell/fwapp`.
+Default branch: `claude/repository-edit-push-ggr229` on `kyaraslav-cell/fwapp`.
+Every finished change is merged there and pushed (rule 13).
 
 | Area | State |
 |---|---|
@@ -46,6 +47,8 @@ Branch: `claude/repository-edit-push-ggr229` on `kyaraslav-cell/fwapp`.
 | Security headers (CSP, nosniff, frame, HSTS) | works |
 | `/health`, 404 and 500 pages | works |
 | Catch photos: oriented, downscaled, EXIF stripped | works |
+| Nominatim / Overpass / Open-Meteo | **run for real**, `make preflight` |
+| Offline / service worker | **not built** — `docs/15 §A5`, the biggest gap |
 | Gemini local-knowledge pass (`intel` job, `water_fact`) | built, **never run against Gemini** |
 | Sign in with Google | built, **never run against Google** |
 
