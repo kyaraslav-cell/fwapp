@@ -393,6 +393,33 @@ Only after that investigation, if the owner still wants a second live source
 shown alongside the first for comparison, does that become a design decision
 (and a law 4 conversation) rather than a bug fix.
 
+**Investigated, 2026-08-24 — no bug found in either place checked:**
+1. `app/ingest/open_meteo.py` requests `temperature_2m` (the standard 2 m air
+   reading, same variable every consumer-facing weather product shows) at
+   `lake.centroid_lat`/`centroid_lon` - `52.5431, 20.6762` for Pomocnia, which
+   `config/lakes/pomocnia.yaml` already documents as corroborated by two
+   independent published sources to ~150 m. A live direct query against
+   Open-Meteo confirms it snaps to grid point `52.541195, 20.66278` (its
+   nearest model node, ~200 m away) - normal behaviour for any gridded
+   forecast model, not a coordinate bug.
+2. `app/core/time.py` uses stdlib `zoneinfo` with `ZoneInfo("Europe/Warsaw")`,
+   which handles the CEST/CET transition correctly by name rather than a fixed
+   offset. `/health` on the live deploy reports the newest observation at 0.4 h
+   old at the moment this was checked - the pipeline is not stale either.
+3. So per point 3 above: this is very likely two different forecast models
+   (Open-Meteo's blend vs. whatever Google Weather uses) legitimately
+   disagreeing by a degree or two over the same hour, which is normal and not
+   a defect in this app. `config/lakes/pomocnia.yaml` already has a
+   `weather.secondary` entry on file for exactly this situation - METAR
+   station EPMO (Warszawa-Modlin), 10.4 km away, real instrument readings, not
+   wired into the app.
+
+**Still open, now a design question rather than a bug hunt:** does the owner
+want the app's own provenance made more visible (source name, model run time,
+"forecast" vs "observed" wording) so a real divergence reads as expected
+rather than alarming? Needs the owner's answer before building anything -
+recommend asking rather than guessing at a UI change here.
+
 **19c. A background job for a higher-resolution heat map on large waters.**
 Grid cell size already scales with area (`geo_service.cell_size_for_area`) -
 Zalew Zegrzyński (2046.8 ha) came out at 64 m cells / 4985 cells versus
