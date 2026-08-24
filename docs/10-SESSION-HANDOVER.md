@@ -242,6 +242,8 @@ docs/adr/0002                 provisional zone score + its provenance
 docs/adr/0004                 accounts, sign-in, and the public/private boundary
 docs/adr/0005                 adding waters: the queue, named waters, no fake shorelines
 docs/13-ADD-A-WATER.md        the pipeline, its costs and its failure table
+docs/16-DEPLOY-ORACLE.md      Oracle Cloud Always Free runbook, §9's fallback
+tools/oracle_vm_setup.sh      bootstraps that VM: docker, repo, compose, tailscale
 app/discover/                 nominatim search, dedupe, quota, add
 app/jobs/                     queue state machine, handlers, runner
 app/auth/                     passwords, validation, tokens, google, service
@@ -380,11 +382,22 @@ persistent *and* zero-maintenance; this one trades a few watts for all three.
 ### Fallback, if no machine can stay on
 
 **Oracle Cloud Always Free** — an Ampere ARM VM, free for the account's
-lifetime, with block storage. Same `docker compose up -d`, plus Caddy for
-HTTPS. Costs that are not money: a card for identity verification at signup,
-ARM capacity that is frequently unavailable in a given region, an idle-reclaim
+lifetime, with block storage. Same `docker compose up -d`, plus **Tailscale
+Funnel** for HTTPS rather than Caddy — it reuses the exact mechanism the
+primary plan already uses, so it needs no domain purchase and no certificate
+to renew, unlike Caddy. Full runbook, including the security-list ingress
+rule and a committed bootstrap script: `docs/16-DEPLOY-ORACLE.md`,
+`tools/oracle_vm_setup.sh`. (A Caddy+domain path is documented there as an
+appendix for anyone who already owns a domain.)
+
+Costs that are not money: a card for identity verification at signup, ARM
+capacity that is frequently unavailable in a given region, an idle-reclaim
 policy to watch, and a VM to patch. As of 2026 the free ARM allocation was
 halved to 2 OCPU / 12 GB — still far more than this app needs.
+
+Provisioning the VM and approving the Tailscale device both need a human with
+a browser — the build sandbox has no Oracle credentials and cannot click
+through a console, so this has been written up, never run.
 
 ### Why not what `docs/05-ARCHITECTURE.md` says
 
