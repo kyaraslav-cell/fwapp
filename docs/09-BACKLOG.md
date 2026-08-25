@@ -443,7 +443,7 @@ Sketch, for whoever builds it:
 - Cost stays bounded because it is one recompute per qualifying lake per day,
   not per request and not per forecast day.
 
-**Built, 2026-08-25 - DONE, pending a live check.** Followed the sketch above
+**Built, 2026-08-25 - DONE, live-verified except one visual check.** Followed the sketch above
 directly:
 - `geo_service.hires_cell_size_for_area(area_ha)` (`app/geo/service.py`)
   extends `cell_size_for_area`'s scaling with its own target-cell-count and
@@ -491,16 +491,25 @@ directly:
   below-threshold lake falls back to live scoring). `make check` green: ruff,
   `mypy --strict` on the required packages including the now-larger
   `app/geo` and `app/jobs`, 346/346 tests passing (up from 333).
-- **What is NOT verified, and can't be from this sandbox** (per `docs/10 §6`
-  and this task's own brief): the real APScheduler firing at 04:15 UTC and
-  actually running against the owner's live `dell.tailf99616.ts.net`
-  deployment; the real Zalew Zegrzynski outline/weather producing a sane
-  32 m grid end to end, not a fixture polygon; and - this is the one worth
-  double-checking deliberately, not just running the clock forward - that
-  the cached payload actually renders correctly on the Leaflet canvas at a
-  finer resolution than before, per this project's own visual-verification
-  rule. `tools/animation_filmstrip.py`/`tools/icon_sheet.py` don't cover a
-  heat overlay; nothing in `tools/` currently screenshots the map, so that
+- **Live-verified on the owner's actual deployment, 2026-08-25, after the
+  cloud run pushed this**: pulled the commit, rebuilt the container, ran
+  `handle_grid_hires` for real against the real Zalew Zegrzynski outline and
+  weather (not a fixture) - `hi-res grid cached for 2026-08-25: 409x412,
+  20007 cells at 32.0 m`, matching the predicted resolution exactly.
+  `/lake/zalew-zegrzynski/grid?horizon=0` served those same 20 007 cells;
+  `?horizon=1` (a forecast day) correctly fell through to the coarse
+  4 985-cell on-demand path instead of reading the cache; `/lake/pomocnia/grid`
+  (below the 50 ha threshold) was untouched. Container logs confirmed
+  APScheduler registered `run_hires_grid_job` for its daily cadence.
+- **Still not verified: the actual pixel-level render.** The one check worth
+  doing deliberately rather than trusting the data alone - does the cached
+  payload paint visibly smoother on the Leaflet canvas than the old 64 m
+  grid - could not be completed. The in-session browser tool's pane stopped
+  compositing frames ("the Browser pane is not displayed") for reasons
+  outside this session's control; `get_page_text` confirmed the page loads
+  with real content, but that is not the same as looking at the overlay.
+  `tools/animation_filmstrip.py`/`tools/icon_sheet.py` don't cover a heat
+  overlay either; nothing in `tools/` currently screenshots the map, so that
   needs a live look on the owner's machine, not a claim from here.
 - One deliberate scope cut: the hi-res cells are only ever computed for the
   wind direction and phase at ~04:15 UTC. If the wind swings hard later the
