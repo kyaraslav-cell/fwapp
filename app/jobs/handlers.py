@@ -21,6 +21,8 @@ from collections.abc import Callable
 from sqlalchemy.orm import Session
 
 from app.core.models import Job, Lake
+from app.core.time import to_display, utcnow
+from app.geo import hires_cache
 from app.geo import service as geo_service
 from app.geo.grid import polygon_area_ha
 from app.geo.outline import fetch_osm_outline_strict
@@ -29,6 +31,10 @@ from app.ingest.open_meteo import ingest_forecast
 from app.intel import gemini
 from app.intel import service as intel_service
 from app.predict.daily import generate_predictions
+from app.rules.loader import load_active_ruleset
+from app.web import bite_view
+from app.web.view_helpers import current_conditions
+from app.web.weather_table import recent_days
 
 logger = logging.getLogger("fishlog.jobs")
 
@@ -37,6 +43,10 @@ WEATHER = "weather_backfill"
 FORECAST = "forecast"
 GRID = "grid"
 INTEL = "intel"
+# Not in NEW_WATER_PIPELINE: this is a recurring daily refresh keyed to
+# *today*, not a one-time build step for a newly added water - see its own
+# scheduler entry in app/ingest/scheduler.py and docs/09-BACKLOG.md §19c.
+GRID_HIRES = "grid_hires"
 
 # The order a newly discovered water is built in. Outline first because the grid
 # needs it; weather before forecast because the pressure norm needs history.
@@ -144,6 +154,80 @@ def handle_grid(db: Session, job: Job) -> str:
     return f"grid built: {grid.n_rows}x{grid.n_cols}, {len(grid.cells)} cells at {cell_m} m"
 
 
+def _todays_wind_dir(db: Session, lake: Lake) -> float | None:
+    """The same "wind right now, or the next best thing" the lake page itself
+    falls back through when picking a default - see `lake_detail` in
+    `app/web/routes/places.py`. Kept in sync deliberately: the background job
+    and the live page should agree on what "today's wind" means.
+    """
+    conditions = current_conditions(db, lake)
+    if conditions is not None and conditions.get("wind_direction_10m") is not None:
+        wind: float = conditions["wind_direction_10m"]
+        return wind
+    days = recent_days(db, lake, days=1)
+    if days and days[0]["wind_dir"] is not None:
+        wind_fallback: float = days[0]["wind_dir"]
+        return wind_fallback
+    return None
+
+
+def handle_grid_hires(db: Session, job: Job) -> str:
+    """Once a day, a finer grid for one large water's TODAY conditions only.
+
+    Docs/09-BACKLOG.md §19c: big waters get coarse cells from
+    `geo_service.cell_size_for_area` because the interactive endpoint has to
+    stay cheap on every request. This runs once, in the background, and
+    caches the result (`app/geo/hires_cache.py`) for `/lake/{slug}/grid` to
+    serve on every request for today without recomputing - see that route.
+
+    Skips small waters outright rather than queuing pointless work: a lake
+    below the hi-res threshold gets nothing finer to compute in the first
+    place.
+    """
+    lake = _lake(db, job)
+    hires_cell_m = geo_service.hires_cell_size_for_area(lake.area_ha)
+    if hires_cell_m is None:
+        return "below the hi-res size threshold, skipped"
+
+    if not lake.outline_geojson:
+        if lake.outline_source == "none":
+            return "no outline for this water, so no hi-res grid"
+        raise NotReadyYet("waiting for the outline")
+
+    outline = json.loads(lake.outline_geojson)
+    grid = geo_service.get_grid(lake, outline, cell_m=hires_cell_m)
+
+    wind_dir = _todays_wind_dir(db, lake)
+    if wind_dir is None:
+        raise NotReadyYet("waiting for today's weather")
+
+    inputs = geo_service.get_geometry_inputs(lake, outline, grid, wind_dir)
+    ruleset = load_active_ruleset()
+    scored, phase_used, model_used = bite_view.score_grid_cells(
+        db, lake, ruleset, inputs, wind_dir
+    )
+
+    for_date = to_display(utcnow()).date().isoformat()
+    payload = {
+        "origin_lat": grid.origin_lat,
+        "origin_lon": grid.origin_lon,
+        "cell_m": grid.cell_m,
+        "n_rows": grid.n_rows,
+        "n_cols": grid.n_cols,
+        "wind_dir": wind_dir,
+        "phase": phase_used,
+        "model": model_used,
+        "cells": [[r, c, v] for r, c, v in scored],
+    }
+    hires_cache.store(
+        db, lake.id, for_date, hires_cell_m, wind_dir, phase_used, model_used, payload
+    )
+    return (
+        f"hi-res grid cached for {for_date}: {grid.n_rows}x{grid.n_cols}, "
+        f"{len(grid.cells)} cells at {hires_cell_m} m"
+    )
+
+
 def handle_intel(db: Session, job: Job) -> str:
     """Collect what is publicly documented about this water, or say why not.
 
@@ -227,5 +311,6 @@ HANDLERS: dict[str, Callable[[Session, Job], str]] = {
     WEATHER: handle_weather,
     FORECAST: handle_forecast,
     GRID: handle_grid,
+    GRID_HIRES: handle_grid_hires,
     INTEL: handle_intel,
 }

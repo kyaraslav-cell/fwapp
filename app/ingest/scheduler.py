@@ -9,6 +9,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from app.core.db import init_db, session_scope
 from app.core.seed import ensure_lake_seeded
+from app.geo import service as geo_service
 from app.ingest.open_meteo import ingest_forecast
 from app.predict.daily import generate_predictions
 
@@ -64,6 +65,30 @@ def run_monthly_refresh_job() -> None:
         logger.info("monthly refresh queued for %s waters", len(waters))
 
 
+def run_hires_grid_job() -> None:
+    """Queue today's finer grid for every water large enough to want one.
+
+    Its own daily cadence, not part of `NEW_WATER_PIPELINE`: adding a water
+    happens once, but "today" changes every day, so this has to re-run on a
+    schedule of its own (`docs/09-BACKLOG.md §19c`). Queued, not run inline,
+    so a slow grid build never delays this tick - `run_jobs_tick` drains it
+    like every other job.
+    """
+    from app.core.models import Lake
+    from app.jobs import queue
+    from app.jobs.handlers import GRID_HIRES
+
+    with session_scope() as db:
+        waters = db.query(Lake).all()
+        queued = 0
+        for lake in waters:
+            if geo_service.hires_cell_size_for_area(lake.area_ha) is None:
+                continue
+            queue.enqueue(db, GRID_HIRES, lake_id=lake.id)
+            queued += 1
+        logger.info("hi-res grid queued for %s water(s)", queued)
+
+
 def build_scheduler() -> BackgroundScheduler:
     scheduler = BackgroundScheduler(timezone="UTC")
     scheduler.add_job(run_ingest_job, CronTrigger(minute=5), id="fetch_openmeteo_forecast")
@@ -73,6 +98,13 @@ def build_scheduler() -> BackgroundScheduler:
         run_monthly_refresh_job,
         CronTrigger(day=1, hour=3, minute=0),
         id="refresh_discovered_waters",
+    )
+    # After the 04:00 prediction pass, so today's forecast is already in when
+    # this reads "today's wind" - not tied to that job otherwise.
+    scheduler.add_job(
+        run_hires_grid_job,
+        CronTrigger(hour=4, minute=15),
+        id="queue_hires_grid",
     )
     return scheduler
 

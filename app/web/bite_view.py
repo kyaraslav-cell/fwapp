@@ -20,12 +20,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.models import Lake, WeatherHourly
-from app.core.time import parse_iso, utcnow
+from app.core.time import parse_iso, to_display, utcnow
 from app.features import oxygen as ox
 from app.features import stability as stab
 from app.features import water_temp as wt
-from app.features.season import SeasonHint, derive_phase_from_water
+from app.features.season import SeasonHint, derive_phase_from_water, derive_season
 from app.rules import bite
+from app.rules.zone_score import _percentile_normalise, score_cells
 
 DEFAULT_SPECIES = "roach"
 
@@ -190,3 +191,51 @@ def zone_scores(
         view.water_24h_c if view.water_24h_c is not None else view.water.central,
         view.t_opt_c,
     )
+
+
+def score_grid_cells(
+    db: Session,
+    lake: Lake,
+    ruleset: dict[str, Any],
+    inputs: list[tuple[int, int, float, float]],
+    wind_dir: float,
+    phase: str = "",
+) -> tuple[list[tuple[int, int, float]], str, str]:
+    """Per-cell colours for one wind direction: three-factor model first, the
+    v0.3 geometry-only score as its fallback.
+
+    The one scoring path both `/lake/{slug}/grid` and the daily hi-res
+    background job (`docs/09-BACKLOG.md §19c`) call, so "today's" cells the
+    background job caches are computed exactly the way a live request would
+    have scored them - never a second, divergent implementation.
+
+    Returns (cells, phase_used, model_used).
+    """
+    if supports_bite_model(ruleset):
+        view = build(db, lake, ruleset)
+        raw = zone_scores(
+            db, lake, ruleset, inputs, view,
+            float(ruleset["zone_score"].get("margin_band_m", 25.0)),
+            float(ruleset["zone_score"].get("max_possible_fetch_m", 400.0)),
+        )
+        # Percentile display is a presentation transform and is shared with
+        # v0.3 on purpose - colour still means "better than other spots on
+        # this lake today", never "good fishing".
+        scored = _percentile_normalise(raw) if raw else []
+        phase_used = view.phase.phase
+        if not scored:
+            # No water temperature, so the three-factor model has nothing to
+            # say. Fall back to the v0.3 geometry-only score rather than
+            # publish a blank lake - the answer SAYS it fell back via `model`.
+            legacy = {"zone_score": ruleset["zone_score"]["fallback"]}
+            fallback_phase = derive_season(legacy, to_display(utcnow()).date()).phase
+            scored, phase_used = score_cells(legacy, fallback_phase, inputs)
+            model_used = "geometry_only_v0.3"
+        else:
+            model_used = "three_factor_v0.4"
+    else:
+        if not phase:
+            phase = derive_season(ruleset, to_display(utcnow()).date()).phase
+        scored, phase_used = score_cells(ruleset, phase, inputs)
+        model_used = "geometry_only_v0.3"
+    return scored, phase_used, model_used

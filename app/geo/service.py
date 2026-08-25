@@ -47,6 +47,40 @@ def cell_size_for_area(area_ha: float | None) -> float:
     # Round to whole metres so a cached grid and a rebuilt one agree exactly.
     return float(min(MAX_CELL_M, max(MIN_CELL_M, round(ideal))))
 
+
+# The hi-res tier (docs/09-BACKLOG.md §19c) is background-only: a daily job
+# computes it once, never a live request, so it can afford a target this app
+# would never accept per-request. Both numbers are compute-cost engineering
+# choices, not fishing judgement, so - per CLAUDE.md law 1 - they stay here
+# rather than in config/rules.v*.yaml.
+#
+# Threshold picked well above Pomocnia (9 ha) and below Zalew Zegrzynski
+# (2046.8 ha) - the two waters this app actually has - so the small lake the
+# interactive resolution already serves at 5 m stays untouched, and the large
+# one this feature exists for qualifies.
+HIRES_AREA_THRESHOLD_HA = 50.0
+HIRES_TARGET_CELLS = 20_000
+HIRES_MIN_CELL_M = 5.0
+# Finer ceiling than the interactive fallback's 150 m: a background job run
+# once a day can afford four times the interactive cell budget, so its
+# coarsest water still lands well inside MAX_CELL_M.
+HIRES_MAX_CELL_M = 60.0
+
+
+def hires_cell_size_for_area(area_ha: float | None) -> float | None:
+    """Metres per cell for the daily background grid, or None below threshold.
+
+    None is the signal a caller uses to skip the hi-res job/cache entirely for
+    a water this small - unknown area is treated the same way, since a water
+    with no measured area yet is never the large-water case this tier exists
+    for.
+    """
+    if area_ha is None or area_ha < HIRES_AREA_THRESHOLD_HA:
+        return None
+    area_m2 = area_ha * 10_000.0
+    ideal = math.sqrt(area_m2 / HIRES_TARGET_CELLS)
+    return float(min(HIRES_MAX_CELL_M, max(HIRES_MIN_CELL_M, round(ideal))))
+
 # Overpass and the grid maths are both too slow to run per request, and the
 # outline never changes - so both are cached. Outline is cached in the database,
 # grid and fetch fields in process.

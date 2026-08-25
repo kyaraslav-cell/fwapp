@@ -88,7 +88,11 @@
     </thead>
     <tbody>
       {% for d in days %}
-      <tr data-index="{{ loop.index0 }}" data-wind="{{ d.wind_dir if d.wind_dir is not none else '' }}">
+      {# horizon 0 only for the first (most recent/today) row - every other row
+         is a past day, and must never be answered from the hi-res cache,
+         which is only ever computed for today (docs/09-BACKLOG.md §19c). #}
+      <tr data-index="{{ loop.index0 }}" data-wind="{{ d.wind_dir if d.wind_dir is not none else '' }}"
+          data-horizon="{{ -loop.index0 }}">
         <td>
           {{ d.label }}
           {% if d.is_partial %}<span class="partial-flag">{{ t('lake.partial') }}</span>{% endif %}
@@ -280,6 +284,10 @@ const I18N = {
 };
 let currentWind = DEFAULT_WIND !== null ? DEFAULT_WIND : 270;
 const TODAY_WIND = currentWind;
+// The day strip's own horizon (0 = today), passed through to /grid so it can
+// tell a live request for today from one for a forecast day - only the
+// former may be answered from the daily hi-res cache.
+let currentHorizon = 0;
 
 // null while today is selected. Set to the day's label while a forecast day is,
 // which is the single flag that makes the map read-only: a session is always
@@ -388,7 +396,7 @@ function renderHeat(cells) {
 
 function gridUrl() {
   if (!STATIC_GRID) {
-    return `/lake/${LAKE.slug}/grid?wind_dir=${currentWind}&phase=${PHASE}`;
+    return `/lake/${LAKE.slug}/grid?wind_dir=${currentWind}&phase=${PHASE}&horizon=${currentHorizon}`;
   }
   // Snap to the bucket the build actually rendered. Modulo before rounding, so
   // 350 degrees lands on the 0 bucket rather than a file that does not exist.
@@ -554,6 +562,7 @@ function showDay(chip) {
   const horizon = parseInt(chip.dataset.horizon, 10);
   const day = dayData(horizon);
   const isToday = horizon === 0;
+  currentHorizon = horizon;
 
   dayStrip.querySelectorAll('.day-chip').forEach(c => {
     c.classList.remove('is-selected');
@@ -660,6 +669,7 @@ document.querySelectorAll('#weather-table tbody tr').forEach(tr => {
     // strip closes, which also returns the card and the session button to now.
     closeStrip();
     currentWind = parseFloat(wind);
+    currentHorizon = parseInt(tr.dataset.horizon, 10);
     loadGrid();
   });
 });

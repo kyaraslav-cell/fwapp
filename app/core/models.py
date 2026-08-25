@@ -301,6 +301,34 @@ class Job(Base):
     finished_at: Mapped[str | None] = mapped_column(String)
 
 
+class HiresGridCache(Base):
+    """One day's finer heat-map cells for one large water.
+
+    Written once a day by the `grid_hires` job (`app/jobs/handlers.py`),
+    never per request - see `docs/09-BACKLOG.md §19c`. Keyed by lake AND date,
+    not lake alone: without `for_date` a still-cached yesterday would answer
+    for today the moment the new day's job has not run yet, which is exactly
+    the kind of stale-read-presented-as-current law 4 exists to rule out.
+
+    `payload_json` holds the whole `/lake/{slug}/grid` response body, so the
+    route that serves it does no recomputation at all - it is a cache, not a
+    second scoring path that could drift from the live one.
+    """
+
+    __tablename__ = "hires_grid_cache"
+    __table_args__ = (UniqueConstraint("lake_id", "for_date"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    lake_id: Mapped[int] = mapped_column(Integer, ForeignKey("lake.id"), nullable=False)
+    for_date: Mapped[str] = mapped_column(String, nullable=False)  # YYYY-MM-DD, Europe/Warsaw
+    cell_m: Mapped[float] = mapped_column(Float, nullable=False)
+    wind_dir: Mapped[float] = mapped_column(Float, nullable=False)
+    phase: Mapped[str] = mapped_column(String, nullable=False)
+    model: Mapped[str] = mapped_column(String, nullable=False)
+    payload_json: Mapped[str] = mapped_column(Text, nullable=False)
+    generated_at: Mapped[str] = mapped_column(String, nullable=False)
+
+
 class LoginAttempt(Base):
     """One sign-in failure, or one account creation, kept only long enough to
     rate-limit the next one.

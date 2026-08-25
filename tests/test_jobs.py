@@ -11,6 +11,7 @@ waiting for one.
 
 from __future__ import annotations
 
+import json
 from datetime import timedelta
 
 import pytest
@@ -257,3 +258,146 @@ def test_the_grid_waits_for_a_shoreline_rather_than_failing(
     assert message is not None and "deferred" in message
     job = db.query(Job).one()
     assert job.state == queue.QUEUED and job.attempts == 0
+
+
+# ---------------------------------------------------------------------------
+# The daily hi-res grid (docs/09-BACKLOG.md §19c)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def big_lake(db: Session) -> Lake:
+    """Well above HIRES_AREA_THRESHOLD_HA - a Zegrzynski-sized water."""
+    row = Lake(
+        slug="big", name="Big Water", centroid_lat=52.45, centroid_lon=21.05,
+        area_ha=2046.8, timezone="Europe/Warsaw", created_at=iso(utcnow()),
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
+def _fake_scored_cells(
+    *args: object, **kwargs: object
+) -> tuple[list[tuple[int, int, float]], str, str]:
+    return [(0, 0, 0.5)], "summer_stagnation", "geometry_only_v0.3"
+
+
+def _give_outline(lake: Lake) -> None:
+    import json
+
+    from app.geo.demo_zones import approximate_outline_geojson
+
+    lake.outline_geojson = json.dumps(
+        approximate_outline_geojson(lake.centroid_lat, lake.centroid_lon, lake.area_ha)
+    )
+
+
+def _give_weather(db: Session, lake: Lake) -> None:
+    from app.core.models import WeatherHourly
+
+    db.add(
+        WeatherHourly(
+            lake_id=lake.id, source="openmeteo_forecast", ts_utc=iso(utcnow()),
+            is_forecast=0, pressure_msl=1013.0, wind_direction_10m=225.0,
+            wind_speed_10m=4.0, fetched_at=iso(utcnow()),
+        )
+    )
+    db.flush()
+
+
+def test_hires_grid_skips_a_lake_below_the_size_threshold(
+    db: Session, lake: Lake, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pomocnia-sized water: nothing finer to compute, so nothing is queued."""
+    from app.core.models import HiresGridCache
+    from app.jobs import handlers, runner
+
+    lake.area_ha = 9.0
+    monkeypatch.setattr(runner, "session_scope", _fake_scope(db))
+    queue.enqueue(db, handlers.GRID_HIRES, lake_id=lake.id)
+
+    message = runner.run_one()
+
+    assert message is not None and "below the hi-res size threshold" in message
+    assert db.query(Job).one().state == queue.DONE
+    assert db.query(HiresGridCache).count() == 0
+
+
+def test_hires_grid_waits_for_a_shoreline(
+    db: Session, big_lake: Lake, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.jobs import handlers, runner
+
+    monkeypatch.setattr(runner, "session_scope", _fake_scope(db))
+    queue.enqueue(db, handlers.GRID_HIRES, lake_id=big_lake.id)
+
+    message = runner.run_one()
+
+    assert message is not None and "deferred" in message
+    job = db.query(Job).one()
+    assert job.state == queue.QUEUED and job.attempts == 0
+
+
+def test_hires_grid_waits_for_todays_weather(
+    db: Session, big_lake: Lake, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.jobs import handlers, runner
+
+    _give_outline(big_lake)
+    db.flush()
+    monkeypatch.setattr(runner, "session_scope", _fake_scope(db))
+    queue.enqueue(db, handlers.GRID_HIRES, lake_id=big_lake.id)
+
+    message = runner.run_one()
+
+    assert message is not None and "deferred" in message
+    assert "weather" in (db.query(Job).one().last_error or "")
+
+
+def test_hires_grid_caches_todays_cells(
+    db: Session, big_lake: Lake, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.core.models import HiresGridCache
+    from app.core.time import to_display
+    from app.jobs import handlers, runner
+
+    _give_outline(big_lake)
+    _give_weather(db, big_lake)
+    monkeypatch.setattr(handlers.bite_view, "score_grid_cells", _fake_scored_cells)
+    monkeypatch.setattr(runner, "session_scope", _fake_scope(db))
+    queue.enqueue(db, handlers.GRID_HIRES, lake_id=big_lake.id)
+
+    message = runner.run_one()
+
+    assert message is not None and "hi-res grid cached" in message
+    assert db.query(Job).one().state == queue.DONE
+
+    row = db.query(HiresGridCache).one()
+    assert row.lake_id == big_lake.id
+    assert row.for_date == to_display(utcnow()).date().isoformat()
+    assert row.wind_dir == 225.0
+    payload = json.loads(row.payload_json)
+    assert payload["cells"] == [[0, 0, 0.5]]
+    assert payload["model"] == "geometry_only_v0.3"
+
+
+def test_hires_grid_replaces_rather_than_duplicates(
+    db: Session, big_lake: Lake, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Running twice in one day - e.g. a redeploy - must not pile up rows."""
+    from app.core.models import HiresGridCache
+    from app.jobs import handlers, runner
+
+    _give_outline(big_lake)
+    _give_weather(db, big_lake)
+    monkeypatch.setattr(handlers.bite_view, "score_grid_cells", _fake_scored_cells)
+    monkeypatch.setattr(runner, "session_scope", _fake_scope(db))
+
+    queue.enqueue(db, handlers.GRID_HIRES, lake_id=big_lake.id)
+    runner.run_one()
+    queue.finish(db, db.query(Job).one())
+    queue.enqueue(db, handlers.GRID_HIRES, lake_id=big_lake.id)
+    runner.run_one()
+
+    assert db.query(HiresGridCache).count() == 1

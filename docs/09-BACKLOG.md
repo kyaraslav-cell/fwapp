@@ -330,7 +330,7 @@ fish.
 currently scored as though they were water. Recorded honestly in `docs/13 §11`
 rather than fixed quietly.
 
-## 19. From the first live session on the owner's machine · TODO
+## 19. From the first live session on the owner's machine · 19a/19c DONE, 19b open design question
 
 Three things the owner asked for on 2026-08-24, after seeing the app running
 for real for the first time. Not started - written down so the brief survives
@@ -442,3 +442,72 @@ Sketch, for whoever builds it:
   and for lakes below the size threshold.
 - Cost stays bounded because it is one recompute per qualifying lake per day,
   not per request and not per forecast day.
+
+**Built, 2026-08-25 - DONE, pending a live check.** Followed the sketch above
+directly:
+- `geo_service.hires_cell_size_for_area(area_ha)` (`app/geo/service.py`)
+  extends `cell_size_for_area`'s scaling with its own target-cell-count and
+  clamp, gated behind `HIRES_AREA_THRESHOLD_HA = 50.0` ha - well above
+  Pomocnia (9 ha, untouched, returns `None`) and below Zalew Zegrzynski
+  (2046.8 ha, gets 32 m cells vs. the interactive endpoint's 64 m). Both the
+  threshold and the target-cell-count are compute-cost engineering choices,
+  not fishing judgement, so per CLAUDE.md law 1 they stay in code rather than
+  `config/rules.v*.yaml`.
+- `GRID_HIRES = "grid_hires"` in `app/jobs/handlers.py`, deliberately **not**
+  in `NEW_WATER_PIPELINE` - its own daily `CronTrigger(hour=4, minute=15)`
+  entry in `app/ingest/scheduler.py`, right after the 04:00 prediction pass so
+  "today's wind" already reflects the fresh forecast. `run_hires_grid_job`
+  queues one job per qualifying lake; the existing 30 s `run_jobs_tick` drains
+  it like every other job kind, so a slow grid build never blocks the tick.
+- The handler computes today's wind the same way the live lake page already
+  picks a default (`current_conditions`, falling back to `recent_days`'
+  first entry - factored out as `_todays_wind_dir` so the two cannot drift),
+  scores the grid through a **new shared function**,
+  `bite_view.score_grid_cells`, and writes the result to a new table,
+  `HiresGridCache` (`app/core/models.py`), keyed on `(lake_id, for_date)` and
+  replaced idempotently rather than appended to.
+- `bite_view.score_grid_cells` is the one refactor beyond the sketch: the
+  three-factor/v0.3-fallback scoring logic used to live inline in the
+  `/lake/{slug}/grid` route. Pulled out so the route and the background job
+  call the exact same scoring path - the cache can never disagree with what a
+  live request would have computed for the same inputs.
+- `/lake/{slug}/grid` gained a `horizon` query param (0 = today, matching the
+  day strip's own horizon numbering) and checks the cache first when
+  `horizon == 0`; every other horizon, and every lake below the size
+  threshold (whose cache is simply never written), falls through to the
+  existing on-demand coarse path unchanged. `gridUrl()` in
+  `lake_detail.html` now sends `horizon`, kept in sync by the day strip
+  *and* by the "recent conditions" weather-table row click - that table lets
+  you preview a past day's wind independently of the day strip, and without
+  giving those rows their own (negative) horizon the cache would have kept
+  answering with today's wind no matter which past row was clicked. Caught
+  by re-reading the click handler after the first pass, not by a test.
+- Tests: `tests/test_hires_grid_resolution.py` (pure resolution/threshold
+  arithmetic), `tests/test_jobs.py` (the new handler - threshold skip,
+  waits on outline, waits on today's weather, writes the cache, replaces
+  rather than duplicates on a second run), `tests/test_hires_grid_route.py`
+  (full app via `TestClient` - today is served from a seeded cache row, a
+  forecast horizon never reads it even when a same-lake row exists, a
+  below-threshold lake falls back to live scoring). `make check` green: ruff,
+  `mypy --strict` on the required packages including the now-larger
+  `app/geo` and `app/jobs`, 346/346 tests passing (up from 333).
+- **What is NOT verified, and can't be from this sandbox** (per `docs/10 §6`
+  and this task's own brief): the real APScheduler firing at 04:15 UTC and
+  actually running against the owner's live `dell.tailf99616.ts.net`
+  deployment; the real Zalew Zegrzynski outline/weather producing a sane
+  32 m grid end to end, not a fixture polygon; and - this is the one worth
+  double-checking deliberately, not just running the clock forward - that
+  the cached payload actually renders correctly on the Leaflet canvas at a
+  finer resolution than before, per this project's own visual-verification
+  rule. `tools/animation_filmstrip.py`/`tools/icon_sheet.py` don't cover a
+  heat overlay; nothing in `tools/` currently screenshots the map, so that
+  needs a live look on the owner's machine, not a claim from here.
+- One deliberate scope cut: the hi-res cells are only ever computed for the
+  wind direction and phase at ~04:15 UTC. If the wind swings hard later the
+  same day, today's cached overlay does not follow it - the interactive
+  coarse grid still does, for every water below the size threshold or on any
+  other horizon. This is the sketch's own trade (§19c: "not a blocking
+  on-demand recompute"), not an oversight, but it means a large water's map
+  can go a few hours stale on wind direction specifically, on a day the wind
+  actually shifts. Worth a line to the owner if it turns out to matter more
+  than expected once Zalew Zegrzynski is used for real.

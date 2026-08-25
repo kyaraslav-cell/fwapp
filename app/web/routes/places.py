@@ -12,6 +12,7 @@ from app.core.i18n import COOKIE_NAME, normalise
 from app.core.models import Lake
 from app.core.time import parse_iso, to_display, utcnow
 from app.features.season import derive_season
+from app.geo import hires_cache
 from app.geo import service as geo_service
 from app.geo.thumbnail import outline_thumbnail_path
 from app.ingest.open_meteo import ingest_forecast
@@ -20,7 +21,6 @@ from app.notebook import water_type as water_type_mod
 from app.notebook.sessions import METHODS, active_session, lake_stats, start_session
 from app.predict.daily import OUTLOOK_DAYS, generate_predictions, latest_prediction
 from app.rules.loader import load_active_ruleset
-from app.rules.zone_score import _percentile_normalise, score_cells
 from app.web import bite_view
 from app.web.build_status import status_for
 from app.web.deps import (
@@ -236,9 +236,16 @@ def lake_grid(
     slug: str,
     wind_dir: float = 270.0,
     phase: str = "",
+    horizon: int = 0,
     db: Session = Depends(get_db),
 ):
-    """Per-cell provisional zone scores for one wind direction and phase."""
+    """Per-cell provisional zone scores for one wind direction and phase.
+
+    `horizon` is the day strip's own horizon (0 = today) - the only thing
+    that tells this route whether a cached hi-res grid (`docs/09-BACKLOG.md
+    §19c`) is even allowed to answer. A forecast day always recomputes on
+    demand: the background job only ever scores today.
+    """
     lake = get_lake_by_slug(db, slug)
     outline = water_outline(db, lake)
     if outline is None:
@@ -249,46 +256,21 @@ def lake_grid(
             {"cells": [], "model": "no_outline", "wind_dir": wind_dir, "phase": phase},
             status_code=200,
         )
+
+    if horizon == 0:
+        cached = hires_cache.fetch(db, lake.id, to_display(utcnow()).date().isoformat())
+        if cached is not None:
+            return JSONResponse(cached)
+
     grid = geo_service.get_grid(
         lake, outline, cell_m=geo_service.cell_size_for_area(lake.area_ha)
     )
     inputs = geo_service.get_geometry_inputs(lake, outline, grid, wind_dir)
 
     ruleset = load_active_ruleset()
-
-    if bite_view.supports_bite_model(ruleset):
-        view = bite_view.build(db, lake, ruleset)
-        raw = bite_view.zone_scores(
-            db, lake, ruleset, inputs, view,
-            float(ruleset["zone_score"].get("margin_band_m", 25.0)),
-            float(ruleset["zone_score"].get("max_possible_fetch_m", 400.0)),
-        )
-        # Percentile display is a presentation transform and is shared with
-        # v0.3 on purpose - colour still means "better than other spots on this
-        # lake today", never "good fishing".
-        scored = _percentile_normalise(raw) if raw else []
-        phase_used = view.phase.phase
-        if not scored:
-            # No water temperature, so the three-factor model has nothing to
-            # say. Fall back to the v0.3 geometry-only score rather than
-            # publish a blank lake - the Pages build starts from an empty
-            # database every run, so a failed ingest would otherwise ship a map
-            # with no colour on it at all.
-            #
-            # Falling back is only acceptable because the answer SAYS it fell
-            # back: `model` names which one produced these cells, and the page
-            # must not present the two as the same thing.
-            legacy = {"zone_score": ruleset["zone_score"]["fallback"]}
-            fallback_phase = derive_season(legacy, to_display(utcnow()).date()).phase
-            scored, phase_used = score_cells(legacy, fallback_phase, inputs)
-            model_used = "geometry_only_v0.3"
-        else:
-            model_used = "three_factor_v0.4"
-    else:
-        if not phase:
-            phase = derive_season(ruleset, to_display(utcnow()).date()).phase
-        scored, phase_used = score_cells(ruleset, phase, inputs)
-        model_used = "geometry_only_v0.3"
+    scored, phase_used, model_used = bite_view.score_grid_cells(
+        db, lake, ruleset, inputs, wind_dir, phase
+    )
 
     return JSONResponse(
         {
