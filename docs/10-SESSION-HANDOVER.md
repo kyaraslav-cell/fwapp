@@ -107,6 +107,12 @@ These came from the owner directly and are not negotiable without asking.
     needs calibration against logged sessions, and there are none. A colour
     band is what the engine honestly produces. This generalises rule 2 from the
     day score to anything the app might be tempted to quantify.
+17. **One active session per angler, not one per browser.** Concurrent
+    sign-in from different locations is not allowed (2026-08-25) - a fresh
+    login revokes every session that came before it, `app/auth/service.py`'s
+    `start_auth_session`. The trade this makes is deliberate: switching from
+    phone to laptop mid-trip signs the phone out. Pinned by
+    `tests/test_auth_routes.py::test_a_new_sign_in_revokes_the_previous_one`.
 
 ---
 

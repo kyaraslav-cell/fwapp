@@ -163,7 +163,17 @@ def start_auth_session(
     now: datetime | None = None,
     user_agent: str | None = None,
 ) -> SignIn:
+    """Sign in on this browser - and nowhere else.
+
+    One active session per angler, not one per browser: the owner does not
+    want to be signed in from two locations at once (2026-08-25), so a fresh
+    sign-in revokes every session that came before it, the same mechanism
+    `sign_out_everywhere` already gave the lost-phone button. The trade this
+    makes is deliberate - switching from phone to laptop mid-trip signs the
+    phone out - not an oversight.
+    """
     now = now or utcnow()
+    sign_out_everywhere(db, user, now=now)
     token = tokens.new_token()
     expires_at = now + timedelta(days=tokens.SESSION_DAYS)
     db.add(

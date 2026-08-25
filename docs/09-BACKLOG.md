@@ -554,3 +554,120 @@ directly:
   can go a few hours stale on wind direction specifically, on a day the wind
   actually shifts. Worth a line to the owner if it turns out to matter more
   than expected once Zalew Zegrzynski is used for real.
+
+## 20. Automated bug/UX sweep (site-audit) · DONE, first pass — 2026-08-25
+
+Requested after the §19c overlay bug (above) was only caught because the
+owner happened to look and screenshot it - the owner asked for an
+independent tool that finds this class of thing (dead controls, visual
+regressions, accessibility issues) without waiting on a human to notice,
+free and lightweight, with a repeatable procedure ("we will use it in the
+future").
+
+Researched paid/AI options (Percy, Applitools, testRigor, BugBug, Autify,
+Skyvern, Stagehand, browser-use) and rejected all of them for this app: paid
+SaaS either costs money past a small free tier or needs the app reachable
+from third-party infrastructure (this app is self-hosted behind a Tailscale
+funnel by design, `docs/10 §9`); AI browser agents call an LLM on every
+navigation decision, which burns credits on every run for a small, fixed
+set of pages that don't need rediscovering each time.
+
+**Built:** `tools/site_audit.py` — Playwright (already an undeclared
+dependency of four existing tools; now actually in `requirements-dev.txt`)
+drives register → home → lake page → pick a spot → start a session → log a
+catch → end session in a real browser, and reports:
+- **dead controls** - any `<a>`/`<button>` with no href, handler, htmx
+  attribute or enclosing form, via an init script that tags every element a
+  real `addEventListener` call touches;
+- **console/page errors** and **failed (4xx/5xx) requests**, per page;
+- **visual diffs** against `tools/baselines/*.png` (committed to the repo,
+  same convention as `tools/icon_sheet.py --compare`) via a Pillow pixel
+  diff;
+- **accessibility violations** (serious/critical only) via `axe-core-python`
+  (the real axe-core, vendored by the pip package - no CDN fetch at
+  runtime).
+
+No LLM in the loop anywhere in the script itself - every check is
+deterministic, so a run costs compute, not credits. Triage (is a finding
+actually a bug, judged against CLAUDE.md and the docs rather than taste) is
+the separate job of whoever - or whichever session - reads the report; see
+the new `site-audit` skill (`.claude/skills/site-audit/SKILL.md`) for that
+procedure.
+
+**Caught a real bug on its first real run**, before this item was even
+finished: `screenshot_and_diff` hard-timed-out instead of skipping cleanly
+when a target was legitimately hidden (the map's own `try/catch` fallback
+when the Leaflet CDN can't be reached - which is the normal state *in this
+cloud sandbox specifically*, since `unpkg.com` is outside its network
+allowlist). Fixed by checking visibility first. Left as a live example, in
+this file, of the tool paying for itself immediately.
+
+**Not yet wired to a schedule or a milestone** - deliberately, per the
+owner ("we will decide it later"). Runs on request for now
+(`/site-audit` or asking for a bug sweep).
+
+**What this cloud sandbox could verify, and what it could not:**
+- Verified here: the script runs end-to-end against a fresh local instance
+  (throwaway SQLite DB, the seeded Pomocnia lake, no real network needed)
+  through registration and the home/lake pages.
+- **Not verified: the full flow against a real map.** This sandbox cannot
+  reach `unpkg.com` (Leaflet's CDN), so the map never loads here and the
+  pick-a-spot → start-session → log-a-catch steps never execute - the
+  script degrades to a note rather than crashing, but that is not the same
+  as a real pass. **First thing to check on the owner's machine** (or a
+  local Claude session there, which has real network both to Leaflet's CDN
+  and to the live deployment): run `tools/site_audit.py` against
+  `http://127.0.0.1:8090` (a local `make dev`) and then against the real
+  Tailscale URL, and read whether it gets all the way through logging a
+  catch.
+- **The open question is answered and built, 2026-08-25: no, concurrent
+  login is not allowed.** `app/auth/service.py`'s `start_auth_session` now
+  revokes every existing session for the account before creating the new
+  one (reusing `sign_out_everywhere`, the same mechanism the lost-phone
+  button already had) - one active session per angler, not one per browser.
+  Pinned by `tests/test_auth_routes.py::test_a_new_sign_in_revokes_the_previous_one`.
+  Also recorded as a standing rule, `docs/10-SESSION-HANDOVER.md §2` rule 17.
+  The trade this makes is deliberate, not an oversight: switching from phone
+  to laptop mid-trip signs the phone out - worth a line to the owner if that
+  turns out to be annoying in practice, since the alternative (allow several,
+  offer a "sign out everywhere" button) is a real design the owner could
+  choose instead.
+
+**Scheduled, 2026-08-25: nightly, via the host's own cron, not Claude Code
+Remote.** The owner asked for "every day at night," then specifically chose
+cron on the machine running the app over a cloud-scheduled Routine, once it
+was clear a cloud Routine could only ever repeat the degraded smoke-test
+path - this cloud sandbox cannot reach either `unpkg.com` or the real
+deployment (confirmed: the outbound proxy returns a policy 403 for the
+Tailscale host), and a Routine fired into this same environment would face
+the identical restriction. Cron on the real machine has real network to the
+real app for free, with no new infrastructure.
+
+A second issue surfaced while designing this, before it ever ran against
+production: the tool's full flow (register → session → log a catch) writes
+real rows. Run nightly against a real database forever, that is a fake
+angler's fake catch fabricated into the real notebook every night - exactly
+what CLAUDE.md law 3 forbids. Fixed by splitting `tools/site_audit.py`:
+`audit_public_pages()` (dead controls, console/network errors, a11y, visual
+diffs on the public home/lake pages - nothing writes) and
+`audit_authenticated_flow()` (the writing part), selected by a new
+`--public-only` flag. The nightly job always passes `--public-only`; the
+full flow stays on-demand, against a throwaway database only.
+
+**Built:** `tools/nightly_audit.sh` - checks the working tree is clean
+before syncing to the branch tip (never discards uncommitted work), runs
+`site_audit.py --public-only` against `http://127.0.0.1:8000` (localhost,
+not the Tailscale funnel - the script runs on the same machine as the
+container, so there's no reason to round-trip through the funnel), and
+only when it finds something: writes `reports/site_audit/<date>.md`,
+commits and pushes it to `claude/repository-edit-push-ggr229`, with one
+retry after resyncing if the push races another writer. A clean night
+writes and commits nothing - the repo's history only ever shows nights that
+found something, per the owner's chosen delivery mechanism (commit the
+report to git, not a local-only log file).
+
+**Not yet done, and outside what this session can do:** actually adding the
+crontab line on the owner's machine - this session has no execution access
+there. Setup is documented in the script's own header comment
+(`tools/nightly_audit.sh`): `pip install -r requirements-dev.txt`,
+`playwright install chromium`, `chmod +x`, then one `crontab -e` line.

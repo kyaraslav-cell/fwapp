@@ -2,7 +2,11 @@
 <html lang="{{ lang }}">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  {# maximum-scale=1 blocked pinch-zoom outright (axe-core: meta-viewport,
+     critical) - a real accessibility failure for a low-vision angler, with
+     no effect on layout at the default scale, so nothing to weigh against
+     the pastel/minimal design rule (CLAUDE.md). Caught by tools/site_audit.py. #}
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Fishlog{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
