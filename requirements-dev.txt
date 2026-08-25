@@ -3,3 +3,12 @@ pytest==8.3.4
 ruff==0.8.6
 mypy==1.14.1
 types-PyYAML==6.0.12.20241221
+# tools/animation_filmstrip.py, icon_sheet.py, switch_sheet.py and
+# site_audit.py all drive a real browser - this was missing from both
+# requirements files even though four tools already imported it, which is
+# why none of them have ever run anywhere but a sandbox with Playwright
+# pre-staged. Run `.venv/bin/playwright install chromium` once after
+# installing this on a machine without /opt/pw-browsers (i.e. not this
+# cloud sandbox).
+playwright==1.62.0
+axe-core-python==0.1.0

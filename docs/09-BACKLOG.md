@@ -541,3 +541,76 @@ directly:
   can go a few hours stale on wind direction specifically, on a day the wind
   actually shifts. Worth a line to the owner if it turns out to matter more
   than expected once Zalew Zegrzynski is used for real.
+
+## 20. Automated bug/UX sweep (site-audit) · DONE, first pass — 2026-08-25
+
+Requested after the §19c overlay bug (above) was only caught because the
+owner happened to look and screenshot it - the owner asked for an
+independent tool that finds this class of thing (dead controls, visual
+regressions, accessibility issues) without waiting on a human to notice,
+free and lightweight, with a repeatable procedure ("we will use it in the
+future").
+
+Researched paid/AI options (Percy, Applitools, testRigor, BugBug, Autify,
+Skyvern, Stagehand, browser-use) and rejected all of them for this app: paid
+SaaS either costs money past a small free tier or needs the app reachable
+from third-party infrastructure (this app is self-hosted behind a Tailscale
+funnel by design, `docs/10 §9`); AI browser agents call an LLM on every
+navigation decision, which burns credits on every run for a small, fixed
+set of pages that don't need rediscovering each time.
+
+**Built:** `tools/site_audit.py` — Playwright (already an undeclared
+dependency of four existing tools; now actually in `requirements-dev.txt`)
+drives register → home → lake page → pick a spot → start a session → log a
+catch → end session in a real browser, and reports:
+- **dead controls** - any `<a>`/`<button>` with no href, handler, htmx
+  attribute or enclosing form, via an init script that tags every element a
+  real `addEventListener` call touches;
+- **console/page errors** and **failed (4xx/5xx) requests**, per page;
+- **visual diffs** against `tools/baselines/*.png` (committed to the repo,
+  same convention as `tools/icon_sheet.py --compare`) via a Pillow pixel
+  diff;
+- **accessibility violations** (serious/critical only) via `axe-core-python`
+  (the real axe-core, vendored by the pip package - no CDN fetch at
+  runtime).
+
+No LLM in the loop anywhere in the script itself - every check is
+deterministic, so a run costs compute, not credits. Triage (is a finding
+actually a bug, judged against CLAUDE.md and the docs rather than taste) is
+the separate job of whoever - or whichever session - reads the report; see
+the new `site-audit` skill (`.claude/skills/site-audit/SKILL.md`) for that
+procedure.
+
+**Caught a real bug on its first real run**, before this item was even
+finished: `screenshot_and_diff` hard-timed-out instead of skipping cleanly
+when a target was legitimately hidden (the map's own `try/catch` fallback
+when the Leaflet CDN can't be reached - which is the normal state *in this
+cloud sandbox specifically*, since `unpkg.com` is outside its network
+allowlist). Fixed by checking visibility first. Left as a live example, in
+this file, of the tool paying for itself immediately.
+
+**Not yet wired to a schedule or a milestone** - deliberately, per the
+owner ("we will decide it later"). Runs on request for now
+(`/site-audit` or asking for a bug sweep).
+
+**What this cloud sandbox could verify, and what it could not:**
+- Verified here: the script runs end-to-end against a fresh local instance
+  (throwaway SQLite DB, the seeded Pomocnia lake, no real network needed)
+  through registration and the home/lake pages.
+- **Not verified: the full flow against a real map.** This sandbox cannot
+  reach `unpkg.com` (Leaflet's CDN), so the map never loads here and the
+  pick-a-spot → start-session → log-a-catch steps never execute - the
+  script degrades to a note rather than crashing, but that is not the same
+  as a real pass. **First thing to check on the owner's machine** (or a
+  local Claude session there, which has real network both to Leaflet's CDN
+  and to the live deployment): run `tools/site_audit.py` against
+  `http://127.0.0.1:8090` (a local `make dev`) and then against the real
+  Tailscale URL, and read whether it gets all the way through logging a
+  catch.
+- One open question the tool deliberately does **not** try to answer: the
+  owner's original example, "I can run multiple sessions at the same time
+  from different locations" - that is a behavioural/security question
+  (is concurrent login intended?), not something a browser-rendering tool
+  can judge. Needs the owner's answer on intent before it becomes a
+  `pytest` test (`app/auth/`, `app/web/routes/sessions.py`), the same
+  pattern as `tests/test_throttle.py`.
