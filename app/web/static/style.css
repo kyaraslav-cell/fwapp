@@ -5,6 +5,13 @@
   --border: #dbe9f5;
   --text: #22384d;
   --muted: #6c8299;
+  /* #6c8299 on --surface-alt is 3.5:1 - fails WCAG AA (4.5:1) for the small
+     bold link text it was used on (language switcher, sign-in). This passes
+     at ~5.9:1 against --surface-alt and ~6.6:1 against white, while staying
+     in the same muted slate-blue family - not the high-contrast
+     --primary-text used for active/selected state. Caught by
+     tools/site_audit.py (docs/09-BACKLOG.md §20). */
+  --muted-strong: #4a5f75;
   --primary: #6fb1e8;
   --primary-strong: #4a93d6;
   --primary-text: #0d3a63;
@@ -552,7 +559,7 @@ table.weather tbody tr:last-child td { border-bottom: none; }
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.03em;
-  color: var(--muted);
+  color: var(--muted-strong);
   padding: 6px 9px;
   border-radius: 999px;
   text-decoration: none;
@@ -1166,7 +1173,7 @@ details.card[open] summary::before { content: "－ "; }
   text-overflow: ellipsis;
   text-align: center;
   text-decoration: none;
-  color: var(--muted);
+  color: var(--muted-strong);
   border-radius: 999px;
   transition: color 0.18s ease;
   -webkit-tap-highlight-color: transparent;
@@ -1219,7 +1226,7 @@ details.card[open] summary::before { content: "－ "; }
 .account-signin {
   font-size: 0.72rem;
   font-weight: 600;
-  color: var(--muted);
+  color: var(--muted-strong);
   background: var(--surface-alt);
   border: 1px solid var(--border);
   border-radius: 999px;

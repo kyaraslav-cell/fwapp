@@ -555,7 +555,7 @@ directly:
   actually shifts. Worth a line to the owner if it turns out to matter more
   than expected once Zalew Zegrzynski is used for real.
 
-## 20. Automated bug/UX sweep (site-audit) · DONE, first pass — 2026-08-25
+## 20. Automated bug/UX sweep (site-audit) · DONE, scheduled and triaged — 2026-08-25
 
 Requested after the §19c overlay bug (above) was only caught because the
 owner happened to look and screenshot it - the owner asked for an
@@ -666,8 +666,61 @@ writes and commits nothing - the repo's history only ever shows nights that
 found something, per the owner's chosen delivery mechanism (commit the
 report to git, not a local-only log file).
 
-**Not yet done, and outside what this session can do:** actually adding the
-crontab line on the owner's machine - this session has no execution access
-there. Setup is documented in the script's own header comment
-(`tools/nightly_audit.sh`): `pip install -r requirements-dev.txt`,
-`playwright install chromium`, `chmod +x`, then one `crontab -e` line.
+**Scheduled for real, 2026-08-25 - but not via crontab.** The owner's
+machine is Windows (Git Bash/MSYS), not Linux - no `crontab` exists there at
+all. Used **Windows Task Scheduler** instead, the direct equivalent: task
+`FishlogNightlyAudit`, daily at 02:00, running
+`C:\Users\...\run_fishlog_audit.bat` -> Git Bash -> `tools/nightly_audit.sh`,
+logging to a plain file in the owner's home directory. Verified twice: once
+run by hand, once triggered through the actual Task Scheduler mechanism
+(`schtasks /Run`) to prove the unattended path itself works, not just the
+script in isolation.
+
+Two real bugs found on that first live run, both fixed:
+1. `nightly_audit.sh` hardcoded `.venv/bin/python` (Linux venv layout) -
+   detects `Scripts/` vs `bin/` now instead of assuming.
+2. The script only ever `git add`s the report, not a newly-written baseline
+   image - so the very first run against any page with no baseline yet
+   leaves the tree dirty and the script's own safety guard would refuse
+   every run after it. Committed the missing `lake.png` baseline by hand to
+   unblock tonight; the script itself should probably `git add
+   tools/baselines/*.png` too, so a newly-added page can't wedge the job
+   later without a human noticing.
+
+**First real findings, triaged and closed, 2026-08-25:**
+- `meta-viewport` critical violation - already fixed in an earlier commit
+  (`76fad88`), just never redeployed. Rebuilding the container was the whole
+  fix.
+- Color-contrast, serious, on every *interactive* low-contrast element
+  flagged (language switcher, sign-in, the water-type filter tabs): real
+  WCAG AA failures, confirmed by computing the actual contrast ratio
+  (`--muted` #6c8299 on `--surface-alt` is 3.5:1, needs 4.5:1). Fixed with a
+  new `--muted-strong` token (#4a5f75, ~5.9:1) - same naming pattern as the
+  existing `--primary-strong`/`--danger-strong`, same muted slate-blue
+  family, just legible. Rendered and looked at the result (the audit tool's
+  own fresh screenshot) before calling it done, per `CLAUDE.md`'s
+  verification rule.
+- Home-page 5.8% visual diff: **not a bug** - two real lakes had been added
+  to the live database since the baseline was captured (see below).
+  Baselines refreshed to the current, real state.
+
+**Left open, deliberately - a design decision, not a bug fix:** the same
+color-contrast failure exists on ~40 more `--muted` usages across the
+stylesheet - section headers, secondary metadata text, table headers. All
+non-interactive (informational text, not controls). Fixing every one is a
+stylesheet-wide contrast pass that trades against the pastel/soft aesthetic
+`CLAUDE.md` rule 8 asks for, so it wasn't done unilaterally at the tail end
+of a long session. The owner's call: raise contrast everywhere `--muted`
+appears, or accept the softer look for non-interactive text and only fix
+what's flagged going forward.
+
+**A more important finding than any of the above:** the visual diff and the
+new lakes on the home page turned out not to be test data at all. A real
+second user (`tsaranhelina5@gmail.com`, "Anhelina", registered
+2026-08-24 20:33) has been using the app for real - added a real water
+("Glinianki Szczęśliwickie") and started two fishing sessions, neither of
+which was ever ended. The owner's own account separately added a second new
+water ("Łowisko Poniaty - Pod Lasem", 0.01 ha) the same morning. None of
+this was documented anywhere before this session found it while
+investigating why the visual-diff check fired. Nothing here was touched -
+it is real user data.
