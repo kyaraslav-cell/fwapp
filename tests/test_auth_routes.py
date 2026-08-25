@@ -136,6 +136,25 @@ def test_sign_out_ends_the_session(client: TestClient) -> None:
     assert client.get("/history", follow_redirects=False).status_code == 303
 
 
+def test_a_new_sign_in_revokes_the_previous_one(client: TestClient) -> None:
+    """Concurrent sessions from different locations are not allowed (2026-08-25,
+    the owner's explicit answer) - logging in is a single active session, not
+    an additional one, so a fresh sign-in signs the previous browser out."""
+    register(client)
+    first_cookie = client.cookies.get("fishlog_auth")
+    assert client.get("/history").status_code == 200
+
+    # A second location: no cookie carried over, a fresh login.
+    client.cookies.clear()
+    client.post("/auth/login", data={"email": GOOD["email"], "password": GOOD["password"]})
+    assert client.get("/history").status_code == 200
+
+    # The first browser's cookie is now dead.
+    client.cookies.clear()
+    client.cookies.set("fishlog_auth", first_cookie)
+    assert client.get("/history", follow_redirects=False).status_code == 303
+
+
 def test_a_stale_cookie_does_not_sign_anybody_in(client: TestClient) -> None:
     register(client)
     client.post("/auth/logout", follow_redirects=False)

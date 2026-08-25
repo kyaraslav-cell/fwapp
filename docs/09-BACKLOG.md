@@ -607,10 +607,15 @@ owner ("we will decide it later"). Runs on request for now
   `http://127.0.0.1:8090` (a local `make dev`) and then against the real
   Tailscale URL, and read whether it gets all the way through logging a
   catch.
-- One open question the tool deliberately does **not** try to answer: the
-  owner's original example, "I can run multiple sessions at the same time
-  from different locations" - that is a behavioural/security question
-  (is concurrent login intended?), not something a browser-rendering tool
-  can judge. Needs the owner's answer on intent before it becomes a
-  `pytest` test (`app/auth/`, `app/web/routes/sessions.py`), the same
-  pattern as `tests/test_throttle.py`.
+- **The open question is answered and built, 2026-08-25: no, concurrent
+  login is not allowed.** `app/auth/service.py`'s `start_auth_session` now
+  revokes every existing session for the account before creating the new
+  one (reusing `sign_out_everywhere`, the same mechanism the lost-phone
+  button already had) - one active session per angler, not one per browser.
+  Pinned by `tests/test_auth_routes.py::test_a_new_sign_in_revokes_the_previous_one`.
+  Also recorded as a standing rule, `docs/10-SESSION-HANDOVER.md §2` rule 17.
+  The trade this makes is deliberate, not an oversight: switching from phone
+  to laptop mid-trip signs the phone out - worth a line to the owner if that
+  turns out to be annoying in practice, since the alternative (allow several,
+  offer a "sign out everywhere" button) is a real design the owner could
+  choose instead.
