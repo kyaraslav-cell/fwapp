@@ -619,3 +619,42 @@ owner ("we will decide it later"). Runs on request for now
   turns out to be annoying in practice, since the alternative (allow several,
   offer a "sign out everywhere" button) is a real design the owner could
   choose instead.
+
+**Scheduled, 2026-08-25: nightly, via the host's own cron, not Claude Code
+Remote.** The owner asked for "every day at night," then specifically chose
+cron on the machine running the app over a cloud-scheduled Routine, once it
+was clear a cloud Routine could only ever repeat the degraded smoke-test
+path - this cloud sandbox cannot reach either `unpkg.com` or the real
+deployment (confirmed: the outbound proxy returns a policy 403 for the
+Tailscale host), and a Routine fired into this same environment would face
+the identical restriction. Cron on the real machine has real network to the
+real app for free, with no new infrastructure.
+
+A second issue surfaced while designing this, before it ever ran against
+production: the tool's full flow (register → session → log a catch) writes
+real rows. Run nightly against a real database forever, that is a fake
+angler's fake catch fabricated into the real notebook every night - exactly
+what CLAUDE.md law 3 forbids. Fixed by splitting `tools/site_audit.py`:
+`audit_public_pages()` (dead controls, console/network errors, a11y, visual
+diffs on the public home/lake pages - nothing writes) and
+`audit_authenticated_flow()` (the writing part), selected by a new
+`--public-only` flag. The nightly job always passes `--public-only`; the
+full flow stays on-demand, against a throwaway database only.
+
+**Built:** `tools/nightly_audit.sh` - checks the working tree is clean
+before syncing to the branch tip (never discards uncommitted work), runs
+`site_audit.py --public-only` against `http://127.0.0.1:8000` (localhost,
+not the Tailscale funnel - the script runs on the same machine as the
+container, so there's no reason to round-trip through the funnel), and
+only when it finds something: writes `reports/site_audit/<date>.md`,
+commits and pushes it to `claude/repository-edit-push-ggr229`, with one
+retry after resyncing if the push races another writer. A clean night
+writes and commits nothing - the repo's history only ever shows nights that
+found something, per the owner's chosen delivery mechanism (commit the
+report to git, not a local-only log file).
+
+**Not yet done, and outside what this session can do:** actually adding the
+crontab line on the owner's machine - this session has no execution access
+there. Setup is documented in the script's own header comment
+(`tools/nightly_audit.sh`): `pip install -r requirements-dev.txt`,
+`playwright install chromium`, `chmod +x`, then one `crontab -e` line.

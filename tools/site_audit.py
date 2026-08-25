@@ -20,13 +20,20 @@ have to leave your network for). A run costs compute, not credits. Judging
 or an LLM reading the report - see the site-audit skill.
 
 Usage:
+    # Full flow (register, session, catch) - only against a throwaway DB.
     python tools/site_audit.py --base-url http://127.0.0.1:8090
     python tools/site_audit.py --base-url http://127.0.0.1:8090 --update-baselines
-    python tools/site_audit.py --base-url https://dell.tailf99616.ts.net --lake zalew-zegrzynski
+
+    # Read-only - safe against a real deployment's real database.
+    python tools/site_audit.py --base-url http://127.0.0.1:8000 --public-only
 
 Needs the app already running and reachable at --base-url, and
 `.venv/bin/playwright install chromium` done once on this machine (not
 needed in the cloud sandbox - the browser is pre-staged there).
+
+--public-only skips registration and the session/catch flow, which write a
+real user/session/catch row - use it whenever --base-url points at a real
+deployment rather than a scratch database (tools/nightly_audit.sh does).
 """
 
 from __future__ import annotations
@@ -227,7 +234,100 @@ def register_qa_angler(page: Page, base_url: str, report: Report) -> None:
         )
 
 
-def run(base_url: str, lake_slug: str, update_baselines: bool) -> Report:
+def audit_public_pages(page: Page, base_url: str, lake_slug: str, report: Report,
+                        update_baselines: bool) -> None:
+    """Everything that reads only - safe to run against a real database.
+
+    Home and the lake page are public by design (docs/adr/0004: "the lake,
+    the weather and the map stay public"), and every check here - dead
+    controls, console/network errors, accessibility, screenshot diffs -
+    only ever navigates and looks. Nothing here writes a row.
+    """
+    page.goto(f"{base_url}/", wait_until="networkidle")
+    attach_listeners(page, report, "home")
+    scan_dead_controls(page, report, "home")
+    scan_a11y(page, "home", report)
+    screenshot_and_diff(page, "home", report, update_baselines)
+
+    page.goto(f"{base_url}/lake/{lake_slug}", wait_until="networkidle")
+    attach_listeners(page, report, "lake")
+    page.wait_for_timeout(500)  # grid fetch + canvas paint
+    scan_dead_controls(page, report, "lake")
+    scan_a11y(page, "lake", report)
+    screenshot_and_diff(page, "lake", report, update_baselines, locator="#map-wrap")
+
+
+def audit_authenticated_flow(page: Page, base_url: str, report: Report,
+                              update_baselines: bool) -> None:
+    """Register -> pick a spot -> start a session -> log a catch -> end it.
+
+    Writes real rows: a user, a fishing session, a catch. Only ever call
+    this against a throwaway database (tools/site_audit.py's own smoke-test
+    instance, or a local `make dev` with a scratch DB) - never against a
+    real deployment's real notebook. See CLAUDE.md law 3 and
+    docs/09-BACKLOG.md §20: a nightly run against production must not
+    fabricate a fake angler's fake catch into real CPUE statistics forever.
+    """
+    register_qa_angler(page, base_url, report)
+
+    # Pick a spot: click the map centre, which for a real lake outline is
+    # inside the polygon far more often than not.
+    map_box = page.locator("#map").bounding_box()
+    if map_box is None:
+        report.notes.append(
+            "[lake] #map has no layout box (not visible - a hidden ancestor, "
+            "most likely #map-wrap's own try/catch fallback when Leaflet failed "
+            "to load, e.g. its CDN being unreachable) - cannot click it"
+        )
+        return
+    cx = map_box["x"] + map_box["width"] / 2
+    cy = map_box["y"] + map_box["height"] / 2
+    page.mouse.click(cx, cy)
+    page.wait_for_timeout(300)
+    popup_link = page.locator(".leaflet-popup a")
+    if popup_link.count() == 0:
+        report.notes.append(
+            "[lake] clicking the map centre opened no popup - point may have "
+            "landed outside the water polygon"
+        )
+        return
+    popup_link.first.click()
+    page.wait_for_load_state("domcontentloaded")
+    if "/spot" in page.url:
+        attach_listeners(page, report, "spot_start")
+        scan_dead_controls(page, report, "spot_start")
+        scan_a11y(page, "spot_start", report)
+        screenshot_and_diff(page, "spot_start", report, update_baselines)
+        page.click("button.btn-primary[type=submit]")
+        page.wait_for_load_state("domcontentloaded")
+
+    if "/session/active" not in page.url and page.locator(".fish-grid").count() == 0:
+        report.notes.append(
+            "[flow] never reached an active session - spot-start or catch-logging "
+            "step did not complete; see notes above"
+        )
+        return
+
+    attach_listeners(page, report, "session_active")
+    scan_dead_controls(page, report, "session_active")
+    scan_a11y(page, "session_active", report)
+    screenshot_and_diff(page, "session_active", report, update_baselines)
+    fish_btn = page.locator(".fish-btn").first
+    if fish_btn.count() > 0:
+        fish_btn.click()
+        page.wait_for_load_state("domcontentloaded")
+        if page.locator(".catch-card").count() == 0:
+            report.notes.append("[session_active] logged a catch but no .catch-card appeared")
+    page.goto(f"{base_url}/session/end", wait_until="domcontentloaded")
+    end_btn = page.locator("button[type=submit]").first
+    if end_btn.count() > 0:
+        end_btn.click()
+        page.wait_for_load_state("domcontentloaded")
+
+
+def run(
+    base_url: str, lake_slug: str, update_baselines: bool, public_only: bool
+) -> Report:
     report = Report()
     with sync_playwright() as p:
         launch_kwargs: dict[str, Any] = {}
@@ -238,78 +338,9 @@ def run(base_url: str, lake_slug: str, update_baselines: bool) -> Report:
         page = browser.new_page(viewport={"width": 420, "height": 860})
         page.add_init_script(INIT_SCRIPT)
 
-        register_qa_angler(page, base_url, report)
-
-        # Home / places list.
-        page.goto(f"{base_url}/", wait_until="networkidle")
-        attach_listeners(page, report, "home")
-        scan_dead_controls(page, report, "home")
-        scan_a11y(page, "home", report)
-        screenshot_and_diff(page, "home", report, update_baselines)
-
-        # Lake page: map, day strip, recent conditions.
-        page.goto(f"{base_url}/lake/{lake_slug}", wait_until="networkidle")
-        attach_listeners(page, report, "lake")
-        page.wait_for_timeout(500)  # grid fetch + canvas paint
-        scan_dead_controls(page, report, "lake")
-        scan_a11y(page, "lake", report)
-        screenshot_and_diff(page, "lake", report, update_baselines, locator="#map-wrap")
-
-        # Pick a spot: click the map centre, which for a real lake outline is
-        # inside the polygon far more often than not.
-        map_box = page.locator("#map").bounding_box()
-        if map_box is None:
-            report.notes.append(
-                "[lake] #map has no layout box (not visible - a hidden ancestor, "
-                "most likely #map-wrap's own try/catch fallback when Leaflet failed "
-                "to load, e.g. its CDN being unreachable) - cannot click it"
-            )
-        else:
-            cx = map_box["x"] + map_box["width"] / 2
-            cy = map_box["y"] + map_box["height"] / 2
-            page.mouse.click(cx, cy)
-            page.wait_for_timeout(300)
-            popup_link = page.locator(".leaflet-popup a")
-            if popup_link.count() > 0:
-                popup_link.first.click()
-                page.wait_for_load_state("domcontentloaded")
-                if "/spot" in page.url:
-                    attach_listeners(page, report, "spot_start")
-                    scan_dead_controls(page, report, "spot_start")
-                    scan_a11y(page, "spot_start", report)
-                    screenshot_and_diff(page, "spot_start", report, update_baselines)
-                    page.click("button.btn-primary[type=submit]")
-                    page.wait_for_load_state("domcontentloaded")
-            else:
-                report.notes.append(
-                    "[lake] clicking the map centre opened no popup - point may have "
-                    "landed outside the water polygon"
-                )
-
-        # Session active: log one catch via the quick-log grid, then end.
-        if "/session/active" in page.url or page.locator(".fish-grid").count() > 0:
-            attach_listeners(page, report, "session_active")
-            scan_dead_controls(page, report, "session_active")
-            scan_a11y(page, "session_active", report)
-            screenshot_and_diff(page, "session_active", report, update_baselines)
-            fish_btn = page.locator(".fish-btn").first
-            if fish_btn.count() > 0:
-                fish_btn.click()
-                page.wait_for_load_state("domcontentloaded")
-                if page.locator(".catch-card").count() == 0:
-                    report.notes.append(
-                        "[session_active] logged a catch but no .catch-card appeared"
-                    )
-            page.goto(f"{base_url}/session/end", wait_until="domcontentloaded")
-            end_btn = page.locator("button[type=submit]").first
-            if end_btn.count() > 0:
-                end_btn.click()
-                page.wait_for_load_state("domcontentloaded")
-        else:
-            report.notes.append(
-                "[flow] never reached an active session - spot-start or catch-logging "
-                "step did not complete; see notes above"
-            )
+        audit_public_pages(page, base_url, lake_slug, report, update_baselines)
+        if not public_only:
+            audit_authenticated_flow(page, base_url, report, update_baselines)
 
         browser.close()
     return report
@@ -342,9 +373,21 @@ def main() -> int:
     parser.add_argument("--lake", default="pomocnia")
     parser.add_argument("--update-baselines", action="store_true")
     parser.add_argument("--out", default="/tmp/site_audit_report.md")
+    parser.add_argument(
+        "--public-only",
+        action="store_true",
+        help=(
+            "Skip registration and the session/catch-logging flow - only the "
+            "read-only checks (dead controls, console/network errors, a11y, "
+            "visual diffs) on the public home and lake pages. Use this against "
+            "any real database: the full flow writes a real user, session and "
+            "catch, which is fine against a throwaway DB and not fine against "
+            "a real angler's real notebook (CLAUDE.md law 3)."
+        ),
+    )
     args = parser.parse_args()
 
-    report = run(args.base_url, args.lake, args.update_baselines)
+    report = run(args.base_url, args.lake, args.update_baselines, args.public_only)
     markdown = render_markdown(report, args.base_url)
     pathlib.Path(args.out).write_text(markdown, encoding="utf-8")
     print(markdown)
