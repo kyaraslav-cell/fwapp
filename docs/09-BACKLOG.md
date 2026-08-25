@@ -724,3 +724,32 @@ water ("Łowisko Poniaty - Pod Lasem", 0.01 ha) the same morning. None of
 this was documented anywhere before this session found it while
 investigating why the visual-diff check fired. Nothing here was touched -
 it is real user data.
+
+**The loop was still one-sided when the above ran - fixed the same day.**
+The triage above was a human asking a local Claude Code session to go read
+the report by hand - exactly the "run a command yourself" pattern the owner
+pushed back on. A scheduler finding something and committing a report is
+not a feedback loop if a human still has to remember to ask someone to go
+read it.
+
+Closed it with a second Claude Code Remote Routine, "Fishlog nightly bug
+triage" (cron `0 3 * * *`, a few hours after the local job would have run,
+fresh session each firing): it pulls the branch, looks for any file
+directly under `reports/site_audit/` (not `reports/site_audit/archive/` -
+`reports/site_audit/archive/.gitkeep` exists so git tracks the empty
+folder), and for each one found, applies this skill's own triage rule -
+fixes small/unambiguous/zero-design-impact bugs and pushes, writes its
+conclusion into the report and leaves it for the owner when the finding is
+a judgment call - then archives the report either way so nothing is
+triaged twice. `notifications: {push: true}` on that Routine, so the owner
+hears about it only when there was something to act on. This Routine
+itself needs no real network to the app - only git - which is exactly why
+it can live here in the cloud while the finding half cannot (the finding
+half runs on whatever machine's scheduler - Task Scheduler here, cron
+elsewhere - actually has real network to the real app).
+Full design: `.claude/skills/site-audit/SKILL.md §Scheduling`.
+
+Tonight's `reports/site_audit/2026-08-25.md` was already fully triaged
+above, by hand, before this Routine existed - archived alongside this merge
+(`reports/site_audit/archive/2026-08-25.md`) so the new automatic mechanism
+doesn't try to re-triage a finding that is already closed.
