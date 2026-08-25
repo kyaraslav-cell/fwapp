@@ -23,6 +23,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# A venv's own layout differs by OS - .venv/bin on Linux/macOS (where this was
+# first written and run, a cloud sandbox), .venv/Scripts on Windows (where the
+# owner's actual deployment host turned out to be). Detected rather than
+# assumed, so this script keeps working when it's copied between the two.
+if [ -x ".venv/Scripts/python.exe" ]; then
+  VENV_PY=".venv/Scripts/python.exe"
+else
+  VENV_PY=".venv/bin/python"
+fi
+
 BASE_URL="${FISHLOG_AUDIT_BASE_URL:-http://127.0.0.1:8000}"
 BRANCH="${FISHLOG_AUDIT_BRANCH:-claude/repository-edit-push-ggr229}"
 DATE="$(date -u +%Y-%m-%d)"
@@ -43,7 +53,7 @@ git reset --hard "origin/$BRANCH"
 mkdir -p reports/site_audit
 
 set +e
-.venv/bin/python tools/site_audit.py --base-url "$BASE_URL" --public-only --out "$REPORT"
+"$VENV_PY" tools/site_audit.py --base-url "$BASE_URL" --public-only --out "$REPORT"
 STATUS=$?
 set -e
 
