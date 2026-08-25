@@ -117,6 +117,18 @@ PR, not just in a script's stdout. First run (or after a *deliberate*
 redesign) needs `--update-baselines` to write them; every other run compares
 against what's committed and flags real drift.
 
+**The lake page's heat overlay is excluded from its own screenshot,
+deliberately.** It's coloured from live wind/pressure
+(`lake_detail.html`'s `renderHeat()`), so it is *supposed* to look different
+every run - diffing it against a fixed baseline flagged real weather as a
+"regression" every single night (caught 2026-08-25, the day after the
+nightly job first went live). `audit_public_pages` hides `.heat-overlay`
+(`visibility: hidden`) before the lake screenshot; everything else in
+`#map-wrap` - shoreline, satellite tiles, zoom controls - is static and
+still worth catching a real regression in. If a future page carries its own
+live-data layer, hide that layer the same way rather than raising the diff
+threshold, which would just make a real regression harder to see too.
+
 ## Extending the flow
 
 `tools/site_audit.py`'s `run()` function is one linear script, not a

@@ -254,6 +254,17 @@ def audit_public_pages(page: Page, base_url: str, lake_slug: str, report: Report
     page.wait_for_timeout(500)  # grid fetch + canvas paint
     scan_dead_controls(page, report, "lake")
     scan_a11y(page, "lake", report)
+    # The heat overlay is coloured from live wind/pressure (app/web/templates/
+    # lake_detail.html's renderHeat()) - it is *supposed* to look different
+    # tomorrow. Diffing it against a fixed baseline would flag real weather
+    # as a regression every single night, which is exactly the kind of noise
+    # that gets an automated check ignored. Hidden for this screenshot only;
+    # everything else in #map-wrap (shoreline, controls, legend) is static
+    # and still worth catching a real regression in.
+    page.evaluate(
+        "document.querySelectorAll('.heat-overlay')"
+        ".forEach(el => el.style.visibility = 'hidden')"
+    )
     screenshot_and_diff(page, "lake", report, update_baselines, locator="#map-wrap")
 
 
