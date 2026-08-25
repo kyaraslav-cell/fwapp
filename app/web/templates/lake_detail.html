@@ -296,12 +296,34 @@ let forecastDay = null;
 
 const M_PER_DEG_LAT = 111320;
 const mPerDegLon = M_PER_DEG_LAT * Math.cos(LAKE.lat * Math.PI / 180);
-const dLat = GRID.cell_m / M_PER_DEG_LAT;
-const dLon = GRID.cell_m / mPerDegLon;
-const bounds = [
-  [GRID.origin_lat, GRID.origin_lon],
-  [GRID.origin_lat + GRID.n_rows * dLat, GRID.origin_lon + GRID.n_cols * dLon]
-];
+
+// Cell size in degrees and the geographic box the canvas is stretched over -
+// both depend on *which* grid answered, not just the lake. The daily hi-res
+// cache for a large water (docs/09-BACKLOG.md §19c) answers /grid with a
+// finer cell_m and far more rows/cols than the coarse interactive grid this
+// page was rendered with, so these must be derived from whatever grid
+// metadata actually came back, never from a value fixed at page load.
+function gridStep(gridMeta) {
+  return {
+    dLat: gridMeta.cell_m / M_PER_DEG_LAT,
+    dLon: gridMeta.cell_m / mPerDegLon,
+  };
+}
+function gridBounds(gridMeta) {
+  const { dLat, dLon } = gridStep(gridMeta);
+  return [
+    [gridMeta.origin_lat, gridMeta.origin_lon],
+    [gridMeta.origin_lat + gridMeta.n_rows * dLat, gridMeta.origin_lon + gridMeta.n_cols * dLon]
+  ];
+}
+
+// The grid actually backing the current overlay - starts as the page-load
+// coarse grid, replaced every time loadGrid() gets an answer with its own
+// geometry (which may be the hi-res cache instead, at a different
+// resolution). pickSpot() reads this too, so a click is bucketed against
+// whichever grid is actually on screen.
+let activeGrid = GRID;
+const bounds = gridBounds(GRID);
 
 // Traffic-light semantics: red = poor water, green = best. Matches the day
 // score bands, and matches what an angler expects at a glance.
@@ -369,17 +391,17 @@ function setHeatOpacity(value) {
 // Render one pixel per cell into a small canvas, then let the browser upscale
 // it. That interpolation is what turns discrete 5 m cells into a smooth field
 // instead of a visible mosaic.
-function renderHeat(cells) {
+function renderHeat(gridMeta, cells) {
   const canvas = document.createElement('canvas');
-  canvas.width = GRID.n_cols;
-  canvas.height = GRID.n_rows;
+  canvas.width = gridMeta.n_cols;
+  canvas.height = gridMeta.n_rows;
   const ctx = canvas.getContext('2d');
-  const img = ctx.createImageData(GRID.n_cols, GRID.n_rows);
+  const img = ctx.createImageData(gridMeta.n_cols, gridMeta.n_rows);
 
   for (const [row, col, value] of cells) {
     // Canvas y grows downward, latitude grows upward.
-    const y = GRID.n_rows - 1 - row;
-    const idx = (y * GRID.n_cols + col) * 4;
+    const y = gridMeta.n_rows - 1 - row;
+    const idx = (y * gridMeta.n_cols + col) * 4;
     const [r, g, b] = rampColor(value);
     img.data[idx] = r;
     img.data[idx + 1] = g;
@@ -389,7 +411,7 @@ function renderHeat(cells) {
   ctx.putImageData(img, 0, 0);
 
   if (heatLayer) map.removeLayer(heatLayer);
-  heatLayer = L.imageOverlay(canvas.toDataURL(), bounds, {
+  heatLayer = L.imageOverlay(canvas.toDataURL(), gridBounds(gridMeta), {
     opacity: HEAT_OPACITY, interactive: false, className: 'heat-overlay'
   }).addTo(map);
 }
@@ -408,13 +430,23 @@ function gridUrl() {
 function loadGrid() {
   fetch(gridUrl())
     .then(r => r.json())
-    .then(data => renderHeat(data.cells))
+    .then(data => {
+      // The hi-res cache (docs/09-BACKLOG.md §19c) answers with its own
+      // geometry, at a different resolution than the page's coarse grid; a
+      // "no outline yet" answer carries no geometry at all. Trust the
+      // response's own fields when present, fall back to the page-load grid
+      // only when there is nothing else to go on (an empty cell list either
+      // way, so the fallback never actually gets drawn wrong).
+      activeGrid = (data.origin_lat !== undefined) ? data : GRID;
+      renderHeat(activeGrid, data.cells);
+    })
     .catch(() => {});
 }
 
 function pickSpot(lat, lon, containerPoint) {
-  const row = Math.floor((lat - GRID.origin_lat) / dLat);
-  const col = Math.floor((lon - GRID.origin_lon) / dLon);
+  const { dLat, dLon } = gridStep(activeGrid);
+  const row = Math.floor((lat - activeGrid.origin_lat) / dLat);
+  const col = Math.floor((lon - activeGrid.origin_lon) / dLon);
   const cell = `r${row}c${col}`;
 
   if (containerPoint) splash(containerPoint);

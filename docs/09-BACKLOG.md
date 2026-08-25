@@ -501,16 +501,37 @@ directly:
   4 985-cell on-demand path instead of reading the cache; `/lake/pomocnia/grid`
   (below the 50 ha threshold) was untouched. Container logs confirmed
   APScheduler registered `run_hires_grid_job` for its daily cadence.
-- **Still not verified: the actual pixel-level render.** The one check worth
-  doing deliberately rather than trusting the data alone - does the cached
-  payload paint visibly smoother on the Leaflet canvas than the old 64 m
-  grid - could not be completed. The in-session browser tool's pane stopped
-  compositing frames ("the Browser pane is not displayed") for reasons
-  outside this session's control; `get_page_text` confirmed the page loads
-  with real content, but that is not the same as looking at the overlay.
-  `tools/animation_filmstrip.py`/`tools/icon_sheet.py` don't cover a heat
-  overlay either; nothing in `tools/` currently screenshots the map, so that
-  needs a live look on the owner's machine, not a claim from here.
+- **The pixel-level render was checked, on the owner's real deployment, and it
+  was broken — a real bug, not the known "rings not zones" limitation.** The
+  owner opened `/lake/zalew-zegrzynski` and the overlay was a garbled
+  rectangle bleeding far outside the real shoreline (over farmland, across
+  the river) with diagonal streaking bearing no relation to the lake's
+  branching shape.
+  **Root cause:** `lake_detail.html`'s client JS sizes the heat canvas and
+  positions the Leaflet image overlay from the page-load `GRID` constant
+  (the coarse interactive grid, computed once when the page rendered) - but
+  for `horizon=0` on a qualifying lake, `/lake/{slug}/grid` can answer from
+  the daily hi-res cache instead, which carries its **own** `origin_lat` /
+  `n_rows` / `n_cols` / `cell_m` at a different resolution
+  (409×412 @ 32 m for Zegrzynski vs. the interactive endpoint's coarser
+  grid). `loadGrid()` discarded every field but `cells`, so `renderHeat()`
+  wrote hi-res row/col indices into a canvas buffer sized for the coarse
+  grid - `idx = (y * GRID.n_cols + col) * 4` overflows row-by-row into the
+  wrong pixels once `col` exceeds the coarse grid's width, which is exactly
+  the diagonal-streak, bled-past-the-shoreline pattern the owner saw.
+  **Fixed** in `app/web/templates/lake_detail.html`: `renderHeat()` and the
+  image-overlay bounds are now derived from whichever grid metadata the
+  `/grid` response actually carries (`gridStep()` / `gridBounds()`, new
+  helpers), not the page-load constant; `pickSpot()`'s cell math follows the
+  same `activeGrid`, kept in sync by `loadGrid()` on every fetch. Verified by
+  reading the invariant this restores (canvas dimensions and cell indices
+  now always come from the same grid object, so `idx` can never exceed the
+  buffer) and by a standalone reproduction of the old vs. new index math
+  outside the app (mismatched dimensions silently drop/scramble cells; matched
+  dimensions reproduce the input shape exactly) - not yet re-verified live,
+  since this cloud sandbox cannot reach the owner's Tailscale deployment.
+  **Next: pull this commit, redeploy, and look at `/lake/zalew-zegrzynski`
+  again** - that is the only remaining confirmation this needs.
 - One deliberate scope cut: the hi-res cells are only ever computed for the
   wind direction and phase at ~04:15 UTC. If the wind swings hard later the
   same day, today's cached overlay does not follow it - the interactive
