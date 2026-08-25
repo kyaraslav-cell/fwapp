@@ -126,18 +126,43 @@ control appears, the same shape as the steps already there. Keep it
 deterministic; resist the pull to make it "smarter" by adding an LLM call
 into the loop, which is exactly the cost this was built to avoid.
 
-## Scheduling
+## Scheduling — two stages, split by what each side can actually reach
 
-Nightly, via `tools/nightly_audit.sh` in the **host's own cron** on the
-machine running the app (2026-08-25) - deliberately not a Claude Code
-Remote trigger. The owner chose this explicitly: a cloud-scheduled Routine
-would run in an environment that cannot reach this app's real network
-either, so it could only ever repeat the degraded smoke-test path, never
-check anything real. Cron owning both the schedule and the execution keeps
-this exactly as free and lightweight as the rest of the tool - no new
-service, no new container (the app's own Docker image stays untouched;
-this runs from a plain host venv).
+**Finding** happens on the owner's machine, in cron, because that is the
+only place with real network to the real app - a Claude Code Remote Routine
+fired from this cloud sandbox's environment cannot reach it (confirmed: the
+outbound proxy returns a policy 403 for the Tailscale host), so a
+cloud-scheduled *finder* could only ever repeat the degraded smoke-test
+path. `tools/nightly_audit.sh` in the host's own cron (2026-08-25) runs
+`--public-only` against `http://127.0.0.1:8000` and, only when it finds
+something, commits `reports/site_audit/<date>.md` and pushes it - straight
+to disk, no LLM involved, so this half costs compute, not credits.
 
-The full flow (registration, session, catch) stays manual/on-request - it
-writes real rows, so it only ever belongs against a throwaway database, per
-the write-safety note above.
+**Fixing** does not need that network - it needs git and the ability to
+read and edit code, which this cloud environment already has. So a second,
+separate Claude Code Remote Routine ("Fishlog nightly bug triage",
+2026-08-25) fires a few hours after the local cron would have run, pulls
+the branch, and looks for exactly one thing: any file directly under
+`reports/site_audit/` (not `reports/site_audit/archive/`). That is the
+whole signal - a file sitting there un-archived means "found last night,
+not yet triaged."
+
+For each one it finds, the fired session follows the triage rule above:
+fix what is clearly a bug (small, unambiguous, zero design impact - the
+same bar as the viewport-meta fix, 2026-08-25), confirm with `make check`,
+push straight to `claude/repository-edit-push-ggr229`. For anything
+ambiguous, it does not guess - it writes its conclusion into the report
+file itself and leaves the decision for the owner. Either way, once a
+report has been looked at, `git mv` it into `reports/site_audit/archive/`
+as part of the same commit, so the same finding is never triaged twice and
+an empty `reports/site_audit/` (ignoring `archive/`) always means "nothing
+outstanding." A run that finds no un-archived reports does nothing and
+stays quiet - `notifications: {push: true}` on that Routine means the
+owner's phone only hears about it when something was actually fixed or
+needs a decision.
+
+This is the actual closed loop: cron finds it for free with real network,
+a scheduled session fixes it for free (no network needed, just git) with
+the same triage discipline a human-requested run would use, and the owner
+only ever sees a push notification when there is something to act on -
+never a report to go read commands off of.

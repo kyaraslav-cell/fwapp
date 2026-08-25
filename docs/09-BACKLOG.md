@@ -658,3 +658,22 @@ crontab line on the owner's machine - this session has no execution access
 there. Setup is documented in the script's own header comment
 (`tools/nightly_audit.sh`): `pip install -r requirements-dev.txt`,
 `playwright install chromium`, `chmod +x`, then one `crontab -e` line.
+
+**The loop was still one-sided, 2026-08-25 - fixed.** Cron finding
+something and committing a report is not a feedback loop if nothing ever
+reads the report; that just moves "run a command" from the owner's
+terminal to the owner's own eyeballs on a markdown file. Closed it with a
+second Claude Code Remote Routine, "Fishlog nightly bug triage" (cron
+`0 3 * * *`, a few hours after the local job would have run, fresh session
+each firing): it pulls the branch, looks for any file directly under
+`reports/site_audit/` (not `reports/site_audit/archive/` -
+`reports/site_audit/archive/.gitkeep` exists so git tracks the empty
+folder), and for each one found, applies this skill's own triage rule -
+fixes small/unambiguous/zero-design-impact bugs and pushes, writes its
+conclusion into the report and leaves it for the owner when the finding is
+a judgment call - then archives the report either way so nothing is
+triaged twice. `notifications: {push: true}` on that Routine, so the owner
+hears about it only when there was something to act on. This Routine
+itself needs no real network to the app - only git - which is exactly why
+it can live here in the cloud while the finding half cannot.
+Full design: `.claude/skills/site-audit/SKILL.md §Scheduling`.
