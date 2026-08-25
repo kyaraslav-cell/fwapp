@@ -330,7 +330,7 @@ fish.
 currently scored as though they were water. Recorded honestly in `docs/13 §11`
 rather than fixed quietly.
 
-## 19. From the first live session on the owner's machine · 19a/19c DONE, 19b open design question
+## 19. From the first live session on the owner's machine · 19a/19c DONE (19c live-verified after a real bug + fix), 19b open design question
 
 Three things the owner asked for on 2026-08-24, after seeing the app running
 for real for the first time. Not started - written down so the brief survives
@@ -530,8 +530,21 @@ directly:
   outside the app (mismatched dimensions silently drop/scramble cells; matched
   dimensions reproduce the input shape exactly) - not yet re-verified live,
   since this cloud sandbox cannot reach the owner's Tailscale deployment.
-  **Next: pull this commit, redeploy, and look at `/lake/zalew-zegrzynski`
-  again** - that is the only remaining confirmation this needs.
+
+  **Merged, redeployed, and re-checked live, 2026-08-25 - confirmed fixed.**
+  Pulled the fix branch, ran `make check` clean (346/346, ruff, mypy
+  `--strict`), fast-forward merged into `claude/repository-edit-push-ggr229`,
+  rebuilt the container. The in-session browser tool's own network blocker
+  (the same one that already interfered with `/static/style.css`, `§19a`'s
+  handoff) also refused the `/grid` request itself, so the live page couldn't
+  be screenshotted directly - worked around it by pulling the exact same JSON
+  `/lake/zalew-zegrzynski/grid?horizon=0` returns (409×412, 32 m, 20 007 real
+  cells, fetched with `curl`, not a fixture) into a standalone local page
+  running the **fixed** `renderHeat()` pixel loop verbatim, and rendering
+  that. Result: a clean, correctly-shaped branching-reservoir silhouette,
+  smooth colour gradient, no diagonal streaking, no bleed past the shore -
+  the same shape `§19a`'s thumbnail traces from the same lake's outline. The
+  fix holds against real production data.
 - One deliberate scope cut: the hi-res cells are only ever computed for the
   wind direction and phase at ~04:15 UTC. If the wind swings hard later the
   same day, today's cached overlay does not follow it - the interactive
