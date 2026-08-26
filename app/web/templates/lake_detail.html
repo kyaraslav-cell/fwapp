@@ -18,7 +18,13 @@
    list. Tapping the icon rolls the day strip down in place - no page change,
    so the map underneath keeps its position and zoom. #}
 <div class="lake-heading">
-  <div class="section-label">{{ lake.name }} · {{ now_local }}</div>
+  {# `name` is the PZW spelling where the registry knew one; the OSM spelling
+     rides along in the title attribute so a wrong registry match is visible to
+     anyone who looks, rather than silently renaming somebody's lake. #}
+  <div class="section-label"
+       {% if lake.name_osm and lake.name_osm != lake.name %}title="OpenStreetMap: {{ lake.name_osm }}"{% endif %}>
+    {{ lake.name }} · {{ now_local }}
+  </div>
   {% if calendar_days %}
   <button type="button" class="calendar-toggle" id="calendar-toggle"
           aria-expanded="false" aria-controls="day-strip"

@@ -246,6 +246,9 @@ discover:
   search: Search
   add: Add
   not_water: Not a water
+  add_as_pzw: PZW
+  add_as_commercial: Commercial
+  water_type_why: Not on the PZW list, so tell us which it is - fish per hour is not comparable between the two.
   already_added: Already here
   nothing_found: Nothing found by that name.
   quota_left: Waters you can still add today

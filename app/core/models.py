@@ -38,6 +38,20 @@ class Lake(Base):
     # statistic would corrupt the only measurement the project exists to make
     # (law 3). See app/notebook/water_type.py.
     water_type: Mapped[str | None] = mapped_column(String)
+    # How `water_type` was decided: `pzw_registry` (matched against the okreg's
+    # published list, config/pzw/), or `angler` (answered on the add form).
+    # Recorded because the two are not equally trustworthy and a later
+    # correction needs to know which it is overriding.
+    water_type_source: Mapped[str | None] = mapped_column(String)
+    # OpenStreetMap's spelling, kept when the PZW registry supplies a different
+    # one. `name` is what the permit prints and therefore what the app shows;
+    # this is what the water is findable by, and keeping it is what makes a
+    # wrong registry match visible instead of silent.
+    name_osm: Mapped[str | None] = mapped_column(String)
+    # The registry key this water matched, or None. Lets a re-run of the
+    # extractor tell which waters were matched against an entry that has since
+    # changed name.
+    pzw_key: Mapped[str | None] = mapped_column(String)
     timezone: Mapped[str] = mapped_column(String, nullable=False, default="Europe/Warsaw")
     metar_station: Mapped[str | None] = mapped_column(String)
     metar_distance_km: Mapped[float | None] = mapped_column(Float)

@@ -18,9 +18,15 @@ from sqlalchemy.orm import Session
 
 from app.core.models import Lake
 from app.core.time import iso, parse_iso, utcnow
+from app.discover import pzw
 from app.discover.nominatim import Candidate
 from app.jobs import queue
 from app.jobs.handlers import NEW_WATER_PIPELINE
+from app.notebook import water_type as water_type_mod
+
+# Values for `Lake.water_type_source`.
+SOURCE_REGISTRY = "pzw_registry"
+SOURCE_ANGLER = "angler"
 
 # Adding a water costs an Overpass call, a year of archive and (later) a
 # research pass. A quota keeps one enthusiastic afternoon from spending the
@@ -84,6 +90,12 @@ def find_existing(db: Session, candidate: Candidate) -> Lake | None:
     Matched on the OSM id first - that is an identity, not a guess - then on
     name and proximity, because the same lake can be reached through a
     different OSM object.
+
+    The name comparison has to consider **both** names a water can carry. Once
+    a water is renamed to its PZW spelling, a second angler searching OSM finds
+    the OSM spelling, which no longer equals the stored `name` - so this
+    stopped recognising waters it had itself added, and would have created a
+    duplicate row splitting every statistic about that lake in two.
     """
     if candidate.osm_id:
         by_osm = db.execute(
@@ -96,7 +108,10 @@ def find_existing(db: Session, candidate: Candidate) -> Lake | None:
 
     wanted = candidate.name.strip().lower()
     for lake in db.execute(select(Lake)).scalars().all():
-        if lake.name.strip().lower() != wanted:
+        known = {lake.name.strip().lower()}
+        if lake.name_osm:
+            known.add(lake.name_osm.strip().lower())
+        if wanted not in known:
             continue
         if _metres_between(
             lake.centroid_lat, lake.centroid_lon, candidate.lat, candidate.lon
@@ -126,6 +141,7 @@ def add_water(
     candidate: Candidate,
     *,
     user_id: int,
+    water_type: str | None = None,
     now: datetime | None = None,
 ) -> AddResult:
     """Create the water if it is new, and queue everything that comes after.
@@ -133,6 +149,11 @@ def add_water(
     Returns the existing water untouched when it is already known: a second
     angler searching for the same lake must land on the same page, not create a
     parallel copy that splits every statistic about it.
+
+    `water_type` is the angler's own answer from the add form. It wins over the
+    PZW registry when both have an opinion: the registry is a name match with
+    no coordinates behind it, and the person standing in front of the water
+    knows better than a fuzzy string comparison does.
     """
     now = now or utcnow()
 
@@ -146,9 +167,27 @@ def add_water(
     if quota_left(db, user_id, now) <= 0:
         raise QuotaExceededError(f"{DAILY_ADD_QUOTA} waters a day")
 
+    listed = pzw.lookup(candidate.name)
+    chosen_type = water_type_mod.normalise(water_type)
+    if chosen_type is None and listed is not None:
+        chosen_type = water_type_mod.PZW
+    type_source = None
+    if chosen_type is not None:
+        type_source = SOURCE_ANGLER if water_type_mod.normalise(water_type) else SOURCE_REGISTRY
+
+    # The okreg's spelling is what the permit prints, so it is what the app
+    # shows - but only the OSM name is kept alongside, never overwritten, so a
+    # wrong match is visible rather than silent.
+    display_name = listed.water.name if listed is not None else candidate.name
+    osm_name = candidate.name if listed is not None else None
+
     lake = Lake(
         slug=unique_slug(db, slugify(candidate.name)),
-        name=candidate.name,
+        name=display_name,
+        name_osm=osm_name,
+        water_type=chosen_type,
+        water_type_source=type_source,
+        pzw_key=listed.water.key if listed is not None else None,
         centroid_lat=candidate.lat,
         centroid_lon=candidate.lon,
         # From the search result's bounding box, and deliberately provisional:

@@ -16,7 +16,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.time import to_display
-from app.discover import nominatim, service
+from app.discover import nominatim, pzw, service
 from app.discover.nominatim import Candidate
 from app.web.deps import CurrentUser, get_db, require_user, templates
 
@@ -91,6 +91,7 @@ def add(
     osm_id: int = Form(default=0),
     area_ha: str = Form(default=""),
     is_water: str = Form(default="1"),
+    water_type: str = Form(default=""),
     q: str = Form(default=""),
     user: CurrentUser = Depends(require_user),
     db: Session = Depends(get_db),
@@ -115,7 +116,7 @@ def add(
     )
 
     try:
-        result = service.add_water(db, candidate, user_id=user.id)
+        result = service.add_water(db, candidate, user_id=user.id, water_type=water_type)
     except service.QuotaExceededError:
         return _refused(
             request,
@@ -177,11 +178,19 @@ def _refused(
 
 
 def _row(db: Session, candidate: Candidate) -> dict[str, Any]:
-    """One search result, with whether we already have it."""
+    """One search result, with whether we already have it and what PZW calls it.
+
+    The registry lookup happens here so the picker can ask the angler for a
+    water type only when it does not already know one. A listed water is added
+    in one tap, exactly as before; an unlisted one costs one tap more and gets
+    an answer nobody had to guess at.
+    """
     existing = service.find_existing(db, candidate)
+    listed = pzw.lookup(candidate.name)
     return {
         "candidate": candidate,
         "existing_slug": existing.slug if existing is not None else None,
+        "pzw_name": listed.water.name if listed is not None else None,
     }
 
 

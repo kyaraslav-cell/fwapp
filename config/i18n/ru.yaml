@@ -235,6 +235,9 @@ discover:
   search: Искать
   add: Добавить
   not_water: Не водоём
+  add_as_pzw: PZW
+  add_as_commercial: Коммерческий
+  water_type_why: Его нет в списке PZW, поэтому укажите тип - рыба в час между ними несравнима.
   already_added: Уже есть
   nothing_found: Водоём с таким названием не найден.
   quota_left: Сколько водоёмов ещё можно добавить сегодня

@@ -55,7 +55,12 @@
     <input type="hidden" name="osm_id" value="{{ c.osm_id }}">
     <input type="hidden" name="area_ha" value="{{ c.area_ha if c.area_ha is not none }}">
     <input type="hidden" name="is_water" value="{{ '1' if c.is_water else '0' }}">
-    <button type="submit" class="place-card candidate-card{{ ' is-not-water' if not c.is_water }}">
+    {# A water on the okreg's published list is added in one tap and its type
+       is not a question - the permit already answered it. Anything else costs
+       one tap more, because water_type is the segmentation key for every CPUE
+       aggregate (law 3) and a guessed one corrupts the statistic silently. #}
+    {% if c.is_water and not row.pzw_name %}
+    <div class="place-card candidate-card">
       <div class="place-info">
         <div class="place-name">{{ c.name }}</div>
         <div class="place-meta">
@@ -63,8 +68,27 @@
           {% if c.area_ha %} · ~{{ c.area_ha | round(0) | int }} ha{% endif %}
         </div>
       </div>
+      <span class="water-type-choice">
+        <button type="submit" name="water_type" value="pzw" class="badge badge-green btn-badge">
+          {{ t('discover.add_as_pzw') }}
+        </button>
+        <button type="submit" name="water_type" value="commercial" class="badge badge-neutral btn-badge">
+          {{ t('discover.add_as_commercial') }}
+        </button>
+      </span>
+    </div>
+    <p class="field-hint candidate-hint">{{ t('discover.water_type_why') }}</p>
+    {% else %}
+    <button type="submit" class="place-card candidate-card{{ ' is-not-water' if not c.is_water }}">
+      <div class="place-info">
+        <div class="place-name">{{ row.pzw_name or c.name }}</div>
+        <div class="place-meta">
+          {{ c.display_name }}
+          {% if c.area_ha %} · ~{{ c.area_ha | round(0) | int }} ha{% endif %}
+        </div>
+      </div>
       {% if c.is_water %}
-      <span class="badge badge-green">{{ t('discover.add') }}</span>
+      <span class="badge badge-green">{{ t('discover.add') }} · {{ t('water_type.pzw') }}</span>
       {% else %}
       {# Kept, not hidden: a fishery is sometimes tagged as something else, and
          silently dropping everything that is not natural=water would make a
@@ -80,6 +104,7 @@
       </span>
       {% endif %}
     </button>
+    {% endif %}
   </form>
   {% endif %}
 {% endfor %}

@@ -1512,6 +1512,34 @@ details.card[open] summary::before { content: "－ "; }
 
 .candidate-card.is-not-water { opacity: 0.7; }
 
+/* A water the PZW list does not name asks which kind it is before it is added.
+   Two submit buttons rather than a radio and a confirm: it is still one tap,
+   and water_type is the segmentation key for every CPUE aggregate (law 3), so
+   it must not be possible to add a water without answering. */
+.water-type-choice {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-badge {
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  /* Comfortably tappable with wet hands in bright sun, which is the whole
+     brief for every control in this app (docs/07-UI-SPEC.md). */
+  min-height: 34px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.btn-badge:hover { border-color: currentColor; }
+
+.candidate-hint {
+  margin: -2px 0 10px;
+}
+
 /* What stage a newly added water is at. Quiet by default - it is progress, not
    a problem - and only coloured when something actually failed. */
 .build-note {

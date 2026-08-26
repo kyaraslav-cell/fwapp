@@ -235,6 +235,9 @@ discover:
   search: Szukaj
   add: Dodaj
   not_water: To nie akwen
+  add_as_pzw: PZW
+  add_as_commercial: Komercyjne
+  water_type_why: Nie ma go na liście PZW, więc wskaż rodzaj - ryb na godzinę nie da się porównywać między nimi.
   already_added: Już jest
   nothing_found: Nie znaleziono akwenu o tej nazwie.
   quota_left: Akweny, które możesz dziś jeszcze dodać

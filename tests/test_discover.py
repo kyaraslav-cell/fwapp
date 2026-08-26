@@ -195,6 +195,66 @@ def test_a_missing_bounding_box_is_not_an_area_of_zero() -> None:
 # ---------------------------------------------------------------------------
 
 
+def test_a_listed_water_is_typed_and_named_from_the_permit(db: Session) -> None:
+    """One tap: the okreg's list already answers both questions."""
+    result = service.add_water(db, water(name="Zalew Zegrzyński"), user_id=1)
+
+    assert result.lake.water_type == "pzw"
+    assert result.lake.water_type_source == service.SOURCE_REGISTRY
+    assert result.lake.name == "Zbiornik Zegrzyński", "the permit's spelling is the one shown"
+    assert result.lake.name_osm == "Zalew Zegrzyński", "and OSM's is kept, not discarded"
+
+
+def test_an_unlisted_water_takes_the_anglers_answer(db: Session) -> None:
+    result = service.add_water(
+        db, water(name="Łowisko Poniaty - Pod Lasem"), user_id=1, water_type="commercial"
+    )
+
+    assert result.lake.water_type == "commercial"
+    assert result.lake.water_type_source == service.SOURCE_ANGLER
+    assert result.lake.name == "Łowisko Poniaty - Pod Lasem"
+    assert result.lake.name_osm is None, "nothing was renamed, so there is no alias to keep"
+
+
+def test_the_angler_overrules_the_registry(db: Session) -> None:
+    """A name match with no coordinates behind it loses to someone standing there."""
+    result = service.add_water(
+        db, water(name="Zalew Zegrzyński"), user_id=1, water_type="commercial"
+    )
+
+    assert result.lake.water_type == "commercial"
+    assert result.lake.water_type_source == service.SOURCE_ANGLER
+
+
+def test_an_unlisted_water_added_without_an_answer_has_no_type(db: Session) -> None:
+    """Blank, not guessed.
+
+    `assert_comparable` refuses to pool CPUE across waters whose type nobody
+    recorded, which is the correct outcome. Defaulting to either value here
+    would produce a number that looks fine and is wrong (law 3).
+    """
+    result = service.add_water(db, water(name="Łowisko Poniaty - Pod Lasem"), user_id=1)
+
+    assert result.lake.water_type is None
+    assert result.lake.water_type_source is None
+
+
+def test_the_same_water_is_still_deduped_after_being_renamed(db: Session) -> None:
+    """The regression the rename introduced.
+
+    Once a water is stored under its PZW name, a second angler searching OSM
+    finds the OSM name - which no longer equals the stored `name`. Without
+    checking `name_osm` too, the app fails to recognise a water it added
+    itself and creates a duplicate, splitting every statistic about that lake.
+    """
+    service.add_water(db, water(name="Zalew Zegrzyński", osm_id=111), user_id=1)
+    again = service.add_water(
+        db, water(name="Zalew Zegrzyński", osm_id=222, lat=52.4503, lon=21.0504), user_id=1
+    )
+
+    assert not again.created
+
+
 def test_polish_letters_survive_slugging(db: Session) -> None:
     """NFKD alone eats the ł entirely and leaves `zegrzy-skie`."""
     assert service.slugify("Jezioro Zegrzyńskie") == "jezioro-zegrzynskie"
