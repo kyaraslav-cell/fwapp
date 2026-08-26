@@ -204,6 +204,44 @@ def active_session(
     ).scalar_one_or_none()
 
 
+def active_session_for_user(db: Session, user_id: int) -> FishSession | None:
+    """This angler's session in progress, on whatever water it is on.
+
+    The `/session/*` routes used `active_session(db, get_lake(db), ...)`, and
+    `get_lake` returns the **seeded** lake - always Pomocnia. So a session
+    started on any other water was written to the database and then became
+    unreachable: the redirect to `/session/active` looked for it on Pomocnia,
+    found nothing, and sent the angler back to the places list. From the bank
+    it looked as though the start button did nothing, while every tap silently
+    created another orphaned session.
+
+    Scoped per angler, like `active_session`: two people on the same bank each
+    have their own session running.
+
+    The newest is returned when more than one is open. Nothing here closes the
+    others - ending a session is the angler's act, not a side effect of
+    starting the next one, and the orphans this bug created are real logged
+    effort (law 3: blank sessions are data).
+    """
+    return db.execute(
+        select(FishSession)
+        .where(FishSession.user_id == user_id, FishSession.ended_at.is_(None))
+        .order_by(FishSession.started_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+
+def open_sessions_for_user(db: Session, user_id: int) -> list[FishSession]:
+    """Every session this angler has left running, newest first."""
+    return list(
+        db.execute(
+            select(FishSession)
+            .where(FishSession.user_id == user_id, FishSession.ended_at.is_(None))
+            .order_by(FishSession.started_at.desc())
+        ).scalars().all()
+    )
+
+
 def mean_cpue(summaries: list[SessionSummary], water_types: list[str | None]) -> float | None:
     """Mean fish per hour across sessions, or a refusal if the waters differ.
 

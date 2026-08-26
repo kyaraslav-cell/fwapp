@@ -8,22 +8,35 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.models import Catch, FishSession
+from app.core.models import Catch, FishSession, Lake
 from app.media import images
 from app.notebook.sessions import (
-    active_session,
+    active_session_for_user,
     add_catch,
     delete_catch,
     end_session,
     update_catch,
 )
 from app.notebook.species import favourite_species, list_species
-from app.web.deps import CurrentUser, get_db, get_lake, require_user, templates
+from app.web.deps import CurrentUser, get_db, require_user, templates
 
 router = APIRouter(prefix="/session")
 
 ALLOWED_PHOTO_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".heic"}
 MAX_PHOTO_BYTES = 8 * 1024 * 1024
+
+
+def session_lake(db: Session, session: FishSession) -> Lake:
+    """The water a session is actually on.
+
+    Never `get_lake(db)`, which returns the seeded lake whatever the session
+    says. That substitution is what made the notebook work on Pomocnia only -
+    see `active_session_for_user`.
+    """
+    lake = db.get(Lake, session.lake_id)
+    if lake is None:  # a session cannot outlive its water; treat as gone
+        raise HTTPException(status_code=404, detail="this session's water no longer exists")
+    return lake
 
 
 def owned_catch(db: Session, user: CurrentUser, catch_id: int) -> Catch:
@@ -99,10 +112,10 @@ def active(
     user: CurrentUser = Depends(require_user),
     db: Session = Depends(get_db),
 ):
-    lake = get_lake(db)
-    session = active_session(db, lake, user_id=user.id)
+    session = active_session_for_user(db, user.id)
     if session is None:
         return RedirectResponse(url="/")
+    lake = session_lake(db, session)
 
     catches = (
         db.query(Catch).filter(Catch.session_id == session.id).order_by(Catch.id.desc()).all()
@@ -141,8 +154,7 @@ async def catch(
     user: CurrentUser = Depends(require_user),
     db: Session = Depends(get_db),
 ):
-    lake = get_lake(db)
-    session = active_session(db, lake, user_id=user.id)
+    session = active_session_for_user(db, user.id)
     if session is None:
         return RedirectResponse(url="/", status_code=303)
 
@@ -227,8 +239,7 @@ def end_form(
     user: CurrentUser = Depends(require_user),
     db: Session = Depends(get_db),
 ):
-    lake = get_lake(db)
-    session = active_session(db, lake, user_id=user.id)
+    session = active_session_for_user(db, user.id)
     if session is None:
         return RedirectResponse(url="/")
     n_catches = db.query(Catch).filter(Catch.session_id == session.id).count()
@@ -251,8 +262,7 @@ def end(
     user: CurrentUser = Depends(require_user),
     db: Session = Depends(get_db),
 ):
-    lake = get_lake(db)
-    session = active_session(db, lake, user_id=user.id)
+    session = active_session_for_user(db, user.id)
     if session is None:
         return RedirectResponse(url="/", status_code=303)
 

@@ -583,14 +583,15 @@ const dayBadge = document.getElementById('map-day-badge');
 const dayNote = document.getElementById('day-strip-note');
 const nowCard = document.getElementById('now-card');
 const nowTemp = document.getElementById('now-temp');
-const nowLabel = document.getElementById('now-label');
+// No `now-label`: the "Right now - HH:MM" line was removed at the owner's
+// request. Which day the card is showing is stated by `map-day-badge`, which
+// already existed and said the same thing.
 const nowDetail = document.getElementById('now-detail');
 
 // What the card said about right now, kept so closing the strip can put it
 // back exactly - re-deriving it from the forecast would be a different number.
 const NOW_SNAPSHOT = nowCard ? {
   temp: nowTemp.innerHTML,
-  label: nowLabel.textContent,
   detail: nowDetail.innerHTML
 } : null;
 
@@ -623,7 +624,6 @@ function showDay(chip) {
     dayNote.textContent = I18N.calendar_note;
     if (NOW_SNAPSHOT) {
       nowTemp.innerHTML = NOW_SNAPSHOT.temp;
-      nowLabel.textContent = NOW_SNAPSHOT.label;
       nowDetail.innerHTML = NOW_SNAPSHOT.detail;
       nowCard.classList.remove('is-forecast');
     }
@@ -639,7 +639,6 @@ function showDay(chip) {
     if (NOW_SNAPSHOT && day && day.weather) {
       const w = day.weather;
       nowTemp.innerHTML = w.temp + '<span>°C</span>';
-      nowLabel.textContent = I18N.forecast_badge + ' · ' + day.label;
       const wind = w.windMax !== null
         ? `${windArrow(w.windDir)}${w.windCompass} ${w.windMax} m/s · ` : '';
       nowDetail.innerHTML = wind + (w.pressure !== null ? w.pressure + ' hPa' : '');
