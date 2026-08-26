@@ -753,3 +753,65 @@ Tonight's `reports/site_audit/2026-08-25.md` was already fully triaged
 above, by hand, before this Routine existed - archived alongside this merge
 (`reports/site_audit/archive/2026-08-25.md`) so the new automatic mechanism
 doesn't try to re-triage a finding that is already closed.
+
+
+## 21 · Owner bug sweep, 2026-08-26 · DONE except §21f
+
+Seven things the owner reported after looking at Zalew Zegrzyński on the live
+site. Three of them turned out to be one cause.
+
+**21a. The conditions card showed next week.** "Right now · 18:00", 23 °C and
+1011 hPa, at 08:56 on a 16 °C morning. `current_reading` selected
+`order_by(ts_utc.desc()).limit(200)` and then picked the row nearest to now
+out of that slice — but sorted descending those 200 rows are the ones furthest
+into the **future**, so the nearest candidate was already about eight days
+out. It was displaying 31 August, 16:00 UTC. Now bounded to a window around
+now; a water whose ingest has stalled shows nothing rather than presenting an
+old hour as current (law 4 applied to the display layer). The "Right now ·
+HH:MM" line is gone at the owner's request.
+
+**21b. Added waters were never updated after add-time.** `run_ingest_job` and
+`run_predict_job` both called `ensure_lake_seeded` and worked on its single
+return value, so only Pomocnia was ever refreshed. This one line caused the
+frozen conditions card, the day strip running out a week after a water was
+added, **and** "no data yet" on the places list — `home()` asks for a
+horizon-0 prediction and nothing ever wrote one for anything but Pomocnia.
+Both jobs now iterate every water, each isolated so one refusal does not cost
+the others their update.
+
+**21c. The build banner lied.** Zegrzyński's `intel` stage succeeded, was
+queued a second time, and timed out; `status_for` flagged the whole water as
+failed while the page displayed the 42 facts it had supposedly failed to
+collect. A job kind is a stage, not an attempt.
+
+**21d. The provenance paragraph is one sentence.** Rule 14. Keeps the
+admission ADR 0002 requires; drops the config filename and the provenance
+slug. (The owner asked for outright deletion; one sentence was agreed
+instead.)
+
+**21e. Waters were not segregated.** `water_type` was never set by anything —
+the add pipeline wrote `NULL` for every water it created. See **ADR 0007**:
+Okręg Mazowiecki's published list is extracted offline by
+`tools/pzw_extract.py` into `config/pzw/mazowiecki.yaml` (109 waters,
+committed), matched at add time by `app/discover/pzw.py`, and the add form
+asks only when the registry has no answer. The permit's spelling becomes
+`Lake.name`; OSM's is kept in `name_osm`. All four live waters backfilled
+with `tools/pzw_backfill.py`.
+
+**21f. Only Okręg Mazowiecki is covered.** There is no national
+machine-readable PZW registry — ~45 okręgi, each publishing in its own format,
+several map-only. Adding one is a second file in `config/pzw/` and, if the
+format differs, a second extractor. Coverage within Mazowiecki is also partial
+(109 extracted against the ~416 the okręg's map claims): river districts
+contribute a name each rather than every beat. A missing water falls through
+to the angler's answer, which is the safe direction to fail in.
+
+**21g. Search returned villages and streets.** Non-water results were kept and
+merely marked, so searching a Polish lake's name returned the village, the
+gmina and the street of that name first. Waters only now. The server-side
+refusal for a hand-crafted POST is unchanged.
+
+Also fixed in passing, unreported: the local-knowledge list printed Gemini's
+own machine keys (`common_species`, `2024_stocking_plan`) beside each value,
+raw and in English in all three languages.
+

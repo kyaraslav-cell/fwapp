@@ -21,7 +21,7 @@ Every finished change is merged there and pushed (rule 13).
 
 | Area | State |
 |---|---|
-| Weather ingest (Open-Meteo, hourly, APScheduler) | works |
+| Weather ingest (Open-Meteo, hourly, APScheduler) | works — **every water**, not just the seeded one (fixed 2026-08-26) |
 | Immutable prediction writer, `inputs_hash`, ruleset versioning | works |
 | Restricted-AST expression evaluator (no `eval`) | works |
 | Real OSM lake outline via Overpass, cached, circle fallback | works |
@@ -32,7 +32,8 @@ Every finished change is merged there and pushed (rule 13).
 | Thermal phase from modelled water temp, not the calendar | works |
 | ERA5 archive backfill (the pressure norm needs 8760 h) | works |
 | Real OSM shoreline committed to the repo, no build-time fetch | works |
-| Water type (pzw/commercial) + filter on the places list | works |
+| Water type (pzw/commercial) + filter on the places list | works — set from the **PZW registry** at add time, ADR 0007 |
+| PZW water registry (Okreg Mazowiecki, 109 waters, committed) | works — `config/pzw/`, `tools/pzw_extract.py`, `app/discover/pzw.py` |
 | Pyodide + shapely spike, passed on the real Pages URL | done |
 | Session notebook: spot → method → rods → catches → end | works |
 | 25-species DB, PL/EN/scientific search | works |
@@ -293,6 +294,7 @@ tools/oracle_vm_setup.sh      bootstraps that VM: docker, repo, compose, tailsca
 app/discover/                 nominatim search, dedupe, quota, add
 app/jobs/                     queue state machine, handlers, runner
 app/auth/                     passwords, validation, tokens, google, service
+config/pzw/mazowiecki.yaml    the okreg's water list, committed (ADR 0007)
 config/rules.v0.3.yaml        active ruleset (day score + zone score)
 config/species.yaml           25 species, sizes, icon shape, colour
 config/i18n/{en,pl,ru}.yaml   translations
