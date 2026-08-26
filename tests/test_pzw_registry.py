@@ -69,6 +69,44 @@ def test_an_unrelated_name_matches_nothing() -> None:
     assert pzw.lookup("") is None
 
 
+def test_a_name_shared_by_several_waters_is_refused() -> None:
+    """The national register made this urgent.
+
+    126 keys are shared by more than one water - five lakes called Czarne,
+    five Gleboczek, four Dlugie. `lookup` used to return on the FIRST exact
+    key match, which silently picked one of them and stamped a water_type
+    from it. Safe-ish against 109 waters from one okreg; not against 2 000+
+    from thirty-four.
+    """
+    assert pzw.lookup("Jezioro Czarne") is None
+    assert pzw.lookup("Jezioro Białe") is None
+
+
+def test_a_uniquely_named_water_still_matches() -> None:
+    """The refusal must not swallow the unambiguous case."""
+    match = pzw.lookup("Jezioro Pomocnia")
+    assert match is not None and match.water.name == "Jezioro Pomocnia"
+
+
+def test_the_same_water_listed_in_two_files_is_not_ambiguity() -> None:
+    """A duplicate is not a choice.
+
+    The okreg's permit schedule and the national register both carry some
+    waters. Left uncollapsed, the duplicate would make a perfectly
+    unambiguous water refuse. Only identical key AND identical place
+    collapses - waters that merely share a name are genuinely different and
+    must keep refusing.
+    """
+    keyed: dict[tuple[str, str], int] = {}
+    for water in pzw.registry():
+        identity = (water.key, water.place.strip().lower())
+        keyed[identity] = keyed.get(identity, 0) + 1
+
+    assert not [k for k, n in keyed.items() if n > 1], (
+        "the registry contains an exact duplicate; it would refuse a water it can name"
+    )
+
+
 @pytest.mark.parametrize(
     ("spelling", "expected"),
     [

@@ -26,9 +26,13 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
+
+# Run as a script (`python tools/pzw_extract.py`), the repository root is not
+# on sys.path and `from app...` fails. The key normaliser lives in the app so
+# that there is exactly one definition of it - see `normalise_name`.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 # The three water sections of the list. Everything after them is regulations.
 SECTION_RIVERS = "obwody_rybackie"
@@ -98,20 +102,16 @@ def _clean(text: str) -> str:
 def normalise_name(name: str) -> str:
     """The key two spellings of the same water must agree on.
 
-    Accents folded, kind prefix dropped, case dropped, punctuation dropped.
-    Polish adjectival endings are NOT normalised here - "Szczęśliwice" and
-    "Szczęśliwickie" stay different keys on purpose, and the fuzzy pass in
-    `app/discover/pzw.py` is what bridges them. Doing it here would bake a
-    guess into the committed data where nobody could see it.
+    Delegates to the runtime normaliser rather than mirroring it. These were
+    two separate implementations that had to agree exactly, and they drifted
+    the moment the national crawler started stripping okreg catalogue numbers
+    ("0.56 Babiloch - wyrobisko") that this one did not: every affected key in
+    the committed file stopped matching, which looks exactly like a water
+    genuinely not being on the permit. One definition, imported.
     """
-    folded = unicodedata.normalize("NFKD", name.lower())
-    folded = "".join(c for c in folded if not unicodedata.combining(c))
-    folded = folded.replace("ł", "l")
-    folded = re.sub(r"[^a-z0-9 ]+", " ", folded)
-    words = folded.split()
-    while words and words[0] in KIND_PREFIXES_FOLDED:
-        words = words[1:]
-    return " ".join(words)
+    from app.discover.pzw import normalise
+
+    return normalise(name)
 
 
 # The list abbreviates the water kind. Expanded for display: the point of

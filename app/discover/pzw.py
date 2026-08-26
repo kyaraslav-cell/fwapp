@@ -188,7 +188,25 @@ def registry() -> tuple[PzwWater, ...]:
     waters: list[PzwWater] = []
     for path in sorted(CONFIG_DIR.glob("*.yaml")):
         waters.extend(_load_file(path))
-    return tuple(waters)
+
+    # The same water can be listed in two files - the okreg's permit schedule
+    # and the national register both carry Glinianki Blonie. Identical key AND
+    # identical place is the same water, and collapsing it matters: `lookup`
+    # refuses when several entries match, so a duplicate would turn a perfectly
+    # unambiguous water into a question.
+    #
+    # Only exact agreement collapses. Waters that merely share a name are left
+    # alone on purpose - "Basen" in Brwinow and "Basen" in Zary are different
+    # waters, and refusing to choose between them is the correct answer.
+    seen: set[tuple[str, str]] = set()
+    unique: list[PzwWater] = []
+    for water in waters:
+        identity = (water.key, water.place.strip().lower())
+        if identity in seen:
+            continue
+        seen.add(identity)
+        unique.append(water)
+    return tuple(unique)
 
 
 def lookup(name: str) -> Match | None:
@@ -205,14 +223,20 @@ def lookup(name: str) -> Match | None:
     if not query:
         return None
 
-    best: list[tuple[float, PzwWater]] = []
-    for water in registry():
-        if water.key == query:
-            return Match(water=water, exact=True)
-        score = _score(query, water.key)
-        if score >= 1.0:
-            best.append((score, water))
-
-    if len(best) != 1:
+    # Every exact match, not the first one. With the national register loaded
+    # this matters a great deal: 126 keys are shared by more than one water -
+    # five lakes called Czarne, five called Gleboczek, four called Dlugie. An
+    # early return on the first hit silently picked one of them and stamped a
+    # water_type from it, which is the exact silent corruption this function's
+    # ambiguity rule exists to prevent. It was safe-ish against 109 waters
+    # from one okreg; it is not safe against 2 193 from thirty-four.
+    exact = [w for w in registry() if w.key == query]
+    if len(exact) == 1:
+        return Match(water=exact[0], exact=True)
+    if exact:
         return None
-    return Match(water=best[0][1], exact=False)
+
+    fuzzy = [w for w in registry() if _score(query, w.key) >= 1.0]
+    if len(fuzzy) != 1:
+        return None
+    return Match(water=fuzzy[0], exact=False)
