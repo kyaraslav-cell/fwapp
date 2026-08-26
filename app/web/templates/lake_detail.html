@@ -207,7 +207,12 @@
     <ul class="intel-list">
       {% for row in rows %}
       <li class="intel-fact">
-        <span class="intel-key">{{ row.key }}</span>
+        {# The key is Gemini's own machine label - `common_species`,
+           `2024_stocking_plan` - and was printed raw beside the value, in
+           English, in all three languages. It is also redundant: every value
+           is a complete sentence that restates it ("The average depth is
+           3.5 meters." under `average_depth`). Dropped rather than
+           translated, because there is nothing here worth a translation. #}
         <span class="intel-value">{{ row.value }}</span>
         <a class="intel-source{{ ' intel-source-dead' if row.source_ok == 0 }}"
            href="{{ row.source_url }}" target="_blank" rel="noopener noreferrer nofollow"
