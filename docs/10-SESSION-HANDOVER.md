@@ -7,9 +7,11 @@ model) picks this up cold. Read `CLAUDE.md` first, then this.
 
 ## 1. What exists right now
 
-A working FastAPI + SQLite app, 321 tests, `make check` green (ruff,
-`mypy --strict` on `app/core` `app/rules` `app/features` `app/auth` `app/jobs`
-`app/discover` `app/geo` `app/intel`, pytest).
+A working FastAPI + SQLite app, **live on the owner's own machine**
+(Docker + Tailscale Funnel, `docs/10 §9`) since 2026-08-24, 347 tests,
+`make check` green (ruff, `mypy --strict` on `app/core` `app/rules`
+`app/features` `app/auth` `app/jobs` `app/discover` `app/geo` `app/intel`
+`app/media`, pytest).
 
 Per-session detail lives in `docs/handoff/` — newest file first. Use the
 `session-start` and `session-end` skills.
@@ -40,7 +42,10 @@ Every finished change is merged there and pushed (rule 13).
 | Water-type filter as a segmented switch | works |
 | Day strip (today + 7) behind a calendar icon, map re-scores per day | works |
 | Thermal-phase line on the lake page | **removed** — see backlog §14 |
-| Add a water by name: search, job queue, staged build | works, **never run against Nominatim/Overpass** |
+| Add a water by name: search, job queue, staged build | **run for real** — two real waters added live 2026-08-24/25, one by a real second user |
+| Lake thumbnail icons (home page, traced from real outline) | works, live-verified (`docs/09-BACKLOG.md §19a`) |
+| Daily hi-res heat-map grid for large waters (`§19c`) | works, live-verified — real bug in the client-side overlay render found and fixed post-ship, see the 2026-08-25/26 handoffs |
+| Automated nightly bug/UX sweep (`site-audit`, `§20`) | works — two independent unattended jobs confirmed firing on schedule: local Task Scheduler (2am, finds) + a cloud Routine (3am UTC, triages/fixes) |
 | Large waters: OSM relations, split boundaries, scaled radius | works — see `docs/13 §11` |
 | Accounts: password sign-in, sessions, per-angler notebook | works |
 | Login + registration rate limiting | works |
@@ -113,6 +118,14 @@ These came from the owner directly and are not negotiable without asking.
     `start_auth_session`. The trade this makes is deliberate: switching from
     phone to laptop mid-trip signs the phone out. Pinned by
     `tests/test_auth_routes.py::test_a_new_sign_in_revokes_the_previous_one`.
+18. **There is a real second user.** Not a test account: `tsaranhelina5@
+    gmail.com` ("Anhelina") registered for real 2026-08-24, added a real
+    water, and has two fishing sessions still open. Discovered by this
+    session, not announced by the owner. Anything touching `User`,
+    `FishSession`, `Lake.added_by_user_id` or the notebook generally must
+    treat existing rows as real data from here on, not assume a clean or
+    single-user database. Never end, edit or delete another user's session
+    or data without being asked to.
 
 ---
 
@@ -210,9 +223,15 @@ Ordered by how much it matters.
    is now built** - `app/auth/throttle.py`, three windows, checked before the
    password is hashed. Behind a reverse proxy set `FISHLOG_TRUST_PROXY=1` or
    every request counts as one address and the per-IP limit locks everyone
-   out at once. The Google flow has never reached Google from this sandbox;
-   its first real exchange will be on the owner's machine, and the redirect
-   URI has to be registered in the Google console first.
+   out at once. **Google sign-in now reaches the real Google endpoint**
+   (redirect URI registered, verified end-to-end from this app's side,
+   2026-08-24) - only the owner's own consent-screen click-through is
+   unconfirmed, since that needs a human at a real Google account.
+9. **Two real, unfinished pieces of user data are sitting in the live
+   database, unresolved** (`docs/handoff/2026-08-26-0832-...md`): a real
+   second user's two fishing sessions, never ended; and an undocumented
+   second water the owner's own account added. Not a code bug - a decision
+   the owner hasn't made yet. See standing rule 18.
 
 ---
 
