@@ -137,7 +137,12 @@ These came from the owner directly and are not negotiable without asking.
     docker compose up -d --build
     ```
 
-    Run it once, at the end, after the work is merged — not per commit. It is
+    Run it once, at the end, after the work is merged — not per commit, which
+    would put half-finished work on the public URL. **At the end means before
+    the session runs out of context or credit**, which the owner named
+    directly: a session can stop without warning, and an unbuilt change then
+    sits undeployed until somebody notices. Rebuild while there is still budget
+    to confirm it worked. `session-end` carries this as its last step. It is
     the deploy half of rule 13, and it is safe: the SQLite file lives on the
     named volume `fishlog-data`, outside the image, so a rebuild never touches
     the notebook. Confirm afterwards that the container is genuinely new

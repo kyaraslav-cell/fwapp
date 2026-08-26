@@ -91,5 +91,32 @@ anything you concluded was impossible or blocked.
 Be honest about what was not finished. A handoff that overstates progress is
 worse than none, because the next session starts by trusting it.
 
+## Deploy before you run out of room
+
+If the session touched `app/` or `config/`, the last action before writing the
+handoff is:
+
+```bash
+docker compose up -d --build
+```
+
+The deployment has no bind mount, so the image carries a frozen copy of the
+code. Without a rebuild the branch says the fix shipped while the owner is
+looking at a stale site — and the owner is the one who finds out.
+
+Do it **once, here, at the end** — not per commit, which would put half-finished
+work on the public URL. Doing it at the end has a second reason the owner named
+directly: a session can run out of context or credit without warning, and an
+unbuilt change then sits undeployed until somebody notices. Rebuild while there
+is still budget to confirm it worked.
+
+Confirm, do not assume: `docker ps` uptime should have reset, and `/health`
+should still answer. If compose reports `Running` rather than recreating the
+container, the image was byte-identical — correct when the session only touched
+docs or tests, a red flag when it touched code.
+
+The SQLite database is on the named volume `fishlog-data`, outside the image, so
+a rebuild never touches the notebook.
+
 When done, tell the user in one line where the file is and what the next step
 is. Then it is safe to compact.
