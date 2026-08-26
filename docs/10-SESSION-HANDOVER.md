@@ -126,6 +126,22 @@ These came from the owner directly and are not negotiable without asking.
     treat existing rows as real data from here on, not assume a clean or
     single-user database. Never end, edit or delete another user's session
     or data without being asked to.
+19. **Rebuild the live container at the end of every change that touches
+    code.** The owner asked for this in those words (2026-08-26). The
+    deployment has no bind mount, so the image holds a frozen copy of `app/`
+    and `config/` — editing a file changes nothing the public URL serves, and
+    neither `docker compose restart` nor a bare `docker compose up -d` picks
+    it up. Finishing a change means:
+
+    ```bash
+    docker compose up -d --build
+    ```
+
+    Run it once, at the end, after the work is merged — not per commit. It is
+    the deploy half of rule 13, and it is safe: the SQLite file lives on the
+    named volume `fishlog-data`, outside the image, so a rebuild never touches
+    the notebook. Confirm afterwards that the container is genuinely new
+    (`docker ps` uptime) and that `/health` still answers.
 
 ---
 
