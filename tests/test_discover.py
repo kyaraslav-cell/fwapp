@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.models import Base, Job, Lake
 from app.core.time import iso, utcnow
-from app.discover import service
+from app.discover import nominatim, service
 from app.discover.nominatim import Candidate, _area_ha_from_bbox, _to_candidate
 from app.geo.service import cell_size_for_area
 from app.jobs.handlers import NEW_WATER_PIPELINE
@@ -104,6 +104,58 @@ def test_a_village_with_a_lake_name_is_not_water() -> None:
     )
     assert candidate is not None
     assert not candidate.is_water
+
+
+def test_search_offers_waters_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The picker is for waters. Villages and streets never reach it.
+
+    Non-water results used to be kept and merely marked. Searching a Polish
+    lake's name returns the village, the gmina and the street of that name
+    first, so the angler had to read OSM tag labels to find the lake. The
+    server-side refusal for a hand-crafted POST stays either way - see
+    `test_a_village_cannot_be_added_as_a_water`.
+    """
+    rows = [
+        {
+            "lat": "52.1", "lon": "21.1", "category": "place", "type": "village",
+            "osm_type": "node", "osm_id": 9, "display_name": "Zegrze, Poland",
+        },
+        {
+            "lat": "52.45", "lon": "21.05", "category": "natural", "type": "water",
+            "osm_type": "relation", "osm_id": 2,
+            "display_name": "Zalew Zegrzynski, Poland",
+            "boundingbox": ["52.40", "52.48", "21.00", "21.12"],
+        },
+        {
+            "lat": "52.2", "lon": "21.2", "category": "highway", "type": "residential",
+            "osm_type": "way", "osm_id": 7, "display_name": "ulica Zegrzynska, Poland",
+        },
+    ]
+    monkeypatch.setattr(nominatim, "_cache", {})
+    monkeypatch.setattr(nominatim, "_throttle", lambda: None)
+
+    class _Response:
+        status_code = 200
+
+        @staticmethod
+        def json() -> list[dict[str, object]]:
+            return rows
+
+    class _Client:
+        def __init__(self, *a: object, **kw: object) -> None: ...
+        def __enter__(self) -> _Client:
+            return self
+
+        def __exit__(self, *a: object) -> None: ...
+        def get(self, *a: object, **kw: object) -> _Response:
+            return _Response()
+
+    monkeypatch.setattr(nominatim.httpx, "Client", _Client)
+
+    results = nominatim.search("Zegrzynski")
+
+    assert [c.name for c in results] == ["Zalew Zegrzynski"]
+    assert all(c.is_water for c in results)
 
 
 def test_a_result_with_no_coordinates_is_dropped() -> None:

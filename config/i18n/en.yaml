@@ -47,11 +47,7 @@ lake:
   refresh: ↻ Refresh weather & prediction
   fish_here: Fish here?
   start_session_link: Start session →
-  provenance: >
-    Heat overlay is a provisional, AI-authored zone score built from geometry
-    only — upwind fetch and distance to bank — with weights in
-    config/rules.v0.3.yaml. It is a hypothesis, not a measurement, and nothing
-    here has been checked against a single logged catch yet.
+  provenance: Provisional — not yet checked against a single logged catch.
   right_now: Right now
   high_low: High / low
   partial: partial day

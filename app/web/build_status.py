@@ -58,8 +58,16 @@ def status_for(db: Session, lake: Lake) -> BuildStatus:
         return BuildStatus(PREPARING, "build.weather", True)
 
     if failed:
-        # Named rather than hidden: a silent failure is why an angler decides
-        # the app is broken instead of busy.
-        return BuildStatus(FAILED, "build.failed", False)
+        # Only failures that nothing else made good. A job kind is a *stage*,
+        # not an attempt: the intel pass for Zalew Zegrzynski succeeded, was
+        # queued a second time, timed out, and the page then told the angler
+        # the water had failed to build while sitting on 42 collected facts.
+        # A stage counts as failed only if no job of that kind ever finished.
+        done_kinds = {j.kind for j in jobs if j.state == queue.DONE}
+        unresolved = [j for j in failed if j.kind not in done_kinds]
+        if unresolved:
+            # Named rather than hidden: a silent failure is why an angler
+            # decides the app is broken instead of busy.
+            return BuildStatus(FAILED, "build.failed", False)
 
     return BuildStatus(READY, None, False)

@@ -132,12 +132,20 @@ def _to_candidate(row: dict[str, Any]) -> Candidate | None:
 
 
 def search(name: str, *, country_codes: str = "pl", limit: int = MAX_RESULTS) -> list[Candidate]:
-    """Look a water up by name. Water results first, non-water kept but marked.
+    """Look a water up by name. Waters only - villages and streets are dropped.
 
-    Non-water results are not thrown away: a fishery is often mapped as a
-    `leisure` area or tagged oddly, and silently dropping everything that is not
-    `natural=water` would make findable places look missing. They are marked so
-    the picker can show them differently.
+    Non-water results used to be kept and merely marked, on the theory that a
+    fishery is sometimes tagged oddly and hiding it would make a findable place
+    look missing. In practice the opposite happened: searching a lake's name in
+    Poland returns the village, the gmina and the street of the same name
+    first, and the angler had to read tag labels to find the water. The lake is
+    what the app is for, so the lake is what the picker offers.
+
+    `WATER_TYPES` is deliberately broad - `leisure=fishing`, the `landuse`
+    reservoirs and basins are all in it - so an oddly tagged fishery still
+    survives the filter. A water tagged so strangely that none of those match
+    is a gap in OSM, and the honest answer is that it cannot be added yet
+    rather than a list of hamlets to guess from.
     """
     query = " ".join(name.split())
     if len(query) < 3:
@@ -167,9 +175,9 @@ def search(name: str, *, country_codes: str = "pl", limit: int = MAX_RESULTS) ->
         logger.warning("Nominatim search failed (%s: %s)", type(exc).__name__, exc)
         raise NominatimError(str(exc)) from exc
 
-    candidates = [c for c in (_to_candidate(row) for row in rows) if c is not None]
-    # Water first, then bigger first - the named water someone means is more
-    # often the lake than the hamlet beside it.
-    candidates.sort(key=lambda c: (not c.is_water, -(c.area_ha or 0.0)))
+    candidates = [c for c in (_to_candidate(row) for row in rows) if c is not None and c.is_water]
+    # Bigger first - the named water someone means is more often the reservoir
+    # than the farm pond sharing its name.
+    candidates.sort(key=lambda c: -(c.area_ha or 0.0))
     _cache[key] = candidates
     return candidates

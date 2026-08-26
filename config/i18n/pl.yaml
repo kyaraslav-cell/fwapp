@@ -47,11 +47,7 @@ lake:
   refresh: ↻ Odśwież pogodę i prognozę
   fish_here: Łowić tutaj?
   start_session_link: Rozpocznij sesję →
-  provenance: >
-    Nakładka to wstępna, wygenerowana przez AI ocena stref, policzona wyłącznie
-    z geometrii — rozpędu fali pod wiatr i odległości od brzegu — z wagami w
-    config/rules.v0.3.yaml. To hipoteza, nie pomiar, i nie została jeszcze
-    sprawdzona na żadnym zapisanym braniu.
+  provenance: Wstępna — nie sprawdzona jeszcze na żadnym zapisanym braniu.
   right_now: Teraz
   high_low: Maks. / min.
   partial: niepełny dzień

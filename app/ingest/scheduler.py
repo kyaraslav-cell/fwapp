@@ -6,8 +6,11 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.core.db import init_db, session_scope
+from app.core.models import Lake
 from app.core.seed import ensure_lake_seeded
 from app.geo import service as geo_service
 from app.ingest.open_meteo import ingest_forecast
@@ -16,17 +19,57 @@ from app.predict.daily import generate_predictions
 logger = logging.getLogger("fishlog.scheduler")
 
 
+def _all_lakes(db: Session) -> list[Lake]:
+    """Every water in the database, with the seeded one guaranteed to exist.
+
+    Both hourly jobs below used to call `ensure_lake_seeded` and operate on its
+    single return value, so a water added through the discover pipeline got one
+    forecast at add-time and was then never touched again. Symptoms, all from
+    that one cause: a "Right now" card frozen at whatever hour the water was
+    added, a day strip that ran out a week later, and "no data yet" on the
+    places list forever, because `home()` asks for a horizon-0 prediction and
+    nothing ever wrote one.
+    """
+    ensure_lake_seeded(db)
+    return list(db.execute(select(Lake).order_by(Lake.id)).scalars().all())
+
+
 def run_ingest_job() -> None:
+    """Fetch the forecast for every water, one at a time.
+
+    Each water is its own try/except: Open-Meteo refusing one set of
+    coordinates must not cost every other water its hourly update. A failure
+    here is already recorded as an `ingest_gap` by `ingest_forecast` itself
+    (law 4 - write nothing, log the gap), so this only has to keep going.
+    """
     with session_scope() as db:
-        lake = ensure_lake_seeded(db)
-        written = ingest_forecast(db, lake)
-        logger.info("ingest: wrote %d weather_hourly rows", written)
+        lakes = _all_lakes(db)
+        total = 0
+        for lake in lakes:
+            try:
+                total += ingest_forecast(db, lake)
+            except Exception:  # noqa: BLE001 - one bad water must not stop the rest
+                logger.exception("ingest failed for %s", lake.slug)
+        logger.info("ingest: wrote %d weather_hourly rows across %d water(s)", total, len(lakes))
 
 
 def run_predict_job() -> None:
+    """Write today's prediction row for every water.
+
+    Same isolation as the ingest pass, and for the same reason. A water whose
+    pressure history is too short to score raises rather than inventing a
+    number, and that must not deny every other water its row.
+    """
     with session_scope() as db:
-        lake = ensure_lake_seeded(db)
-        generate_predictions(db, lake)
+        lakes = _all_lakes(db)
+        written = 0
+        for lake in lakes:
+            try:
+                generate_predictions(db, lake)
+                written += 1
+            except Exception:  # noqa: BLE001 - see run_ingest_job
+                logger.exception("prediction failed for %s", lake.slug)
+        logger.info("predict: wrote predictions for %d/%d water(s)", written, len(lakes))
 
 
 def run_jobs_tick() -> None:

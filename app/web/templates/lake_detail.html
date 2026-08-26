@@ -67,7 +67,10 @@
 <div class="now-card" id="now-card">
   <div class="now-temp" id="now-temp">{{ now_wx.temp_c | round(0) | int }}<span>°C</span></div>
   <div class="now-meta">
-    <div class="now-label" id="now-label">{{ t('lake.right_now') }} · {{ now_wx.local_time }}</div>
+    {# The "Right now · HH:MM" line is gone at the owner's request: the card is
+       the current conditions, so labelling it as such said nothing, and the
+       clock beside it invited exactly the reading it got - a timestamp that
+       looked like a claim about when the number was taken. #}
     <div id="now-detail">
       {% if now_wx.wind_dir is not none %}
       <span class="wind-arrow" style="transform: rotate({{ (now_wx.wind_dir + 180) % 360 }}deg);">↑</span>
@@ -169,11 +172,10 @@
   <span id="legend-high">{{ t('lake.legend_high') }}</span>
 </div>
 
-<p class="provenance-note">
-  {{ t('lake.provenance') }}
-  <code>{{ zone_provenance }}</code> ·
-  {{ t('lake.outline_source') }}: <code>{{ outline_source }}</code>
-</p>
+{# One sentence, per rule 14. ADR 0002 requires the page to admit the overlay
+   is an unvalidated hypothesis; it does not require a paragraph, a config
+   filename or a provenance slug to do it. #}
+<p class="provenance-note">{{ t('lake.provenance') }}</p>
 
 <div id="zone-list-fallback" style="display:none;">
   <a class="btn btn-secondary" href="/lake/{{ lake.slug }}/spot?lat={{ lake.centroid_lat }}&lon={{ lake.centroid_lon }}">

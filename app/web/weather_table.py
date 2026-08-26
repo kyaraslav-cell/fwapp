@@ -32,8 +32,14 @@ def _compass(deg: float | None) -> str:
     return points[int((deg + 22.5) % 360 // 45)]
 
 
+# How far either side of now the card may reach for an hour to call "now".
+# Three hours is generous enough to survive a late-running ingest and short
+# enough that nothing stale can masquerade as current.
+NOW_WINDOW_HOURS = 3
+
+
 def current_reading(db: Session, lake: Lake) -> dict[str, Any] | None:
-    """The single most recent hour, whatever it is.
+    """The hour nearest to now, or nothing if no hour is near enough.
 
     The daily table used to be the only temperature on screen, and a daily
     MEAN reads as badly wrong when you are standing outside in the afternoon:
@@ -42,20 +48,31 @@ def current_reading(db: Session, lake: Lake) -> dict[str, Any] | None:
     hour is shown separately and prominently, with its own age, and the table
     now shows highs and lows rather than a mean.
     """
+    now = utcnow()
+    # Bounded to a window *around now* rather than to the N newest rows. That
+    # was the bug: `order_by(ts.desc()).limit(200)` takes the 200 rows furthest
+    # into the FUTURE, so "nearest to now" could only ever pick the earliest of
+    # those - about eight days ahead on a water with a full forecast. The card
+    # cheerfully showed next Monday teatime as "Right now".
+    lo = iso(now - timedelta(hours=NOW_WINDOW_HOURS))
+    hi = iso(now + timedelta(hours=NOW_WINDOW_HOURS))
     row = db.execute(
         select(WeatherHourly)
         .where(
             WeatherHourly.lake_id == lake.id,
             WeatherHourly.source == "openmeteo_forecast",
             WeatherHourly.temperature_2m.is_not(None),
+            WeatherHourly.ts_utc >= lo,
+            WeatherHourly.ts_utc <= hi,
         )
-        .order_by(WeatherHourly.ts_utc.desc())
-        .limit(200)
+        .order_by(WeatherHourly.ts_utc)
     ).scalars().all()
     if not row:
+        # Nothing near now at all. A water whose ingest has stalled has rows,
+        # they are just all old - and showing a two-day-old hour as "now" is
+        # the same lie in a smaller font. Say nothing instead (law 4).
         return None
 
-    now = utcnow()
     # Nearest hour to now in either direction. Within the current hour the
     # "forecast" row IS the nowcast, so preferring a stale observation would
     # be less accurate, not more honest.
