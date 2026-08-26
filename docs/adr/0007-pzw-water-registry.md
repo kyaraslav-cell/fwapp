@@ -88,18 +88,46 @@ row for any water reached through a second OSM object — splitting the notebook
 for that lake in two. Pinned by
 `test_the_same_water_is_still_deduped_after_being_renamed`.
 
-## Scope
+## Scope — corrected 2026-08-26
 
-**Okręg Mazowiecki only**, deliberately, per rule 15 (MVP-first). All four
-waters currently in the database are in it. There is **no national
-machine-readable PZW registry**: each of ~45 okręgi publishes separately, in
-its own format — PDF, Google My Maps, bespoke map viewers, several with no
-downloadable list at all. Covering them all is roughly one parser per okręg
-plus permanent maintenance as each redesigns.
+**This ADR originally said there is no national machine-readable PZW registry.
+That was wrong, and the owner corrected it.**
 
-The design does not need redoing to add more: `registry()` reads every
-`config/pzw/*.yaml`, so a second okręg is a second file and, if its format
-differs, a second extractor.
+`https://pzw.pl/strefa-wedkarza/lowiska-i-wody-pzw` is PZW's own national
+register — every water its okręgi manage, ~1 800 of them across 174 pages,
+alphabetical. Each listing card carries the water's name, kind, place,
+voivodeship, the okręg that manages it and the koło that hosts it. Each
+water's own page additionally carries **coordinates**.
+
+The mistake was reasoning from search results about *per-okręg* pages (PDFs,
+Google My Maps, bespoke viewers — all of which are real) and concluding that
+nothing central existed, without looking for a central one. The okręg PDF was
+a worse source that happened to be the first one found.
+
+`tools/pzw_crawl.py` now reads the national register into
+`config/pzw/poland.yaml`. `tools/pzw_extract.py` and its
+`config/pzw/mazowiecki.yaml` are kept: the PDF is the okręg's own permit
+schedule and is the authority on what a permit *covers*, whereas the register
+is the authority on what exists and where. `registry()` reads every
+`config/pzw/*.yaml`, so both contribute.
+
+### Why the crawler drives a browser
+
+The register's pagination endpoint answers `200` with an **empty body** to a
+plain HTTP request, however faithfully the query string and headers are
+reproduced; it answers properly from inside a real page session. Rather than
+guess at what else it wants, the tool drives the site's own page and calls the
+endpoint the way the site does. Requests are serialised with a delay and the
+crawl stops on the first empty page rather than hammering.
+
+### Coordinates change the matching problem
+
+The PDF had no coordinates, which is why `lookup()` refuses an ambiguous name
+match — Poland has a great many lakes called Czarne and nothing told them
+apart. The register does have them, so proximity can disambiguate: a water
+being added already has a lat/lon from Nominatim. **That is not yet wired in**
+— `lookup()` is still name-only. It is the obvious next step and would let the
+matcher answer confidently in exactly the cases it currently declines.
 
 ## What this does NOT do
 
@@ -126,8 +154,12 @@ differs, a second extractor.
   signalled by the water-kind word it starts with (indentation was tried
   first and is *not* reliable — the Zegrzyński record puts four consecutive
   name lines at indent zero).
-- Coverage is partial: 109 waters extracted, against the ~416 the okręg's own
-  map claims. The sections parsed are the three water tables; river districts
-  contribute a name each rather than every beat. A water that is genuinely
-  PZW but missing from the extract falls through to the angler's answer, which
-  is the safe direction to fail in.
+- PDF coverage is partial: 109 waters extracted, against the ~416 the okręg's
+  own map claims. The sections parsed are the three water tables; river
+  districts contribute a name each rather than every beat. The national
+  register supersedes this for coverage. A water missing from both falls
+  through to the angler's answer, which is the safe direction to fail in.
+- The national register is crawled, not offered as a download. That is a
+  standing risk: a markup change breaks the tool. It fails loudly (it stops
+  rather than writing a truncated file) and the committed YAML keeps working
+  in the meantime, because nothing is fetched at runtime.

@@ -798,13 +798,26 @@ asks only when the registry has no answer. The permit's spelling becomes
 `Lake.name`; OSM's is kept in `name_osm`. All four live waters backfilled
 with `tools/pzw_backfill.py`.
 
-**21f. Only Okręg Mazowiecki is covered.** There is no national
-machine-readable PZW registry — ~45 okręgi, each publishing in its own format,
-several map-only. Adding one is a second file in `config/pzw/` and, if the
-format differs, a second extractor. Coverage within Mazowiecki is also partial
-(109 extracted against the ~416 the okręg's map claims): river districts
-contribute a name each rather than every beat. A missing water falls through
-to the angler's answer, which is the safe direction to fail in.
+**21f. National coverage — CORRECTED.** I first reported that no national
+machine-readable PZW registry exists. **That was wrong; the owner corrected
+it.** `https://pzw.pl/strefa-wedkarza/lowiska-i-wody-pzw` is PZW's own
+national register: ~1 800 waters across 174 pages, each carrying name, kind,
+place, voivodeship, managing okręg and host koło — and each water's own page
+carries **coordinates**. The mistake was reasoning from search results about
+*per-okręg* pages and concluding nothing central existed, without looking for
+a central one.
+
+`tools/pzw_crawl.py` reads it into `config/pzw/poland.yaml`. The Mazowiecki
+PDF extractor is kept alongside: the PDF is the authority on what a permit
+*covers*, the register on what exists and where. `registry()` reads every
+`config/pzw/*.yaml`.
+
+**Still open:** `lookup()` is name-only, so it still refuses an ambiguous
+match. The register's coordinates make that solvable — a water being added
+already has a lat/lon from Nominatim, so proximity can disambiguate the many
+lakes called Czarne. Wiring that in is the obvious next step and would let the
+matcher answer in exactly the cases it currently declines. Coordinates need
+`tools/pzw_crawl.py --details`, one request per water.
 
 **21g. Search returned villages and streets.** Non-water results were kept and
 merely marked, so searching a Polish lake's name returned the village, the

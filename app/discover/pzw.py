@@ -66,6 +66,10 @@ MIN_PREFIX_RATIO = 0.7
 # A token this short carries no identifying weight ("i", "na", "w").
 MIN_SIGNIFICANT = 3
 
+# Leading okreg catalogue number, e.g. "0.101 Stobrawa - staw". Mirrors the
+# same pattern in tools/pzw_crawl.py, which writes the keys.
+CATALOGUE_PREFIX = re.compile(r"^\d+(?:\.\d+)*\s+")
+
 
 @dataclass(frozen=True)
 class PzwWater:
@@ -94,6 +98,11 @@ def normalise(name: str) -> str:
     dropped. Must agree with `tools/pzw_extract.py.normalise_name`, which
     writes the keys this is compared against - a test pins that.
     """
+    # Some okregi prefix every water with their own catalogue number - Opole
+    # lists "0.101 Stobrawa - staw". It is part of the printed name but noise
+    # in a key, and `tools/pzw_crawl.py` strips it before writing the key, so
+    # this must strip it too or every Opole water becomes unmatchable.
+    name = CATALOGUE_PREFIX.sub("", name.strip())
     folded = unicodedata.normalize("NFKD", name.lower())
     folded = "".join(c for c in folded if not unicodedata.combining(c))
     folded = folded.replace("ł", "l")
