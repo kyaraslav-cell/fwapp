@@ -17,6 +17,12 @@ home:
   last_visited: last visited
   never_visited: Not visited yet
   no_data: no data yet
+  favourite: Add to favourites
+  unfavourite: Remove from favourites
+  remove: Remove this water from my list
+  remove_confirm: 'Remove this water from your list? Your sessions on it are kept, and you can put it back.'
+  removed_count: 'Removed waters ({n})'
+  restore: Put back
   new_place: + New place
 
 place_new:

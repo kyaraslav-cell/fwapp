@@ -17,6 +17,12 @@ home:
   last_visited: последний раз
   never_visited: Ещё не посещали
   no_data: нет данных
+  favourite: В избранное
+  unfavourite: Убрать из избранного
+  remove: Убрать этот водоём из моего списка
+  remove_confirm: 'Убрать этот водоём из вашего списка? Ваши сессии на нём сохранятся, его можно вернуть.'
+  removed_count: 'Убранные водоёмы ({n})'
+  restore: Вернуть
   new_place: + Новое место
 
 place_new:

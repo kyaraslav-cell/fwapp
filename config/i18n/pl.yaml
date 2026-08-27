@@ -17,6 +17,12 @@ home:
   last_visited: ostatnio
   never_visited: Jeszcze nie odwiedzone
   no_data: brak danych
+  favourite: Dodaj do ulubionych
+  unfavourite: Usuń z ulubionych
+  remove: Usuń ten akwen z mojej listy
+  remove_confirm: 'Usunąć ten akwen z Twojej listy? Twoje sesje na nim zostaną zachowane i możesz go przywrócić.'
+  removed_count: 'Usunięte akweny ({n})'
+  restore: Przywróć
   new_place: + Nowe łowisko
 
 place_new:

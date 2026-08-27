@@ -34,7 +34,11 @@
 </div>
 
 {% for c in cards %}
-<a href="/lake/{{ c.slug }}" style="text-decoration:none; color:inherit;">
+{# The card is a link and the two controls are forms, so they cannot nest -
+   a button inside an anchor is invalid and behaves differently per browser.
+   The link covers the card, the actions sit beside it in a row of their own. #}
+<div class="place-row">
+<a class="place-link" href="/lake/{{ c.slug }}">
   <div class="place-card">
     {% if c.thumb_path %}
     {# The water's own outline, already fetched for its map (`water_outline`
@@ -65,11 +69,55 @@
     {% endif %}
   </div>
 </a>
+{% if can_edit_places %}
+<div class="place-actions">
+  <form method="post" action="/places/{{ c.slug }}/favourite">
+    <button type="submit"
+            class="place-action{{ ' is-on' if c.is_favourite }}"
+            title="{{ t('home.unfavourite') if c.is_favourite else t('home.favourite') }}"
+            aria-label="{{ t('home.unfavourite') if c.is_favourite else t('home.favourite') }}"
+            aria-pressed="{{ 'true' if c.is_favourite else 'false' }}">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"
+           fill="{{ 'currentColor' if c.is_favourite else 'none' }}"
+           stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+        <path d="M12 20.2 4.6 13a4.4 4.4 0 0 1 6.2-6.2l1.2 1.2 1.2-1.2A4.4 4.4 0 0 1 19.4 13Z"/>
+      </svg>
+    </button>
+  </form>
+  <form method="post" action="/places/{{ c.slug }}/remove"
+        onsubmit="return confirm('{{ t('home.remove_confirm') }}');">
+    <button type="submit" class="place-action place-action-remove"
+            title="{{ t('home.remove') }}" aria-label="{{ t('home.remove') }}">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"
+           fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+        <path d="M4.8 7h14.4M9.5 7V5.2h5V7M6.8 7l.9 12.1h8.6L17.2 7"/>
+      </svg>
+    </button>
+  </form>
+</div>
+{% endif %}
+</div>
 {% else %}
   <p class="empty-state">{{ t('home.filter_empty') }}</p>
 {% endfor %}
 
 <a href="/places/new" class="btn btn-ghost" style="margin-top: 8px;">{{ t('home.new_place') }}</a>
+
+{% if removed_cards %}
+{# Removed waters are put away, not deleted, so there has to be a way back to
+   them. Folded away by default - they are not part of the list any more. #}
+<details class="removed-places">
+  <summary>{{ t('home.removed_count').format(n=removed_cards | length) }}</summary>
+  {% for c in removed_cards %}
+  <div class="removed-place">
+    <span>{{ c.name }}</span>
+    <form method="post" action="/places/{{ c.slug }}/restore">
+      <button type="submit" class="btn-badge badge badge-neutral">{{ t('home.restore') }}</button>
+    </form>
+  </div>
+  {% endfor %}
+</details>
+{% endif %}
 {% endblock %}
 
 {% block extra_script %}

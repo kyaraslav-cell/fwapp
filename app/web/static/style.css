@@ -144,6 +144,114 @@ a:hover { text-decoration: underline; }
   .session-fab { bottom: 20px; }
 }
 
+/* A water on the places list, plus its two personal controls.
+
+   The card is a link and the controls are forms; they sit side by side rather
+   than nested, because a button inside an anchor is invalid HTML and behaves
+   differently in every browser. */
+/* The row IS the card. The controls sit inside it, beside the score, rather
+   than floating outside on the page background - and the link keeps the whole
+   of the rest of the row as its tap target. The first attempt put the actions
+   in a column outside the card, which detached them from the water they act on
+   and squeezed the name onto three lines. */
+.place-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding-right: 10px;
+  margin-bottom: 12px;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.place-row:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+.place-link {
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Inside a row the card is just layout: the row already carries the surface. */
+.place-row .place-card {
+  margin-bottom: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  transform: none;
+  padding-right: 4px;
+}
+
+.place-row .place-card:hover { box-shadow: none; transform: none; }
+
+.place-actions {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.place-actions form { margin: 0; }
+
+.place-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 32px inside the card; the calendar toggle's 34px was too heavy here. */
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--muted-strong);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.place-action:hover { background: var(--surface-alt); color: var(--primary-text); }
+
+/* A pinned water. Coral rather than red: this is affection, not an alarm. */
+.place-action.is-on {
+  color: var(--accent-coral-text);
+  border-color: rgba(199, 87, 62, 0.35);
+  background: #fbeeeb;
+}
+
+.place-action-remove:hover {
+  color: var(--accent-coral-text);
+  border-color: rgba(199, 87, 62, 0.35);
+}
+
+/* Put away, not deleted - so there is a way back. Folded by default, because
+   these are no longer part of the list. */
+.removed-places {
+  margin-top: 16px;
+  font-size: 0.86rem;
+  color: var(--muted-strong);
+}
+
+.removed-places summary {
+  cursor: pointer;
+  padding: 6px 2px;
+}
+
+.removed-place {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 2px;
+  border-top: 1px solid var(--border);
+}
+
+.removed-place form { margin: 0; }
+
 /* The running-session button.
 
    A 44px circle in the same idiom as the lake page's calendar toggle, not a

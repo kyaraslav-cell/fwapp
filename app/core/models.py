@@ -58,6 +58,31 @@ class Lake(Base):
     created_at: Mapped[str] = mapped_column(String, nullable=False)
 
 
+class AnglerLake(Base):
+    """One angler's own relationship with one water: pinned, or put away.
+
+    Per angler, never global. Two people share this database and a water one of
+    them removes is very often a water the other is still fishing - Anhelina
+    added Glinianki Szczesliwickie and has sessions on it. A global delete
+    would take somebody else's water away, and with law 2 and law 3 in mind it
+    would also orphan predictions and sessions that are evidence.
+
+    `removed_at` is a soft delete for the same reason: the water, its
+    predictions and anybody's sessions on it all survive. Only this angler's
+    places list stops showing it, and they can put it back.
+    """
+
+    __tablename__ = "angler_lake"
+    __table_args__ = (UniqueConstraint("user_id", "lake_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), nullable=False)
+    lake_id: Mapped[int] = mapped_column(Integer, ForeignKey("lake.id"), nullable=False)
+    is_favourite: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    removed_at: Mapped[str | None] = mapped_column(String)
+    created_at: Mapped[str] = mapped_column(String, nullable=False)
+
+
 class Zone(Base):
     __tablename__ = "zone"
 

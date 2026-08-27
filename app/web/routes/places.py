@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,7 +17,7 @@ from app.geo import service as geo_service
 from app.geo.thumbnail import outline_thumbnail_path
 from app.ingest.open_meteo import ingest_forecast
 from app.intel import service as intel_service
-from app.notebook import registered_catch
+from app.notebook import place_prefs, registered_catch
 from app.notebook import water_type as water_type_mod
 from app.notebook.sessions import (
     METHODS,
@@ -86,14 +86,21 @@ def home(request: Request, water: str = "", db: Session = Depends(get_db)):
     if selected is not None:
         lakes = [lk for lk in lakes if water_type_mod.normalise(lk.water_type) == selected]
 
+    prefs = place_prefs.preferences(db, viewer_id)
+
     cards = []
+    removed_cards = []
     for lk in lakes:
         view = prediction_view(latest_prediction(db, lk, horizon=0))
         n_sessions, last_visited = lake_stats(db, lk, user_id=viewer_id)
         # Reuses the same outline every lake page already draws on its map -
         # no extra fetch, just a local file/DB read (`water_outline` above).
         outline = water_outline(db, lk)
-        cards.append(
+        pref = prefs.get(lk.id, place_prefs.NEUTRAL)
+        # Put away by this angler: off the list, but still countable and still
+        # restorable. Nothing about the water itself changed.
+        target = removed_cards if pref.is_removed else cards
+        target.append(
             {
                 "slug": lk.slug,
                 "name": lk.name,
@@ -107,18 +114,68 @@ def home(request: Request, water: str = "", db: Session = Depends(get_db)):
                 "band_label": view["band_label"] if view else None,
                 "water_type": water_type_mod.normalise(lk.water_type),
                 "thumb_path": outline_thumbnail_path(outline) if outline else None,
+                "is_favourite": pref.is_favourite,
             }
         )
+
+    # Favourites first, then alphabetical. Sorted here rather than in SQL
+    # because the preference lives per angler, not on the lake.
+    cards.sort(key=lambda c: place_prefs.sort_key(
+        place_prefs.Preference(is_favourite=c["is_favourite"], is_removed=False), c["name"]
+    ))
 
     return templates.TemplateResponse(
         "home.html",
         {
             "request": request,
             "cards": cards,
+            "removed_cards": removed_cards,
+            "can_edit_places": viewer_id is not None,
             "active_nav": "home",
             "water_filter": selected or "",
         },
     )
+
+
+@router.post("/places/{slug}/favourite")
+def toggle_favourite(
+    slug: str,
+    user: CurrentUser = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Pin or unpin this water for this angler."""
+    lake = get_lake_by_slug(db, slug)
+    place_prefs.toggle_favourite(db, user.id, lake.id)
+    return RedirectResponse(url="/", status_code=303)
+
+
+@router.post("/places/{slug}/remove")
+def remove_place(
+    slug: str,
+    user: CurrentUser = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Put this water away for this angler.
+
+    Nothing is deleted. The water, its predictions and everybody's sessions on
+    it survive - law 2 makes predictions immutable evidence, law 3 makes
+    sessions the only measurement there is, and a second angler may well still
+    be fishing this water. All that changes is this angler's own list.
+    """
+    lake = get_lake_by_slug(db, slug)
+    place_prefs.remove(db, user.id, lake.id)
+    return RedirectResponse(url="/", status_code=303)
+
+
+@router.post("/places/{slug}/restore")
+def restore_place(
+    slug: str,
+    user: CurrentUser = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    lake = get_lake_by_slug(db, slug)
+    place_prefs.restore(db, user.id, lake.id)
+    return RedirectResponse(url="/", status_code=303)
 
 
 @router.get("/lang/{code}")
