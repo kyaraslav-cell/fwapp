@@ -17,8 +17,10 @@ from app.geo import service as geo_service
 from app.geo.thumbnail import outline_thumbnail_path
 from app.ingest.open_meteo import ingest_forecast
 from app.intel import service as intel_service
+from app.notebook import registered_catch
 from app.notebook import water_type as water_type_mod
 from app.notebook.sessions import METHODS, active_session, lake_stats, start_session
+from app.notebook.species import list_species
 from app.predict.daily import OUTLOOK_DAYS, generate_predictions, latest_prediction
 from app.rules.loader import load_active_ruleset
 from app.web import bite_view
@@ -141,6 +143,19 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
     # A discovered water may have no outline yet, or never get one. Only the
     # seeded lake is allowed the circle approximation - see ADR 0005 §4.
     build = status_for(db, lake)
+
+    # Matched on every name this water is known by - the register uses the
+    # okreg's spelling, the lake may be stored under OSM's.
+    registered = registered_catch.newest_for_keys(
+        [k for k in (lake.pzw_key, lake.name, lake.name_osm) if k]
+    )
+    registered_species = None
+    if registered is not None and registered.top_species is not None:
+        slug, share = registered.top_species
+        named = next((sp for sp in list_species(db) if sp.slug == slug), None)
+        if named is not None:
+            lang = normalise(request.cookies.get(COOKIE_NAME))
+            registered_species = (named.name_pl if lang == "pl" else named.name_en, share)
     outline = water_outline(db, lake)
     grid = (
         geo_service.get_grid(
@@ -205,6 +220,11 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
             "intel": intel_service.facts_by_topic(
                 db, lake.id, normalise(request.cookies.get(COOKIE_NAME))
             ),
+            # What other anglers actually caught here, from the okreg's own
+            # register. Measured, unlike everything else on this page - and
+            # carrying its sample size, which is often under thirty (law 5).
+            "registered": registered,
+            "registered_species": registered_species,
             "build": build,
             "grid_meta": json.dumps(
                 {

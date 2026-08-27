@@ -48,6 +48,8 @@ lake:
   fish_here: Łowić tutaj?
   start_session_link: Rozpocznij sesję →
   provenance: Wstępna — nie sprawdzona jeszcze na żadnym zapisanym braniu.
+  registered: 'Wędkarze zarejestrowali tu {rate} kg dziennie w {year} r. ({n} rejestrów).'
+  registered_species: 'Głównie {species} — {pct}% połowu.'
   right_now: Teraz
   high_low: Maks. / min.
   partial: niepełny dzień

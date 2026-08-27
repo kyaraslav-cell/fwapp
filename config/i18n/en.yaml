@@ -48,6 +48,8 @@ lake:
   fish_here: Fish here?
   start_session_link: Start session →
   provenance: Provisional — not yet checked against a single logged catch.
+  registered: 'Anglers registered {rate} kg a day here in {year} ({n} returns).'
+  registered_species: 'Mostly {species} — {pct}% of it.'
   right_now: Right now
   high_low: High / low
   partial: partial day

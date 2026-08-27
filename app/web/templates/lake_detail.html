@@ -88,6 +88,21 @@
 </div>
 {% endif %}
 
+{% if registered %}
+{# The only MEASURED number on this page. One sentence (rule 14), and the
+   sample size travels with it (law 5) - these registers are voluntary and n
+   is often under thirty. It is kg per angler-day, not fish per hour, so it
+   must never be averaged with the notebook's own CPUE. #}
+<p class="registered-catch">
+  {{ t('lake.registered').format(
+       year=registered.year,
+       rate=('%.2f'|format(registered.kg_per_angler_day)),
+       n=registered.anglers) }}{% if registered_species %}
+  {{ t('lake.registered_species').format(
+       species=registered_species[0], pct=('%.0f'|format(registered_species[1]))) }}{% endif %}
+</p>
+{% endif %}
+
 <div class="section-label">{{ t('lake.recent_conditions') }}</div>
 <div class="card" style="padding: 6px 14px;">
   {% if days %}

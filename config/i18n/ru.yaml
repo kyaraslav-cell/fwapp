@@ -48,6 +48,8 @@ lake:
   fish_here: Ловить здесь?
   start_session_link: Начать сессию →
   provenance: Предварительно — ещё не проверено ни на одной записанной поклёвке.
+  registered: 'Рыболовы зарегистрировали здесь {rate} кг в день в {year} г. ({n} отчётов).'
+  registered_species: 'В основном {species} — {pct}% улова.'
   right_now: Сейчас
   high_low: Макс. / мин.
   partial: неполный день

@@ -175,6 +175,16 @@ def _score(query: str, key: str) -> float:
     return matched / len(q_tokens)
 
 
+def keys_match(query_key: str, candidate_key: str) -> bool:
+    """Do these two normalised keys name the same water?
+
+    The public form of the scorer, so other modules can reuse exactly the
+    matching this one does rather than inventing a second, slightly different
+    notion of "same water".
+    """
+    return _score(query_key, candidate_key) >= 1.0
+
+
 def _load_file(path: Path) -> list[PzwWater]:
     raw: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     okreg = str(raw.get("okreg") or path.stem)

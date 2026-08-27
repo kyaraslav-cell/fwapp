@@ -1540,6 +1540,15 @@ details.card[open] summary::before { content: "－ "; }
   margin: -2px 0 10px;
 }
 
+/* The registered-catch line. Quiet: it is context, not a headline, and it sits
+   directly under the conditions card it qualifies. */
+.registered-catch {
+  margin: -4px 0 16px;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--muted-strong);
+}
+
 /* What stage a newly added water is at. Quiet by default - it is progress, not
    a problem - and only coloured when something actually failed. */
 .build-note {
