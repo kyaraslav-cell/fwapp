@@ -546,6 +546,47 @@ zone_score:
 # ---------------------------------------------------------------------------
 # 8. Confidence - law 5, and the owner's stability requirement, together
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Rivers and canals: how one stretch of a district compares with the next.
+#
+# PROVISIONAL AND UNVALIDATED, on the same footing as `zone_score` and for the
+# same reason (ADR 0002): the owner asked for a river overlay before a river
+# model exists, so this is an explicit, labelled hypothesis rather than a
+# measurement. It has never been checked against a single logged catch.
+#
+# The two terms are pure geometry, computed in app/geo/sections.py:
+#
+#   bend_index  - sinuosity of the stretch, 0 straight to 1 tortuous. The
+#                 physics is real - flow on the outside of a bend scours a
+#                 deeper channel while the inside silts - but what that is
+#                 WORTH to an angler is the weight below, and the weight is
+#                 the guess.
+#   wind_cross  - how squarely the wind crosses the stretch, 0 blowing along
+#                 it to 1 blowing straight across. A crosswind gives the
+#                 stretch a windward bank; wind along it gives neither bank
+#                 anything. The same idea as `lee_shore` on a lake.
+#
+# What is NOT here, and is why this stays a hypothesis: flow rate, depth,
+# structure, confluences, weed, bank access. Those decide a river swim and
+# none of them is in any data this project holds.
+river_section:
+  src: ai_provisional
+  status: hypothesis
+  provenance: ai_authored_provisional
+  supersede_with: FORMULA_RIVER_SECTION
+  terms:
+    wind_cross:
+      expression: "abs(sin(radians(wind_dir - bearing_deg)))"
+  weights:
+    w_bend: 0.6
+    w_wind_cross: 0.4
+  expression: "w_bend * bend_index + w_wind_cross * wind_cross"
+  display:
+    normalisation: percentile
+    colormap: [red, orange, yellow, green]
+    low_label: Poor
+    high_label: Best
+
 confidence:
   src: ai_provisional
   inputs: [f_stability, consecutive_stable_days, history_coverage, f_oxygen]

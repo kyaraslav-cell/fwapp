@@ -10,14 +10,11 @@ needs an area to clip against. Buffering the centreline by a guessed width
 would manufacture both a shoreline and an overlay, which is the fabrication
 ADR 0005 §4 refuses.
 
-**Sections carry no score yet, and that is deliberate.** The zone model is
-built from wind fetch and distance-to-bank (`config/rules.v0.3.yaml`), and
-neither means anything on a 25 m canal: every point is a metre from the bank
-and there is no fetch to speak of. What actually decides a river swim - flow,
-depth, structure, confluences, weed - is not modelled at all
-(`docs/09-BACKLOG.md §15`). So this divides the water honestly and leaves the
-colour to a river model that does not exist yet. Colouring them from the lake
-model would look authoritative and mean nothing.
+This module measures the stretches and nothing else. The ranking that colours
+them lives in `app/rules/river_score.py` and its weights in the ruleset YAML
+(law 1), where it is stamped as the provisional hypothesis it is: the two
+terms are geometry, and flow, depth, structure and confluences - the things
+that actually decide a river swim - are in no data this project holds.
 """
 
 from __future__ import annotations
@@ -54,6 +51,38 @@ class Section:
     points: tuple[tuple[float, float], ...]   # (lat, lon), in order along the water
     length_m: float
     start_m: float
+
+    @property
+    def bearing_deg(self) -> float:
+        """Compass bearing of the stretch, end to end, degrees true.
+
+        Which way the water runs decides which of its banks the wind blows
+        into - the same physics as a lake's windward shore, on a shape that
+        has exactly two of them.
+        """
+        first, last = self.points[0], self.points[-1]
+        mid = math.radians((first[0] + last[0]) / 2.0)
+        dy = (last[0] - first[0]) * M_PER_DEG_LAT
+        dx = (last[1] - first[1]) * M_PER_DEG_LAT * math.cos(mid)
+        return math.degrees(math.atan2(dx, dy)) % 360.0
+
+    @property
+    def bend_index(self) -> float:
+        """How much this stretch bends, 0 (straight) to 1 (doubles back).
+
+        Sinuosity: distance travelled along the water against distance between
+        its ends. This is geometry, and the reason it is worth measuring is
+        physics - flow on the outside of a bend scours a deeper channel while
+        the inside silts up. What that is *worth* to an angler is a weight, and
+        weights live in the ruleset, never here (law 1).
+        """
+        straight = _metres(self.points[0], self.points[-1])
+        if straight <= 0 or self.length_m <= 0:
+            return 0.0
+        sinuosity = self.length_m / straight
+        # 1.0 is dead straight; 2.0 is twice as far round as across, which is
+        # about as tortuous as a lowland river gets over a single stretch.
+        return max(0.0, min(1.0, sinuosity - 1.0))
 
     @property
     def midpoint(self) -> tuple[float, float]:
@@ -213,12 +242,16 @@ def course_length_m(course: dict[str, Any] | None) -> float:
     return round(total, 1)
 
 
-def to_geojson(sections: list[Section]) -> dict[str, Any]:
+def to_geojson(
+    sections: list[Section], scores: dict[int, float] | None = None
+) -> dict[str, Any]:
     """Sections as a FeatureCollection the map can draw.
 
-    No score and no colour: see this module's docstring. The properties carry
-    what is actually known - which stretch it is, how long, and how far along
-    the district it starts.
+    `scores` is the provisional river ranking when one has been computed
+    (`app/rules/river_score.py`), keyed by section index and already
+    normalised to 0..1 for display. Without it the properties carry only what
+    is measured: which stretch, how long, how far along, which way it runs and
+    how much it bends.
     """
     return {
         "type": "FeatureCollection",
@@ -235,6 +268,9 @@ def to_geojson(sections: list[Section]) -> dict[str, Any]:
                     "start_m": section.start_m,
                     "mid_lat": round(section.midpoint[0], 6),
                     "mid_lon": round(section.midpoint[1], 6),
+                    "bearing_deg": round(section.bearing_deg, 1),
+                    "bend_index": round(section.bend_index, 3),
+                    **({"score": round(scores[section.index], 4)} if scores else {}),
                 },
             }
             for section in sections

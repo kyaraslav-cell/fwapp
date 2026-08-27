@@ -24,6 +24,14 @@ from app.rules.expressions import safe_eval
 # are plausible rather than meaningful - this asserts that expressions parse and
 # run, not what they return.
 CONTEXT: dict[str, float | int | bool] = {
+    # River sections (`river_section` in the ruleset): pure geometry per
+    # stretch, computed in app/geo/sections.py.
+    "bend_index": 0.3,
+    "bearing_deg": 45.0,
+    "wind_dir": 270.0,
+    "wind_cross": 0.5,
+    "w_bend": 0.6,
+    "w_wind_cross": 0.4,
     "p_now": 1012.0, "p_norm": 1015.0, "p_dev_24h_ago": -7.0, "p_dev_full_hpa": 14.0,
     "p_approach_full_hpa": 6.0, "p_range_72h": 5.0, "t_air_range_72h": 6.0,
     "pressure_range_full_hpa": 12.0, "air_temp_range_full_c": 14.0,

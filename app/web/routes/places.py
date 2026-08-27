@@ -29,6 +29,7 @@ from app.notebook.sessions import (
 )
 from app.notebook.species import list_species
 from app.predict.daily import OUTLOOK_DAYS, generate_predictions, latest_prediction
+from app.rules import river_score
 from app.rules.loader import load_active_ruleset
 from app.web import bite_view
 from app.web.build_status import status_for
@@ -219,6 +220,16 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
 
     # Matched on every name this water is known by - the register uses the
     # okreg's spelling, the lake may be stored under OSM's.
+    # A river district's stretches, ranked against each other. The ranking is
+    # provisional and geometry-only (`config/rules.v*.yaml`, `river_section`),
+    # and the page's provenance line says so.
+    sections_json = "null"
+    if lake.course_geojson:
+        cut = sections.split_course(json.loads(lake.course_geojson))
+        wind = now_wx["wind_dir"] if now_wx else None
+        scores = river_score.score_sections(load_active_ruleset(), cut, wind_dir=wind)
+        sections_json = json.dumps(sections.to_geojson(cut, scores))
+
     registered = registered_catch.newest_for_keys(
         [k for k in (lake.pzw_key, lake.name, lake.name_osm) if k]
     )
@@ -293,11 +304,7 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
             # has no polygon to grid. Sections carry NO score: the zone model
             # is wind fetch and distance-to-bank, neither of which means
             # anything on a river. See app/geo/sections.py.
-            "sections_json": json.dumps(
-                sections.to_geojson(sections.split_course(json.loads(lake.course_geojson)))
-            )
-            if lake.course_geojson
-            else "null",
+            "sections_json": sections_json,
             "outline_source": lake.outline_source or "unknown",
             # Collected local knowledge. Empty for almost every water, which is
             # the honest state and renders as nothing at all rather than as an

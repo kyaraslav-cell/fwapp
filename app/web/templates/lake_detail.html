@@ -408,14 +408,17 @@ try {
   }
   let courseLayer = null;
   if (SECTIONS && SECTIONS.features && SECTIONS.features.length) {
-    // Two shades of the same blue, alternating. Not two weights - that made
-    // the canal look like a string of beads - and not two hues, because this
-    // page's colour language is "green good, red bad" and a second hue would
-    // read as a rating these stretches do not carry.
+    // Where a stretch has been ranked, it takes the same red-to-green ramp as
+    // the lake overlay - green best, red poorest, of THIS district today.
+    // Where it has not, two shades of one blue alternate so the stretches stay
+    // countable; never two hues, because a second hue would read as a rating
+    // on a page whose colour language is green-good-red-bad.
     L.geoJSON(SECTIONS, {
       style: (f) => ({
-        color: f.properties.index % 2 === 0 ? '#8ed8ff' : '#4d9fd6',
-        weight: 5,
+        color: typeof f.properties.score === 'number'
+          ? 'rgb(' + rampColor(f.properties.score).join(',') + ')'
+          : (f.properties.index % 2 === 0 ? '#8ed8ff' : '#4d9fd6'),
+        weight: 6,
         opacity: 0.95
       }),
       onEachFeature: (f, layer) => {
@@ -439,6 +442,26 @@ try {
     // No grid to frame the view, so frame the water itself.
     map.fitBounds(courseLayer.getBounds(), { padding: [16, 16] });
   }
+
+  // Ctrl + wheel zooms the map; a bare wheel scrolls the page past it.
+  //
+  // Plain scroll-wheel zoom is off for a reason: this map sits mid-page on a
+  // phone-shaped layout, and a map that swallows the wheel traps anyone
+  // scrolling through the page. Requiring Ctrl keeps both - the page scrolls
+  // normally, and the map zooms when you actually mean it to.
+  //
+  // Not Leaflet's own scrollWheelZoom toggled on a keydown: that misses the
+  // case where Ctrl is pressed while the pointer is already over the map and
+  // the browser has begun its own page-zoom gesture. Handling the wheel event
+  // directly and preventing the default is what stops the whole page zooming.
+  map.getContainer().addEventListener('wheel', (e) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const point = map.mouseEventToContainerPoint(e);
+    const around = map.containerPointToLatLng(point);
+    // Zoom about the pointer, so the thing under the cursor stays put.
+    map.setZoomAround(around, map.getZoom() + (e.deltaY < 0 ? 1 : -1));
+  }, { passive: false });
 
   map.on('click', (e) => pickSpot(e.latlng.lat, e.latlng.lng, e.containerPoint));
   loadGrid();

@@ -58,6 +58,15 @@ p { margin: 0 0 8px; color: var(--muted); }
 a { color: var(--primary-strong); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+/* ...except where the link IS a card or a control. Underlining a whole place
+   row on hover drags a line across the name and reads as damage, not as
+   affordance - the card already lifts and shadows to say it is clickable. */
+.place-link:hover,
+.place-link:hover .place-name,
+.candidate-card:hover,
+.session-fab:hover,
+.removed-place a:hover { text-decoration: none; }
+
 /* ---------- layout ---------- */
 
 .topbar {
@@ -289,28 +298,67 @@ a:hover { text-decoration: underline; }
 
 .session-fab:active { transform: translateY(0); }
 
-/* The animation: one slow ring expanding outwards, like a float settling.
-   It reads as "something of yours is live" from the corner of the eye without
-   demanding attention from someone watching a real float. */
+/* The float rides, then goes under: a bite.
+
+   Most of the cycle is the small restless movement a float makes sitting on
+   the water. Then it dips - twice, because a real bite is rarely one clean
+   pull - and rides back up with a little overshoot. The ring ripples outward
+   on the dip, not on a timer of its own, so the two read as one event rather
+   than as two things blinking near each other.
+
+   Slow on purpose. This sits on every page while somebody is fishing; it has
+   to be noticeable out of the corner of an eye and ignorable the rest of the
+   time. */
+.session-fab-float {
+  animation: session-float-bite 4.2s ease-in-out infinite;
+  transform-origin: 50% 45%;
+}
+
+@keyframes session-float-bite {
+  /* Riding: small and slow, the way a float sits. */
+  0%   { transform: translateY(0)     rotate(0deg)    scaleY(1); }
+  12%  { transform: translateY(-1px)  rotate(-4deg)   scaleY(1); }
+  26%  { transform: translateY(0.8px) rotate(3deg)    scaleY(1); }
+  40%  { transform: translateY(-1px)  rotate(-2deg)   scaleY(1); }
+  50%  { transform: translateY(0)     rotate(0deg)    scaleY(1); }
+  /* The knock: a short sharp pull that does not take it under. */
+  55%  { transform: translateY(4px)   rotate(2deg)    scaleY(0.96); }
+  60%  { transform: translateY(0.5px) rotate(-2deg)   scaleY(1); }
+  /* Away: it buries, and squashes as it goes down. Amplitude matters here -
+     at 22px an elegant 3px dip is invisible, which is what the first attempt
+     was. This is roughly half the icon's height. */
+  70%  { transform: translateY(11px)  rotate(0deg)    scaleY(0.88); }
+  78%  { transform: translateY(9px)   rotate(-3deg)   scaleY(0.9); }
+  /* And back up, overshooting the way a released float does. */
+  88%  { transform: translateY(-2.5px) rotate(4deg)   scaleY(1.04); }
+  95%  { transform: translateY(0.8px) rotate(-2deg)   scaleY(1); }
+  100% { transform: translateY(0)     rotate(0deg)    scaleY(1); }
+}
+
 .session-fab-ring {
   position: absolute;
   inset: -1px;
   border-radius: 999px;
   border: 1px solid var(--accent-green-text);
   opacity: 0;
-  animation: session-ripple 2.8s ease-out infinite;
+  /* Same 4.2s cycle as the float, so the ripple belongs to the dip. */
+  animation: session-ripple 4.2s ease-out infinite;
   pointer-events: none;
 }
 
 @keyframes session-ripple {
-  0%   { transform: scale(1);    opacity: 0.55; }
-  70%  { transform: scale(1.45); opacity: 0; }
-  100% { transform: scale(1.45); opacity: 0; }
+  0%, 56% { transform: scale(1);    opacity: 0; }
+  60%     { transform: scale(1);    opacity: 0.6; }
+  74%     { transform: scale(1.28); opacity: 0.45; }
+  92%     { transform: scale(1.6);  opacity: 0; }
+  100%    { transform: scale(1.6);  opacity: 0; }
 }
 
 /* Anyone who has asked not to see motion gets a plain ring instead. */
+/* Anyone who asked not to see motion gets a still float and a plain ring. */
 @media (prefers-reduced-motion: reduce) {
   .session-fab-ring { animation: none; opacity: 0.4; }
+  .session-fab-float { animation: none; }
 }
 
 /* Enough foot-room that the last control on a page clears the button. */

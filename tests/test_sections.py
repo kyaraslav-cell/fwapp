@@ -105,8 +105,22 @@ def test_the_geojson_carries_no_score() -> None:
     assert payload["type"] == "FeatureCollection"
     for feature in payload["features"]:
         keys = set(feature["properties"])
-        assert keys == {"index", "length_m", "start_m", "mid_lat", "mid_lon"}
+        # Measured facts about the stretch, and no rating among them. A score
+        # appears only when one has been computed and passed in - see
+        # app/rules/river_score.py, and the test below.
+        assert keys == {
+            "index", "length_m", "start_m", "mid_lat", "mid_lon",
+            "bearing_deg", "bend_index",
+        }
         assert "score" not in keys and "band" not in keys and "colour" not in keys
+
+
+def test_a_score_appears_only_when_one_was_computed() -> None:
+    cut = sections.split_course(ONE_KM_NORTH, section_m=250.0)
+    scored = sections.to_geojson(cut, {s.index: 0.5 for s in cut})
+
+    for feature in scored["features"]:
+        assert feature["properties"]["score"] == 0.5
 
 
 def test_sections_run_in_order_along_the_water() -> None:
