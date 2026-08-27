@@ -25,7 +25,7 @@ from app.core.time import to_display, utcnow
 from app.geo import hires_cache
 from app.geo import service as geo_service
 from app.geo.grid import polygon_area_ha
-from app.geo.outline import fetch_osm_outline_strict
+from app.geo.outline import fetch_osm_course, fetch_osm_outline_strict
 from app.ingest.archive import backfill
 from app.ingest.open_meteo import ingest_forecast
 from app.intel import gemini
@@ -101,6 +101,19 @@ def handle_outline(db: Session, job: Job) -> str:
         area_ha=lake.area_ha,
     )
     if outline is None:
+        # No polygon. Before giving up, ask whether this water is a LINE:
+        # canals and rivers are mapped as ways, never as closed rings, and
+        # Kanal Zeranski has no ring anywhere in OSM. A course cannot be
+        # clipped into a grid, so there is still no zone overlay - but it puts
+        # the water on the map instead of leaving a blank rectangle.
+        if lake.osm_type and lake.osm_id:
+            course = fetch_osm_course(lake.osm_type, lake.osm_id)
+            if course is not None:
+                lake.course_geojson = json.dumps(course)
+                lake.outline_source = "osm_line"
+                segments = len(course["coordinates"])
+                return f"no polygon; stored the water's course ({segments} segment(s))"
+
         # Overpass answered and there is no polygon there. That is a fact about
         # the water, not a failure of this job, so it is recorded and the retry
         # loop stops. The monthly refresh will look again.

@@ -142,6 +142,62 @@ def fetch_osm_outline_strict(
     return {"type": "Polygon", "coordinates": [ring]}
 
 
+def fetch_osm_course(osm_type: str, osm_id: int) -> dict[str, Any] | None:
+    """The line a river or canal follows, when it has no polygon at all.
+
+    Kanal Zeranski is a `type=waterway` relation of line segments: OSM has no
+    closed ring for it anywhere, and none of the ten small water areas along it
+    is the canal. So the outline fetch correctly found nothing - and the lake
+    page then rendered no map at all, because a null outline threw and the
+    catch hid the whole thing.
+
+    A course is not an outline and is never treated as one. It cannot be
+    clipped into a grid, so these waters get no zone overlay, exactly as
+    before. What it can do is put the water on the map: the angler sees where
+    the canal actually runs instead of a blank rectangle, and can still pick a
+    spot on it.
+
+    This is real mapped geometry, not a shoreline inferred from a line. ADR
+    0005 §4 refuses invented shorelines and this invents nothing - buffering
+    the centreline by a guessed width would have been exactly the fabrication
+    it forbids.
+    """
+    query = _query_by_id(osm_type, osm_id)
+    try:
+        with httpx.Client(timeout=30.0, headers={"User-Agent": USER_AGENT}) as client:
+            resp = client.post(OVERPASS_URL, data={"data": query})
+            resp.raise_for_status()
+            data = resp.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        logger.warning("Overpass course fetch failed (%s: %s)", type(exc).__name__, exc)
+        raise OverpassUnavailableError(f"{type(exc).__name__}: {exc}") from exc
+
+    lines: list[list[list[float]]] = []
+    for element in data.get("elements", []):
+        direct = _points(element.get("geometry"))
+        if len(direct) >= 2:
+            lines.append(direct)
+            continue
+        members = element.get("members")
+        if not isinstance(members, list):
+            continue
+        for member in members:
+            if not isinstance(member, dict):
+                continue
+            # Only the water itself. A waterway relation also carries locks,
+            # side channels and bank ways, and drawing those would put lines
+            # across the map that are not the canal.
+            if member.get("role") not in ("", "main_stream", None):
+                continue
+            points = _points(member.get("geometry"))
+            if len(points) >= 2:
+                lines.append(points)
+
+    if not lines:
+        return None
+    return {"type": "MultiLineString", "coordinates": lines}
+
+
 def choose_ring(
     candidates: list[tuple[list[list[float]], float]],
     lon: float,

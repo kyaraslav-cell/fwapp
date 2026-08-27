@@ -264,6 +264,7 @@ build:
   weather: Pobieramy rok pogody, aby akwen miał własną normę ciśnienia. Kolory dni pojawią się po zakończeniu.
   grid: Budujemy siatkę stref. Nakładka pojawi się po zakończeniu.
   no_outline: OpenStreetMap nie ma linii brzegowej tego akwenu, więc nie ma nakładki stref. Reszta działa.
+  line_only: Ten akwen to rzeka lub kanał, więc nie ma linii brzegowej do oceny - mapa pokazuje jego przebieg, reszta działa.
   failed: Coś w przygotowaniu tego akwenu się nie powiodło. Spróbujemy ponownie; mapa i prognoza działają.
 
 intel:

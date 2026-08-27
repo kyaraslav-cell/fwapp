@@ -277,6 +277,9 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
             "now_wx": now_wx,
             "days_json": json.dumps(days),
             "outline_json": json.dumps(outline) if outline else "null",
+            # A river or canal has no polygon, only the line it runs along.
+            # Drawn on the map; never used as an outline (no grid, no overlay).
+            "course_json": lake.course_geojson or "null",
             "outline_source": lake.outline_source or "unknown",
             # Collected local knowledge. Empty for almost every water, which is
             # the honest state and renders as nothing at all rather than as an

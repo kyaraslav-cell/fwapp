@@ -46,6 +46,12 @@ def status_for(db: Session, lake: Lake) -> BuildStatus:
 
     # A water Overpass has no polygon for is finished, not broken. It keeps the
     # satellite map and the forecast; it simply never gets an overlay.
+    #
+    # A canal or a river is a third case: OSM has no ring for it, but it does
+    # have the line the water runs along, so the map shows the water itself.
+    # Saying "no shoreline" there would understate what the page is showing.
+    if lake.outline_source == "osm_line" and not pending:
+        return BuildStatus(NO_OUTLINE, "build.line_only", False)
     if lake.outline_source == "none" and not pending:
         return BuildStatus(NO_OUTLINE, "build.no_outline", False)
 

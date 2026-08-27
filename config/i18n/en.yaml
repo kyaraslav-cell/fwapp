@@ -275,6 +275,7 @@ build:
   weather: Fetching a year of weather so this water gets a pressure norm of its own. The day colours appear when it lands.
   grid: Building the zone grid. The overlay appears when it is done.
   no_outline: OpenStreetMap has no shoreline for this water, so there is no zone overlay. Everything else works.
+  line_only: This water is a river or canal, so it has no shoreline to score - the map shows its course and everything else works.
   failed: Something in preparing this water failed. It will be retried; the map and the forecast still work.
 
 # Local knowledge collected from public pages. The note is one sentence by the

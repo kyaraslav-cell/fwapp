@@ -20,7 +20,12 @@ class Lake(Base):
     mean_depth_m: Mapped[float | None] = mapped_column(Float)
     max_depth_m: Mapped[float | None] = mapped_column(Float)
     outline_geojson: Mapped[str | None] = mapped_column(Text)
-    outline_source: Mapped[str | None] = mapped_column(String)  # osm|circle_fallback
+    outline_source: Mapped[str | None] = mapped_column(String)  # osm|circle_fallback|osm_line|none
+    # The line a river or canal follows, when OSM has no polygon for it at all.
+    # NOT an outline: it cannot be clipped into a grid, so these waters get no
+    # zone overlay. It is what puts the water on the map instead of a blank
+    # rectangle. See app/geo/outline.py:fetch_osm_course.
+    course_geojson: Mapped[str | None] = mapped_column(Text)
     # Where this water came from, and who put it there. `discovered` waters are
     # the ones the add-a-water flow created; `seed` is Pomocnia, which predates
     # it and keeps its committed outline.

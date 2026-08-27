@@ -252,6 +252,10 @@
 const LAKE = { lat: {{ lake.centroid_lat }}, lon: {{ lake.centroid_lon }}, slug: "{{ lake.slug }}" };
 const DAYS = {{ days_json | safe }};
 const OUTLINE = {{ outline_json | safe }};
+// A canal or river has no closed ring in OpenStreetMap - only the line it
+// runs along. Drawn so the water is visible; it is never an outline, so
+// these waters still get no zone overlay.
+const COURSE = {{ course_json | safe }};
 const GRID = {{ grid_meta | safe }};
 const DEFAULT_WIND = {{ default_wind }};
 const PHASE = "{{ season.phase }}";
@@ -338,6 +342,11 @@ function gridStep(gridMeta) {
   };
 }
 function gridBounds(gridMeta) {
+  // No grid is a real state - a water OpenStreetMap has no polygon for never
+  // gets one. Returning NaN bounds from an empty object made fitBounds throw,
+  // and the catch below then hid the ENTIRE map: no satellite tiles, no pin,
+  // no way to pick a spot, on a page that said "everything else works".
+  if (!gridMeta || typeof gridMeta.cell_m !== 'number') return null;
   const { dLat, dLon } = gridStep(gridMeta);
   return [
     [gridMeta.origin_lat, gridMeta.origin_lon],
@@ -385,8 +394,24 @@ try {
     attribution: 'Tiles &copy; Esri', maxZoom: 19
   }).addTo(map);
 
-  L.geoJSON(OUTLINE, { style: { color: '#ffffff', weight: 2, fill: false, opacity: 0.85 } }).addTo(map);
-  map.fitBounds(bounds, { padding: [10, 10] });
+  // Both of these are optional. A canal or a river is mapped as a LINE in
+  // OpenStreetMap, never a closed ring, so it has no outline and no grid - and
+  // it still deserves a map to look at and a spot to fish from.
+  if (OUTLINE) {
+    L.geoJSON(OUTLINE, { style: { color: '#ffffff', weight: 2, fill: false, opacity: 0.85 } }).addTo(map);
+  }
+  let courseLayer = null;
+  if (COURSE) {
+    courseLayer = L.geoJSON(COURSE, {
+      style: { color: '#7fd3ff', weight: 4, opacity: 0.95 }
+    }).addTo(map);
+  }
+  if (bounds) {
+    map.fitBounds(bounds, { padding: [10, 10] });
+  } else if (courseLayer) {
+    // No grid to frame the view, so frame the water itself.
+    map.fitBounds(courseLayer.getBounds(), { padding: [16, 16] });
+  }
 
   map.on('click', (e) => pickSpot(e.latlng.lat, e.latlng.lng, e.containerPoint));
   loadGrid();
