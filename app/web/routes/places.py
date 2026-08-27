@@ -14,7 +14,7 @@ from app.core.time import parse_iso, to_display, utcnow
 from app.features.season import derive_season
 from app.geo import hires_cache
 from app.geo import service as geo_service
-from app.geo.thumbnail import outline_thumbnail_path
+from app.geo.thumbnail import course_thumbnail_path, outline_thumbnail_path
 from app.ingest.open_meteo import ingest_forecast
 from app.intel import service as intel_service
 from app.notebook import place_prefs, registered_catch
@@ -114,6 +114,15 @@ def home(request: Request, water: str = "", db: Session = Depends(get_db)):
                 "band_label": view["band_label"] if view else None,
                 "water_type": water_type_mod.normalise(lk.water_type),
                 "thumb_path": outline_thumbnail_path(outline) if outline else None,
+                # A river or canal has no polygon to trace, only the line it
+                # runs along - so its icon is that line, stroked rather than
+                # filled. Without this a water with a perfectly good map had a
+                # blank square beside its name.
+                "thumb_course": (
+                    course_thumbnail_path(json.loads(lk.course_geojson))
+                    if not outline and lk.course_geojson
+                    else None
+                ),
                 "is_favourite": pref.is_favourite,
             }
         )
