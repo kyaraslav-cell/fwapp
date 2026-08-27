@@ -47,6 +47,24 @@
     {% block content %}{% endblock %}
   </main>
 
+  {# The running-session pill. On every page, because the whole point is that
+     an angler mid-session can wander to the map or the history and still get
+     back in one tap. Hidden on the session page itself - a button that takes
+     you where you already are is clutter.
+
+     Sits above the bottom nav, thumb-height, and states which water it is on:
+     "you are fishing" is useless if you cannot remember where. #}
+  {% if running_session and request.url.path != '/session/active' %}
+  <a class="session-pill" href="/session/active">
+    <span class="session-pill-dot" aria-hidden="true"></span>
+    <span class="session-pill-text">
+      <strong>{{ t('session.pill_title') }}</strong>
+      <span>{{ running_session_lake or '' }}{% if running_session.started_at %} · {{ running_session.started_at | localtime }}{% endif %}</span>
+    </span>
+    <span class="session-pill-go" aria-hidden="true">→</span>
+  </a>
+  {% endif %}
+
   <nav class="bottomnav">
     <a href="/" class="{{ 'active' if active_nav == 'home' }}">{{ t('nav.places') }}</a>
     <a href="/history" class="{{ 'active' if active_nav == 'history' }}">{{ t('nav.history') }}</a>

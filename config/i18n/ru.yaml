@@ -68,6 +68,9 @@ method:
 
 session:
   in_progress: Сессия идёт
+  pill_title: Ловите сейчас
+  already_running: 'У вас уже открыта сессия на {lake}. Завершите её, прежде чем начать новую.'
+  go_to_running: Перейти к ней →
   started: Начата
   rod: удилище
   rods: удилищ
@@ -242,6 +245,7 @@ discover:
   water_type_why: Его нет в списке PZW, поэтому укажите тип - рыба в час между ними несравнима.
   already_added: Уже есть
   nothing_found: Водоём с таким названием не найден.
+  did_you_mean: 'Возможно, вы имели в виду:'
   quota_left: Сколько водоёмов ещё можно добавить сегодня
   quota_reset: Попробуйте после
   error:

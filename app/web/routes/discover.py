@@ -33,6 +33,7 @@ def _render(
         "candidates": [],
         "error": None,
         "searched": False,
+        "suggestions": [],
         "quota_left": None,
         "quota_reset": None,
     }
@@ -70,11 +71,18 @@ def search_form(
             quota_reset=_local(reset),
         )
 
+    # Nothing found is usually a spelling, not a missing water. The PZW
+    # registry holds 2 000+ Polish water names, which makes it a better
+    # dictionary for this than any spell-checker we could ship - so offer its
+    # nearest names as a re-search rather than a dead end.
+    suggestions = [w.name for w in pzw.suggest(query)] if not found else []
+
     return _render(
         request,
         query=query,
         searched=True,
         candidates=[_row(db, c) for c in found],
+        suggestions=suggestions,
         quota_left=quota,
         quota_reset=_local(reset),
     )

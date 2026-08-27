@@ -19,7 +19,14 @@ from app.ingest.open_meteo import ingest_forecast
 from app.intel import service as intel_service
 from app.notebook import registered_catch
 from app.notebook import water_type as water_type_mod
-from app.notebook.sessions import METHODS, active_session, lake_stats, start_session
+from app.notebook.sessions import (
+    METHODS,
+    SessionAlreadyRunningError,
+    active_session,
+    active_session_for_user,
+    lake_stats,
+    start_session,
+)
 from app.notebook.species import list_species
 from app.predict.daily import OUTLOOK_DAYS, generate_predictions, latest_prediction
 from app.rules.loader import load_active_ruleset
@@ -333,6 +340,9 @@ def spot_start_form(
     lake = get_lake_by_slug(db, slug)
     if active_session(db, lake, user_id=user.id) is not None:
         return RedirectResponse(url="/session/active")
+    running = active_session_for_user(db, user.id)
+    running_lake = db.get(Lake, running.lake_id) if running is not None else None
+
     return templates.TemplateResponse(
         "spot_start.html",
         {
@@ -343,6 +353,10 @@ def spot_start_form(
             "cell": cell,
             "score": score,
             "methods": METHODS,
+            # Told here, before the tap, rather than by silently landing the
+            # angler on a session they did not just start.
+            "running": running,
+            "running_lake": running_lake,
             "active_nav": "home",
         },
     )
@@ -364,8 +378,8 @@ def spot_start_submit(
         raise HTTPException(status_code=400, detail="unknown method")
     rod_count = max(1, min(6, rod_count))
 
-    if active_session(db, lake, user_id=user.id) is None:
-        pred = latest_prediction(db, lake, horizon=0)
+    pred = latest_prediction(db, lake, horizon=0)
+    try:
         start_session(
             db,
             lake,
@@ -377,4 +391,9 @@ def spot_start_submit(
             grid_lat=lat,
             grid_lon=lon,
         )
+    except SessionAlreadyRunningError:
+        # Already fishing, here or elsewhere. Land on that session rather than
+        # refusing with an error: it is where the angler wants to be, and the
+        # running-session pill says which water it is on.
+        pass
     return RedirectResponse(url="/session/active", status_code=303)

@@ -68,6 +68,9 @@ method:
 
 session:
   in_progress: Session in progress
+  pill_title: Fishing now
+  already_running: 'You already have a session running on {lake}. End it before starting another.'
+  go_to_running: Go to it →
   started: Started
   rod: rod
   rods: rods
@@ -253,6 +256,7 @@ discover:
   water_type_why: Not on the PZW list, so tell us which it is - fish per hour is not comparable between the two.
   already_added: Already here
   nothing_found: Nothing found by that name.
+  did_you_mean: 'Did you mean:'
   quota_left: Waters you can still add today
   quota_reset: Try again after
   error:

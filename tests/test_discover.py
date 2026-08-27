@@ -158,6 +158,63 @@ def test_search_offers_waters_only(monkeypatch: pytest.MonkeyPatch) -> None:
     assert all(c.is_water for c in results)
 
 
+def test_a_canal_is_a_water() -> None:
+    """The bug the owner found: Kanal Zeranski could not be searched for.
+
+    `waterway=canal` was missing from an exhaustive allowlist of tag pairs.
+    That was survivable while non-water results were still shown and marked;
+    once the picker became waters-only it meant an empty page for a real PZW
+    water in the Zegrzynski district.
+    """
+    candidate = _to_candidate(
+        {
+            "lat": "52.3200",
+            "lon": "20.9900",
+            "category": "waterway",
+            "type": "canal",
+            "osm_type": "way",
+            "osm_id": 42,
+            "display_name": "Kanał Żerański, Białołęka, Warszawa, Poland",
+        }
+    )
+    assert candidate is not None
+    assert candidate.is_water
+
+
+@pytest.mark.parametrize(
+    ("category", "type_name", "expected"),
+    [
+        ("waterway", "canal", True),
+        ("waterway", "river", True),
+        ("waterway", "riverbank", True),
+        ("waterway", "ditch", True),
+        ("water", "lake", True),
+        ("water", "pond", True),
+        ("water", "oxbow", True),
+        ("natural", "water", True),
+        ("landuse", "reservoir", True),
+        ("landuse", "basin", True),
+        ("leisure", "fishing", True),
+        # ...and the things that are emphatically not water
+        ("place", "village", False),
+        ("place", "town", False),
+        ("highway", "residential", False),
+        ("boundary", "administrative", False),
+        ("natural", "wood", False),
+        ("landuse", "forest", False),
+        ("leisure", "pitch", False),
+        ("leisure", "park", False),
+        ("waterway", "weir", False),
+        ("waterway", "dam", False),
+    ],
+)
+def test_the_water_rule_fails_open_but_not_daft(
+    category: str, type_name: str, expected: bool
+) -> None:
+    """Wrong-and-wide shows one odd row. Wrong-and-narrow hides a water."""
+    assert nominatim.is_water_tag(category, type_name) is expected
+
+
 def test_a_result_with_no_coordinates_is_dropped() -> None:
     assert _to_candidate({"category": "natural", "type": "water"}) is None
 

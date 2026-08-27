@@ -7,6 +7,14 @@
   {{ lake.name }} · {{ "%.5f"|format(lat) }}, {{ "%.5f"|format(lon) }}
 </p>
 
+{% if running %}
+{# One session at a time. Say so before the tap, and name the water it is on -
+   "you are already fishing" is useless if the angler cannot remember where. #}
+<div class="callout build-note build-note-failed">
+  {{ t('session.already_running').format(lake=running_lake.name if running_lake else '') }}
+  <a href="/session/active">{{ t('session.go_to_running') }}</a>
+</div>
+{% else %}
 <form method="post" action="/lake/{{ lake.slug }}/spot">
   <input type="hidden" name="lat" value="{{ lat }}">
   <input type="hidden" name="lon" value="{{ lon }}">
@@ -33,9 +41,16 @@
   <button class="btn btn-primary" type="submit">{{ t('spot.start') }}</button>
   <a href="/lake/{{ lake.slug }}" class="btn btn-ghost" style="margin-top:10px;">{{ t('spot.back') }}</a>
 </form>
+{% endif %}
 {% endblock %}
 
 {% block extra_script %}
+{# Only when the form is on the page. When a session is already running the
+   form is not rendered, and this script bound handlers to elements that were
+   not there - which throws on the first addEventListener and kills every
+   handler after it. The same shape as the calendar-icon regression: deleting
+   markup silently breaks the script that reached for it. #}
+{% if not running %}
 <script>
 document.querySelectorAll('.method-card').forEach(card => {
   card.addEventListener('click', () => {
@@ -53,4 +68,5 @@ document.getElementById('rod-plus').addEventListener('click', () => {
   rodCount = Math.min(6, rodCount + 1); display.textContent = rodCount; input.value = rodCount;
 });
 </script>
+{% endif %}
 {% endblock %}

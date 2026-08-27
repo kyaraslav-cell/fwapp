@@ -23,6 +23,15 @@
 
 {% if searched and not candidates and not error %}
 <p class="empty-state">{{ t('discover.nothing_found') }}</p>
+{# A miss is usually a spelling. The PZW register knows how these waters are
+   actually spelled, so offer its nearest names as a fresh search rather than
+   leaving the angler to guess at the diacritics. #}
+{% if suggestions %}
+<p class="did-you-mean">
+  {{ t('discover.did_you_mean') }}
+  {% for name in suggestions %}<a href="/places/new?q={{ name | urlencode }}">{{ name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+</p>
+{% endif %}
 {% endif %}
 
 {% for row in candidates %}

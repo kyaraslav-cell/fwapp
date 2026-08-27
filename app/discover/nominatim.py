@@ -31,22 +31,89 @@ TIMEOUT_S = 15.0
 MIN_INTERVAL_S = 1.0
 MAX_RESULTS = 8
 
-# What counts as water. Nominatim's `class`/`type` pair; anything else is a
-# village, a street or a bus stop with a lake's name.
-WATER_TYPES = frozenset(
+# What counts as water.
+#
+# An exhaustive allowlist of `class`/`type` pairs was the first design and it
+# was a trap. It was survivable while non-water results were still shown and
+# merely marked; the moment the picker became waters-only, every kind missing
+# from the list stopped being findable at all. `waterway=canal` was missing,
+# so Kanał Żerański - a real PZW water in the Zegrzyński district - returned
+# an empty page rather than a result.
+#
+# So the rule is now per category, and it fails OPEN: a whole OSM category is
+# water, with a short exclusion list for the structures inside it. Getting it
+# slightly too wide shows an angler one odd row they can ignore. Getting it too
+# narrow tells them their water does not exist.
+WATER_CATEGORIES = frozenset({"water", "natural", "waterway", "landuse", "leisure"})
+
+# Inside those categories, the types that are not a water body. `weir`, `dam`
+# and `lock_gate` are structures ON water; `wood` and `scrub` are `natural` but
+# emphatically dry.
+NOT_WATER_TYPES = frozenset(
     {
-        ("natural", "water"),
-        ("water", "lake"),
-        ("water", "pond"),
-        ("water", "reservoir"),
-        ("water", "basin"),
-        ("water", "oxbow"),
-        ("landuse", "reservoir"),
-        ("landuse", "basin"),
-        ("waterway", "riverbank"),
-        ("leisure", "fishing"),
+        "weir",
+        "dam",
+        "lock_gate",
+        "sluice_gate",
+        "waterfall",
+        "boatyard",
+        "water_point",
+        "wood",
+        "scrub",
+        "heath",
+        "grassland",
+        "sand",
+        "beach",
+        "tree",
+        "tree_row",
+        "peak",
+        "wetland",
+        "park",
+        "garden",
+        "pitch",
+        "playground",
+        "sports_centre",
+        "farmland",
+        "meadow",
+        "forest",
+        "residential",
+        "industrial",
+        "commercial",
+        "retail",
+        "allotments",
+        "cemetery",
+        "quarry",
+        "farmyard",
+        "orchard",
+        "vineyard",
+        "grass",
     }
 )
+
+# `leisure` is mostly dry - pitches, parks, playgrounds - so it is the one
+# category that keeps an allowlist rather than an exclusion list.
+LEISURE_WATER_TYPES = frozenset({"fishing", "marina", "swimming_area", "water_park"})
+
+
+def is_water_tag(category: str, type_name: str) -> bool:
+    """Does this OSM class/type pair describe a water body?"""
+    category = category.strip().lower()
+    type_name = type_name.strip().lower()
+    if category not in WATER_CATEGORIES:
+        return False
+    if type_name in NOT_WATER_TYPES:
+        return False
+    if category == "leisure":
+        return type_name in LEISURE_WATER_TYPES
+    if category == "landuse":
+        return type_name in {"reservoir", "basin", "aquaculture", "salt_pond"}
+    if category == "natural":
+        return type_name in {"water", "spring", "bay", "strait", "lagoon"}
+    # `water=*` and `waterway=*` are water by definition, minus the structures
+    # excluded above: lake, pond, reservoir, oxbow, canal, river, riverbank,
+    # stream, ditch, drain, dock.
+    return True
+
 
 _lock = threading.Lock()
 _last_call_at = 0.0
@@ -127,7 +194,7 @@ def _to_candidate(row: dict[str, Any]) -> Candidate | None:
         osm_id=int(row.get("osm_id", 0) or 0),
         kind=f"{cls}={typ}" if cls else typ,
         area_ha=_area_ha_from_bbox(row.get("boundingbox")),
-        is_water=(cls, typ) in WATER_TYPES,
+        is_water=is_water_tag(cls, typ),
     )
 
 
@@ -141,11 +208,10 @@ def search(name: str, *, country_codes: str = "pl", limit: int = MAX_RESULTS) ->
     first, and the angler had to read tag labels to find the water. The lake is
     what the app is for, so the lake is what the picker offers.
 
-    `WATER_TYPES` is deliberately broad - `leisure=fishing`, the `landuse`
-    reservoirs and basins are all in it - so an oddly tagged fishery still
-    survives the filter. A water tagged so strangely that none of those match
-    is a gap in OSM, and the honest answer is that it cannot be added yet
-    rather than a list of hamlets to guess from.
+    `is_water_tag` fails open by design - see its comment. An allowlist of
+    tag pairs looked tidy and hid `waterway=canal`, so a real PZW water
+    returned an empty page. Showing one odd row costs a glance; hiding a water
+    costs the whole feature.
     """
     query = " ".join(name.split())
     if len(query) < 3:

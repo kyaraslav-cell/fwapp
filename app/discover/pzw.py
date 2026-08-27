@@ -25,6 +25,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -62,6 +63,11 @@ KIND_PREFIXES = frozenset(
 # stemmer for one language is more machinery than one ending is worth.
 MIN_PREFIX_CHARS = 4
 MIN_PREFIX_RATIO = 0.7
+
+# How close a typed name must be to a listed one to be offered as a
+# suggestion. Loose enough for a wrong ending or a missing diacritic,
+# tight enough that a real miss offers nothing rather than nonsense.
+SUGGEST_MIN_RATIO = 0.62
 
 # A token this short carries no identifying weight ("i", "na", "w").
 MIN_SIGNIFICANT = 3
@@ -359,6 +365,48 @@ def lookup_by_position(lat: float, lon: float) -> Match | None:
     if len(hits) != 1:
         return None
     return Match(water=hits[0], how=BY_POSITION)
+
+
+def suggest(name: str, limit: int = 5) -> list[PzwWater]:
+    """Listed waters whose name is close to what was typed.
+
+    A spelling aid, not a matcher. `lookup` has to be certain before it puts a
+    `water_type` on a water; this only has to be close enough to be worth
+    offering as "did you mean", and the angler decides.
+
+    Polish names are long, diacritic-heavy and easy to mistype - and the
+    registry now holds 2 000+ of them, which makes it a better dictionary of
+    Polish water names than any spell-checker we could ship. Ratio matching
+    over the normalised key handles a wrong ending, a missing diacritic and a
+    transposed pair alike.
+    """
+    query = normalise(name)
+    if len(query) < 3:
+        return []
+
+    scored: list[tuple[float, PzwWater]] = []
+    for water in registry():
+        if not water.key:
+            continue
+        ratio = SequenceMatcher(None, query, water.key).ratio()
+        # A shared prefix matters more than overall similarity for a typo at
+        # the end of a long word, which is the common case.
+        if water.key.startswith(query[:4]) or query.startswith(water.key[:4]):
+            ratio += 0.15
+        if ratio >= SUGGEST_MIN_RATIO:
+            scored.append((ratio, water))
+
+    scored.sort(key=lambda pair: (-pair[0], pair[1].name))
+    seen: set[str] = set()
+    out: list[PzwWater] = []
+    for _, water in scored:
+        if water.key in seen:
+            continue
+        seen.add(water.key)
+        out.append(water)
+        if len(out) >= limit:
+            break
+    return out
 
 
 def lookup(name: str, lat: float | None = None, lon: float | None = None) -> Match | None:

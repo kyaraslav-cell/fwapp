@@ -17,6 +17,14 @@ ALL_SPECIES = SPECIES_PRIMARY + SPECIES_SECONDARY + SPECIES_LOGGED_ONLY
 METHODS = ["carp", "feeder", "float"]
 
 
+class SessionAlreadyRunningError(RuntimeError):
+    """This angler already has a session open, on this water or another."""
+
+    def __init__(self, session: FishSession) -> None:
+        super().__init__(f"session {session.id} is still open on lake {session.lake_id}")
+        self.session = session
+
+
 def start_session(
     db: Session,
     lake: Lake,
@@ -30,6 +38,18 @@ def start_session(
     grid_lon: float | None = None,
 ) -> FishSession:
     now = utcnow()
+    # One session at a time, across every water. The check used to live in the
+    # route and was scoped to the water being started on, so an angler with a
+    # session open on one lake could open a second on another - and the two
+    # then overlapped in time, which makes both of their CPUE figures wrong:
+    # effort counted twice, catches split between them (law 3).
+    #
+    # Enforced here rather than in the route so no caller can miss it.
+    if user_id is not None:
+        running = active_session_for_user(db, user_id)
+        if running is not None:
+            raise SessionAlreadyRunningError(running)
+
     session = FishSession(
         lake_id=lake.id,
         user_id=user_id,

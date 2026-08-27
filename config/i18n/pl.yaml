@@ -68,6 +68,9 @@ method:
 
 session:
   in_progress: Sesja w toku
+  pill_title: Łowisz teraz
+  already_running: 'Masz już otwartą sesję na {lake}. Zakończ ją, zanim zaczniesz kolejną.'
+  go_to_running: Przejdź do niej →
   started: Start
   rod: wędka
   rods: wędki
@@ -242,6 +245,7 @@ discover:
   water_type_why: Nie ma go na liście PZW, więc wskaż rodzaj - ryb na godzinę nie da się porównywać między nimi.
   already_added: Już jest
   nothing_found: Nie znaleziono akwenu o tej nazwie.
+  did_you_mean: 'Czy chodziło o:'
   quota_left: Akweny, które możesz dziś jeszcze dodać
   quota_reset: Spróbuj po
   error:

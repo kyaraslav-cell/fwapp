@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from collections.abc import Iterator
 from dataclasses import dataclass
+from typing import Any
 
 from fastapi import HTTPException, Request
 from fastapi.templating import Jinja2Templates
@@ -48,8 +49,43 @@ def _i18n_context(request: Request) -> dict[str, object]:
     }
 
 
+def _running_session_context(request: Request) -> dict[str, Any]:
+    """The angler's open session, for the pill in the header.
+
+    A context processor rather than a line in every route: the pill has to be
+    on *every* page - that is the whole point of it - and adding it route by
+    route guarantees one gets missed.
+
+    It fails quiet. This runs on every render including the error pages, and a
+    banner that raises while rendering a 500 turns one broken page into two.
+    """
+    user = getattr(request.state, "user", None)
+    if user is None:
+        return {"running_session": None, "running_session_lake": None}
+    try:
+        from app.core.db import session_scope
+        from app.core.models import Lake
+        from app.notebook.sessions import active_session_for_user
+
+        with session_scope() as db:
+            session = active_session_for_user(db, user.id)
+            if session is None:
+                return {"running_session": None, "running_session_lake": None}
+            lake = db.get(Lake, session.lake_id)
+            return {
+                "running_session": {
+                    "started_at": session.started_at,
+                    "method": session.method,
+                },
+                "running_session_lake": lake.name if lake is not None else None,
+            }
+    except Exception:  # noqa: BLE001 - see the docstring
+        return {"running_session": None, "running_session_lake": None}
+
+
 templates = Jinja2Templates(
-    directory="app/web/templates", context_processors=[_i18n_context]
+    directory="app/web/templates",
+    context_processors=[_i18n_context, _running_session_context],
 )
 
 

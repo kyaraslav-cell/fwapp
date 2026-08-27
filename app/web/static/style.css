@@ -140,7 +140,91 @@ a:hover { text-decoration: underline; }
    both navs show at once. */
 @media (min-width: 720px) {
   .bottomnav { display: none; }
+  /* No bottom nav on desktop, so the pill sits on the bottom edge itself. */
+  .session-pill { bottom: 16px; }
 }
+
+/* The running-session pill: on every page, above the bottom nav, so an angler
+   who wandered off to the map or the history gets back in one tap.
+
+   Deliberately the loudest thing in a pastel interface - it is the only
+   control that means "something of yours is happening right now". It stays
+   inside the palette (the accent green already used for a good day) rather
+   than introducing a new colour, so it reads as emphasis and not as an
+   alarm. */
+.session-pill {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(58px + env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  text-decoration: none;
+  color: var(--accent-green-text);
+  background: #e3f7ee;
+  border: 1px solid rgba(45, 138, 98, 0.28);
+  box-shadow: 0 6px 18px rgba(30, 74, 120, 0.13);
+  /* Comfortably tappable one-handed with wet hands (docs/07-UI-SPEC.md). */
+  min-height: 52px;
+}
+
+.session-pill:hover { background: #d8f2e6; }
+
+/* A slow pulse, not a blink: it should register in peripheral vision without
+   demanding attention while someone is watching a float. */
+.session-pill-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-green-text);
+  animation: session-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes session-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.82); }
+}
+
+/* Anyone who has asked not to see motion gets a steady dot instead. */
+@media (prefers-reduced-motion: reduce) {
+  .session-pill-dot { animation: none; }
+}
+
+.session-pill-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.session-pill-text strong {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.session-pill-text span {
+  font-size: 0.78rem;
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-pill-go {
+  margin-left: auto;
+  flex: none;
+  font-size: 1.1rem;
+  opacity: 0.7;
+}
+
+/* The pill floats over the foot of the page; give the content room so the
+   last control is never trapped underneath it. */
+body:has(.session-pill) .page { padding-bottom: 84px; }
 
 /* ---------- cards & panels ---------- */
 
