@@ -47,21 +47,32 @@
     {% block content %}{% endblock %}
   </main>
 
-  {# The running-session pill. On every page, because the whole point is that
-     an angler mid-session can wander to the map or the history and still get
-     back in one tap. Hidden on the session page itself - a button that takes
-     you where you already are is clutter.
+  {# The running-session button. A small round icon, in the same idiom as the
+     lake page's calendar toggle, NOT a banner: the first version stretched the
+     full width of the page and sat on top of whatever control was at the foot
+     of it.
 
-     Sits above the bottom nav, thumb-height, and states which water it is on:
-     "you are fishing" is useless if you cannot remember where. #}
+     On every page, because the point is that an angler mid-session can wander
+     to the map or the history and still get back in one tap. Hidden on the
+     session page itself, where it would only lead where you already are.
+     The water's name rides in the label rather than on screen - a 44px circle
+     has no room for it, and the session page says it anyway. #}
   {% if running_session and request.url.path != '/session/active' %}
-  <a class="session-pill" href="/session/active">
-    <span class="session-pill-dot" aria-hidden="true"></span>
-    <span class="session-pill-text">
-      <strong>{{ t('session.pill_title') }}</strong>
-      <span>{{ running_session_lake or '' }}{% if running_session.started_at %} · {{ running_session.started_at | localtime }}{% endif %}</span>
-    </span>
-    <span class="session-pill-go" aria-hidden="true">→</span>
+  <a class="session-fab" href="/session/active"
+     title="{{ t('session.pill_title') }} · {{ running_session_lake or '' }}"
+     aria-label="{{ t('session.pill_title') }} · {{ running_session_lake or '' }}">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"
+         fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+      {# A float, drawn as a stroke icon to match the calendar toggle. Body big
+         enough to read at 22px - the first attempt was a hairline and a dot,
+         which looked like a lowercase i. A fish would have been the wrong
+         symbol: that is the catch log, a different thing. #}
+      <path d="M12 2.6v4.1"/>
+      <ellipse cx="12" cy="11.4" rx="4.3" ry="4.7" fill="currentColor" fill-opacity="0.16"/>
+      <path d="M12 16.1v5.3"/>
+      <path d="M7.9 11.4h8.2" stroke-width="1.3" opacity="0.75"/>
+    </svg>
+    <span class="session-fab-ring" aria-hidden="true"></span>
   </a>
   {% endif %}
 
