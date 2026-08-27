@@ -32,6 +32,10 @@ Every finished change is merged there and pushed (rule 13).
 | Thermal phase from modelled water temp, not the calendar | works |
 | ERA5 archive backfill (the pressure norm needs 8760 h) | works |
 | Real OSM shoreline committed to the repo, no build-time fetch | works |
+| PZW river districts as waters of their own (Narew nr 6/7/8) | works — search offers them first, named and bounded by PZW |
+| Rivers and canals: drawn course, stretches, provisional ranking | works — `app/geo/sections.py`, `app/rules/river_score.py` |
+| Favourites + soft removal, per angler | works — `angler_lake`, nothing is ever deleted |
+| Running-session button on every page | works — 44px float, bites, filmed |
 | Registered catch baseline per water (okreg 2024 report) | works — `config/catch_reports/`, shown on the lake page with its n |
 | Calibration loop (own catch vs the register) | **wired, waiting** — needs an ended session with weights |
 | Water type (pzw/commercial) + filter on the places list | works — set from the **PZW registry** at add time, ADR 0007 |
@@ -129,7 +133,13 @@ These came from the owner directly and are not negotiable without asking.
     treat existing rows as real data from here on, not assume a clean or
     single-user database. Never end, edit or delete another user's session
     or data without being asked to.
-19. **Rebuild the live container at the end of every change that touches
+19. **A PZW fishing district is a water in its own right.** Rivers are cut
+    into numbered administrative pieces - Narew nr 6, nr 7, nr 8 - and each has
+    its own permit, closed seasons, size limits and catch statistics. One row
+    spanning several of them pools four sets of rules and four CPUE
+    populations. The owner said this on 2026-08-27 and expected it to be
+    obvious; names and boundaries come from PZW, never from OpenStreetMap.
+20. **Rebuild the live container at the end of every change that touches
     code.** The owner asked for this in those words (2026-08-26). The
     deployment has no bind mount, so the image holds a frozen copy of `app/`
     and `config/` — editing a file changes nothing the public URL serves, and
@@ -251,11 +261,16 @@ Ordered by how much it matters.
    (redirect URI registered, verified end-to-end from this app's side,
    2026-08-24) - only the owner's own consent-screen click-through is
    unconfirmed, since that needs a human at a real Google account.
-9. **Two real, unfinished pieces of user data are sitting in the live
-   database, unresolved** (`docs/handoff/2026-08-26-0832-...md`): a real
-   second user's two fishing sessions, never ended; and an undocumented
-   second water the owner's own account added. Not a code bug - a decision
-   the owner hasn't made yet. See standing rule 18.
+9. **Anhelina still has two sessions open from 2026-08-24** (Szczesliwice,
+   Pomocnia). Not touched - standing rule 18. Note the one-session rule added
+   2026-08-27 means she cannot start a new session until they are ended.
+10. **The `narew` row is not a PZW district and cannot be auto-converted.** It
+   sits at Wizna, in Okreg **Bialystok** water, and only Mazowiecki's map is
+   imported - the nearest district we hold geometry for is 41 km away, so
+   `tools/pzw_district_convert.py` refuses rather than guess a permit. Fix by
+   importing Bialystok's map or naming the district with `--to`.
+11. **The calibration loop has nothing to compare yet.** It needs a water with
+   both a registered baseline and an *ended* session carrying weights.
 
 ---
 
@@ -296,7 +311,14 @@ tools/oracle_vm_setup.sh      bootstraps that VM: docker, repo, compose, tailsca
 app/discover/                 nominatim search, dedupe, quota, add
 app/jobs/                     queue state machine, handlers, runner
 app/auth/                     passwords, validation, tokens, google, service
-config/pzw/mazowiecki.yaml    the okreg's water list, committed (ADR 0007)
+config/pzw/*.yaml             PZW waters: okreg schedule, national register,
+                              okreg map (rings + river courses). ADR 0007
+config/catch_reports/         the okreg's annual catch register - the only
+                              measured CPUE this project has
+app/geo/sections.py           a river district cut into fishable stretches
+app/rules/river_score.py      provisional stretch ranking (geometry only)
+app/notebook/place_prefs.py   favourites and soft removal, per angler
+tools/element_filmstrip.py    pin ANY element's animation and tile the frames
 config/rules.v0.3.yaml        active ruleset (day score + zone score)
 config/species.yaml           25 species, sizes, icon shape, colour
 config/i18n/{en,pl,ru}.yaml   translations

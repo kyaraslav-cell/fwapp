@@ -884,3 +884,56 @@ August 2025.
    pre-centring the catch weight slider on the local mean weight for that
    species, and crowding (1162 anglers on Zegrzynski against 23 on Pomocnia).
 
+
+## 23 · PZW river districts, and everything that came with them · 2026-08-27
+
+The owner's correction, in their words: rivers in PZW are cut into
+administrative pieces like Narew nr 5, nr 6, and each **is a different water
+with its own laws and regulations**. Recorded as standing rule 19.
+
+**Built.** Searching a river offers its districts first, from PZW's register
+and under PZW's names, each with its own stretch of course from the okreg map
+(`app/discover/pzw.py:districts`, `service.add_district`). Adding one skips the
+Overpass outline job - PZW's stretch *is* the geometry.
+
+**Also built, from the same session's reports:**
+
+- **Rivers and canals now have a map at all.** A null outline and a NaN grid
+  bound both threw inside the map's `try`, and the catch hid the whole element
+  - no tiles, no pin, no spot-picking - above a line saying "everything else
+  works". Kanal Zeranski and Lowisko Poniaty were both affected.
+- **`fetch_osm_course`** stores the line a canal or river runs along when OSM
+  has no ring for it, drawn on the map and traced as the places-list icon.
+- **Stretches** (`app/geo/sections.py`), cut to a length that suits the
+  district, boundaries cut where they fall rather than snapped to a vertex.
+- **A provisional stretch ranking** (`app/rules/river_score.py`,
+  `river_section` in the ruleset). Built at the owner's explicit request over
+  a recorded objection - see below.
+- **One session at a time**, enforced in `start_session` so no caller can miss
+  it, plus a running-session button on every page.
+- **Favourites and soft removal**, per angler (`angler_lake`).
+- **Ctrl + wheel** zooms the map; a bare wheel still scrolls the page.
+
+**The objection, recorded because it will matter later.** I argued river
+stretches should stay uncoloured: the zone model is wind fetch and
+distance-to-bank and neither means anything on a 25 m canal, where every point
+is a metre from the bank. The owner overruled it. Rather than half-do it the
+ranking follows ADR 0002's precedent exactly - geometry-only terms (bend
+sinuosity, cross-wind), weights in YAML, `ai_authored_provisional`,
+`status: hypothesis`, `supersede_with: FORMULA_RIVER_SECTION`. **It has never
+been checked against a catch and the page says so.** Flow, depth, structure,
+confluences and weed - the things that actually decide a river swim - remain
+unmodelled.
+
+**Still open:**
+
+1. **`narew`, the OSM row, is on Okreg Bialystok's stretch** and only
+   Mazowiecki's map is imported, so it cannot be auto-converted. Either import
+   Bialystok's map (`tools/pzw_okreg_map.py --url ... --okreg ...`) or name the
+   district by hand (`tools/pzw_district_convert.py --to <key>`).
+2. **Districts with no geometry cannot be added at all** - `pzw.districts()`
+   skips them because a water with no position gets no weather either. That is
+   why Bialystok's Narew districts are unreachable from search.
+3. **A river model.** Until one exists the stretch colours are a labelled
+   guess. Flow is the obvious first input and is in no data held here.
+
