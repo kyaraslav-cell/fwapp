@@ -828,3 +828,59 @@ Also fixed in passing, unreported: the local-knowledge list printed Gemini's
 own machine keys (`common_species`, `2024_stocking_plan`) beside each value,
 raw and in English in all three languages.
 
+
+## 22 · The okreg's catch register · PARTIAL — the baseline is in, the loop waits on sessions
+
+The owner supplied Okreg Mazowiecki's "Ocena presji i polowow wedkarskich w
+wodach uzytkowanych przez OM PZW w 2024 roku". It is the **first measured CPUE
+this project has ever had**: per water, how many anglers returned a register,
+days fished each, kg per angler-day and per season, and the species split.
+
+**Built:** `tools/catch_report_extract.py` → `config/catch_reports/mazowiecki-2024.yaml`
+(29 waters with a daily rate), `app/notebook/registered_catch.py`, one sentence
+on the lake page carrying its sample size, and `tools/calibration_check.py`.
+
+**What the report can answer, for the record.** Best carp water within 100 km
+of Warsaw, 2024:
+
+| Water | km | n | kg/day | carp % | carp kg/angler-season | mean carp |
+|---|---|---|---|---|---|---|
+| Glinianki Szczesliwice | 4 | 27 | 0.29 | 85% | 3.45 kg | 2.74 kg |
+| Jezioro Pomocnia | 42 | 23 | **0.71** | 39.6% | 2.34 kg | **3.36 kg** |
+| Glinianki Golkow/Gloskow/Zalesie | ~18 | 90 | 0.39 | 52.9% | 1.77 kg | 1.18 kg |
+| Zb. Zegrzynski (Narew nr 7) | 22 | 1162 | 0.65 | 2.8% | 0.20 kg | — |
+
+Per angler-season Szczesliwice wins; **per day on the bank Pomocnia wins**
+(0.28 vs 0.25 kg of carp), and its carp are the biggest of the group.
+Szczesliwice anglers only catch more per season because they fish 13.8 days to
+Pomocnia's 8.3. Zbiornik Talar is the best carp water in the whole report
+(0.39 kg carp/day, 72.5%) but sits ~135 km out.
+
+**What this CANNOT do, corrected.** It was initially proposed as a way to
+validate the scoring engine. That was wrong and the tool says so in its own
+docstring:
+
+- the **day score** is about *when*; the report is annual and has no daily
+  resolution to correlate against;
+- the **zone score** is about *where on a water*; the report has none within a
+  water either;
+- ranking whole waters by annual catch measures stock and fertility, which the
+  engine deliberately does not model. A good correlation would be misleading.
+
+There is also no 2024 weather to score against — the archive backfill starts
+August 2025.
+
+**Still open:**
+
+1. **The loop has nothing to compare yet.** `calibration_check` needs a water
+   with both a registered baseline and an **ended** session with weighed
+   catches. All four sessions in the live database are still open.
+2. **Only 29 of 42 sections parse a daily rate**, because the report's phrasing
+   varies. The rest are named in the tool's output.
+3. **Units.** Both sides are kg per angler-day, which is NOT law 3's
+   fish-per-hour. `mean_cpue` stays the unit of success and the two must never
+   be pooled. Anything built on this must keep saying so.
+4. Ideas not built, from the same data: per-water species expectations,
+   pre-centring the catch weight slider on the local mean weight for that
+   species, and crowding (1162 anglers on Zegrzynski against 23 on Pomocnia).
+

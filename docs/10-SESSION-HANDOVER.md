@@ -32,6 +32,8 @@ Every finished change is merged there and pushed (rule 13).
 | Thermal phase from modelled water temp, not the calendar | works |
 | ERA5 archive backfill (the pressure norm needs 8760 h) | works |
 | Real OSM shoreline committed to the repo, no build-time fetch | works |
+| Registered catch baseline per water (okreg 2024 report) | works — `config/catch_reports/`, shown on the lake page with its n |
+| Calibration loop (own catch vs the register) | **wired, waiting** — needs an ended session with weights |
 | Water type (pzw/commercial) + filter on the places list | works — set from the **PZW registry** at add time, ADR 0007 |
 | PZW water registry (Okreg Mazowiecki, 109 waters, committed) | works — `config/pzw/`, `tools/pzw_extract.py`, `app/discover/pzw.py` |
 | Pyodide + shapely spike, passed on the real Pages URL | done |
