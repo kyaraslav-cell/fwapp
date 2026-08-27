@@ -107,6 +107,72 @@ def test_the_same_water_listed_in_two_files_is_not_ambiguity() -> None:
     )
 
 
+def test_position_settles_what_a_name_cannot() -> None:
+    """The reason the okreg's map is worth carrying.
+
+    Name matching has to refuse whenever several waters share a name, and 126
+    keys do. A coordinate does not care what anything is called: there are five
+    lakes named Czarne, but only one water at 52.5431, 20.6762.
+    """
+    match = pzw.lookup_by_position(52.5431, 20.6762)
+    assert match is not None
+    assert match.water.name == "Jezioro Pomocnia"
+    assert match.how == pzw.BY_POSITION
+    assert match.exact, "a boundary containing the point is not a fuzzy guess"
+
+
+def test_position_is_preferred_over_the_name() -> None:
+    match = pzw.lookup("Jezioro Pomocnia", 52.5431, 20.6762)
+    assert match is not None and match.how == pzw.BY_POSITION
+
+
+def test_a_point_in_no_listed_water_matches_nothing() -> None:
+    """Somewhere in the North Sea."""
+    assert pzw.lookup_by_position(56.0, 3.0) is None
+
+
+def test_the_name_still_answers_when_there_is_no_position() -> None:
+    """Most sources carry no geometry, so the name path has to keep working."""
+    match = pzw.lookup("Jezioro Pomocnia")
+    assert match is not None and match.how == pzw.BY_NAME_EXACT
+
+
+def test_every_stored_boundary_is_a_usable_polygon() -> None:
+    """Thinning a boundary must not destroy it.
+
+    Reducing rings by dropping every Nth point wrecked the ones it shortened -
+    Zegrzynskie's 476-point ring came back self-intersecting, so `contains()`
+    could not answer honestly. The tool uses topology-preserving
+    simplification now; this checks the committed result, not the intent.
+    """
+    from shapely.geometry import Polygon
+
+    checked = 0
+    for water in pzw.registry():
+        if len(water.ring) < 3:
+            continue
+        checked += 1
+        polygon = Polygon([(lon, lat) for lat, lon in water.ring])
+        assert polygon.is_valid, f"{water.name} has a self-intersecting boundary"
+        assert polygon.area > 0
+    assert checked > 20, "expected the okreg map's boundaries to be loaded"
+
+
+def test_sources_describing_one_water_are_merged_not_multiplied() -> None:
+    """Three files describe the same waters at different levels of detail.
+
+    Left separate they make an unambiguous water ambiguous: Glinianki
+    Szczesliwice appeared once with a district and once with a boundary, and
+    stopped matching the moment the okreg map was added. Merging must take the
+    fullest name AND the boundary AND the district, not pick one record.
+    """
+    match = pzw.lookup("Glinianki Szczęśliwickie", 52.2050369, 20.9619064)
+    assert match is not None
+    assert match.water.name == "Glinianki Szczęśliwice", "the fuller name survived"
+    assert match.water.place == "Warszawa Ochota", "the district survived"
+    assert match.water.ring, "the boundary survived"
+
+
 @pytest.mark.parametrize(
     ("spelling", "expected"),
     [

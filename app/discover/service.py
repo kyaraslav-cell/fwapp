@@ -167,7 +167,10 @@ def add_water(
     if quota_left(db, user_id, now) <= 0:
         raise QuotaExceededError(f"{DAILY_ADD_QUOTA} waters a day")
 
-    listed = pzw.lookup(candidate.name)
+    # Position first: the okreg map's boundaries settle which water this is
+    # without caring what it is called, which is the only thing that can
+    # separate the five lakes named Czarne. Falls back to the name.
+    listed = pzw.lookup(candidate.name, candidate.lat, candidate.lon)
     chosen_type = water_type_mod.normalise(water_type)
     if chosen_type is None and listed is not None:
         chosen_type = water_type_mod.PZW

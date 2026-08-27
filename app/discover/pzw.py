@@ -81,6 +81,16 @@ class PzwWater:
     section: str
     place: str = ""
     area_ha: float | None = None
+    # A closed boundary as (lat, lon) pairs, where the source had one. Only
+    # some sources carry geometry, and only lakes have it - a river reach is a
+    # polyline and cannot contain a point.
+    ring: tuple[tuple[float, float], ...] = ()
+
+
+# How a match was arrived at, weakest last.
+BY_POSITION = "inside"
+BY_NAME_EXACT = "exact"
+BY_NAME_FUZZY = "fuzzy"
 
 
 @dataclass(frozen=True)
@@ -88,7 +98,17 @@ class Match:
     """What the registry could tell us about a water, and how sure it is."""
 
     water: PzwWater
-    exact: bool
+    how: str
+
+    @property
+    def exact(self) -> bool:
+        """True when this is not a fuzzy name guess.
+
+        A position inside a boundary is the strongest answer available: five
+        lakes share the name Czarne, but only one of them is at any given
+        coordinate.
+        """
+        return self.how in (BY_POSITION, BY_NAME_EXACT)
 
 
 def normalise(name: str) -> str:
@@ -163,6 +183,15 @@ def _load_file(path: Path) -> list[PzwWater]:
         if not name or not key:
             continue
         area = row.get("area_ha")
+        ring_raw = row.get("ring") or []
+        ring: list[tuple[float, float]] = []
+        if isinstance(ring_raw, list):
+            for point in ring_raw:
+                if isinstance(point, list | tuple) and len(point) == 2:
+                    try:
+                        ring.append((float(point[0]), float(point[1])))
+                    except (TypeError, ValueError):
+                        continue
         waters.append(
             PzwWater(
                 name=name,
@@ -171,6 +200,7 @@ def _load_file(path: Path) -> list[PzwWater]:
                 section=str(row.get("section") or ""),
                 place=str(row.get("place") or ""),
                 area_ha=float(area) if isinstance(area, int | float) else None,
+                ring=tuple(ring),
             )
         )
     return waters
@@ -189,36 +219,145 @@ def registry() -> tuple[PzwWater, ...]:
     for path in sorted(CONFIG_DIR.glob("*.yaml")):
         waters.extend(_load_file(path))
 
-    # The same water can be listed in two files - the okreg's permit schedule
-    # and the national register both carry Glinianki Blonie. Identical key AND
-    # identical place is the same water, and collapsing it matters: `lookup`
-    # refuses when several entries match, so a duplicate would turn a perfectly
-    # unambiguous water into a question.
-    #
-    # Only exact agreement collapses. Waters that merely share a name are left
-    # alone on purpose - "Basen" in Brwinow and "Basen" in Zary are different
-    # waters, and refusing to choose between them is the correct answer.
-    seen: set[tuple[str, str]] = set()
-    unique: list[PzwWater] = []
+    return _merge(waters)
+
+
+def _richest(group: list[PzwWater]) -> PzwWater:
+    """One record built from several descriptions of the same water.
+
+    Fields are taken from whichever source has them rather than picking a
+    single winning record, because the sources are strong in different places:
+    the okreg map carries boundaries but abbreviates names to "Szczesliwice",
+    while the permit schedule spells it "Glinianki Szczesliwice" and records
+    the district. Choosing one record threw away half of what is known.
+
+    The fullest name is a heuristic, and a safe one: every name in a group
+    normalises to the same key by construction, so a longer name is more
+    detail about the same water, not a different one.
+    """
+    best = max(group, key=lambda w: len(w.name))
+    ring = next((w.ring for w in group if w.ring), ())
+    place = next((w.place for w in group if w.place.strip()), "")
+    section = next((w.section for w in group if w.section.strip()), "")
+    area = next((w.area_ha for w in group if w.area_ha is not None), None)
+    return PzwWater(
+        name=best.name,
+        key=best.key,
+        okreg=best.okreg,
+        section=section,
+        place=place,
+        area_ha=area,
+        ring=ring,
+    )
+
+
+def _merge(waters: list[PzwWater]) -> tuple[PzwWater, ...]:
+    """Collapse several sources' records of one water into one record.
+
+    Three files can describe the same water: the okreg's permit schedule, the
+    national register and the okreg's map. `lookup` refuses whenever several
+    entries match, so leaving them separate turns perfectly unambiguous waters
+    into questions - Glinianki Szczesliwice appeared twice, once with a place
+    and once without, and stopped matching the moment the map was added.
+
+    **The place is what separates waters, not the okreg.** Grouping by okreg as
+    well was the first attempt and it merged nothing across files: the national
+    register labels every one of its waters `poland`, while the permit schedule
+    and the map say `mazowiecki`, so the same lake in two files never met.
+    The place does the job on its own - the five lakes called Czarne are in
+    Kwilcz, Bobrowo, Olsztyn and so on, and stay five records.
+
+    A record with no place recorded merges into the one place its group names.
+    Where a group names two, the place-less records are dropped: they cannot be
+    attributed to either, and guessing is how a wrong water_type gets in.
+    """
+    grouped: dict[str, list[PzwWater]] = {}
     for water in waters:
-        identity = (water.key, water.place.strip().lower())
-        if identity in seen:
+        grouped.setdefault(water.key, []).append(water)
+
+    out: list[PzwWater] = []
+    for group in grouped.values():
+        places = {w.place.strip().lower() for w in group if w.place.strip()}
+        if len(places) <= 1:
+            out.append(_richest(group))
             continue
-        seen.add(identity)
-        unique.append(water)
-    return tuple(unique)
+        # Two different places for one name: two different waters.
+        for place in sorted(places):
+            same = [w for w in group if w.place.strip().lower() == place]
+            out.append(_richest(same))
+    return tuple(out)
 
 
-def lookup(name: str) -> Match | None:
+@lru_cache(maxsize=1)
+def _bounded() -> tuple[tuple[PzwWater, tuple[float, float, float, float]], ...]:
+    """Waters that carry a boundary, each with its bounding box.
+
+    The box is checked before the polygon because it rejects almost everything
+    almost free: a point is compared against 66 rectangles, and only the one or
+    two that survive cost a real point-in-polygon test.
+    """
+    out: list[tuple[PzwWater, tuple[float, float, float, float]]] = []
+    for water in registry():
+        if len(water.ring) < 3:
+            continue
+        lats = [p[0] for p in water.ring]
+        lons = [p[1] for p in water.ring]
+        out.append((water, (min(lats), min(lons), max(lats), max(lons))))
+    return tuple(out)
+
+
+def lookup_by_position(lat: float, lon: float) -> Match | None:
+    """The listed water whose boundary contains this point, if exactly one does.
+
+    This is the strongest answer the registry can give, and the reason the
+    okreg's own map is worth having: name matching has to refuse whenever
+    several waters share a name, and 126 keys do. Position does not care what
+    anything is called.
+
+    Still refuses when two boundaries overlap the point - a lake inside a
+    reservoir's fishing district, say. Overlap is a genuine question about
+    which water someone means, not a tie to be broken silently.
+    """
+    from shapely.geometry import Point, Polygon
+
+    point = Point(lon, lat)
+    hits: list[PzwWater] = []
+    for water, (min_lat, min_lon, max_lat, max_lon) in _bounded():
+        if not (min_lat <= lat <= max_lat and min_lon <= lon <= max_lon):
+            continue
+        polygon = Polygon([(p[1], p[0]) for p in water.ring])
+        if not polygon.is_valid:
+            # A self-intersecting ring cannot answer "inside" honestly. Buffer
+            # by nothing is shapely's idiom for repairing one; if that fails
+            # the water simply does not vote.
+            polygon = polygon.buffer(0)
+            if polygon.is_empty or not polygon.is_valid:
+                continue
+        if polygon.contains(point):
+            hits.append(water)
+
+    if len(hits) != 1:
+        return None
+    return Match(water=hits[0], how=BY_POSITION)
+
+
+def lookup(name: str, lat: float | None = None, lon: float | None = None) -> Match | None:
     """Find this water in the registry, or admit that we cannot.
 
+    Position first when it is known, because it is the only input that
+    distinguishes two waters sharing a name. Falls back to the name, which is
+    all the sources without geometry can offer.
+
     Returns `None` when nothing matches **and** when more than one water
-    matches equally well. Poland has a great many lakes called Czarne and the
-    list carries no coordinates to tell them apart, so an ambiguous match is
-    not a match - it is a question for the angler. Answering it here would put
-    a wrong `water_type` into the CPUE segmentation key without anybody seeing
-    it happen.
+    matches equally well. An ambiguous match is not a match - it is a question
+    for the angler. Answering it here would put a wrong `water_type` into the
+    CPUE segmentation key without anybody seeing it happen.
     """
+    if lat is not None and lon is not None:
+        found = lookup_by_position(lat, lon)
+        if found is not None:
+            return found
+
     query = normalise(name)
     if not query:
         return None
@@ -232,11 +371,11 @@ def lookup(name: str) -> Match | None:
     # from one okreg; it is not safe against 2 193 from thirty-four.
     exact = [w for w in registry() if w.key == query]
     if len(exact) == 1:
-        return Match(water=exact[0], exact=True)
+        return Match(water=exact[0], how=BY_NAME_EXACT)
     if exact:
         return None
 
     fuzzy = [w for w in registry() if _score(query, w.key) >= 1.0]
     if len(fuzzy) != 1:
         return None
-    return Match(water=fuzzy[0], exact=False)
+    return Match(water=fuzzy[0], how=BY_NAME_FUZZY)

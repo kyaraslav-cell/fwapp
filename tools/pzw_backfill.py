@@ -55,7 +55,7 @@ def main(argv: list[str] | None = None) -> int:
     unresolved: list[str] = []
     with session_scope() as db:
         for lake in db.execute(select(Lake).order_by(Lake.id)).scalars().all():
-            listed = pzw.lookup(lake.name_osm or lake.name)
+            listed = pzw.lookup(lake.name_osm or lake.name, lake.centroid_lat, lake.centroid_lon)
             answer = manual.get(lake.slug)
 
             changes: list[str] = []

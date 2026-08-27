@@ -201,13 +201,19 @@ def test_a_listed_water_is_typed_and_named_from_the_permit(db: Session) -> None:
 
     assert result.lake.water_type == "pzw"
     assert result.lake.water_type_source == service.SOURCE_REGISTRY
-    assert result.lake.name == "Zbiornik Zegrzyński", "the permit's spelling is the one shown"
+    # The fixture's coordinates fall inside the okreg map's Zegrzynskie
+    # boundary, so this resolves by position rather than by name - which is
+    # the stronger answer and the point of carrying boundaries at all.
+    assert result.lake.name == "Jezioro Zegrzyńskie", "PZW's spelling is the one shown"
     assert result.lake.name_osm == "Zalew Zegrzyński", "and OSM's is kept, not discarded"
 
 
 def test_an_unlisted_water_takes_the_anglers_answer(db: Session) -> None:
     result = service.add_water(
-        db, water(name="Łowisko Poniaty - Pod Lasem"), user_id=1, water_type="commercial"
+        db,
+        water(name="Łowisko Poniaty - Pod Lasem", lat=52.6229547, lon=20.8875144),
+        user_id=1,
+        water_type="commercial",
     )
 
     assert result.lake.water_type == "commercial"
@@ -233,7 +239,9 @@ def test_an_unlisted_water_added_without_an_answer_has_no_type(db: Session) -> N
     recorded, which is the correct outcome. Defaulting to either value here
     would produce a number that looks fine and is wrong (law 3).
     """
-    result = service.add_water(db, water(name="Łowisko Poniaty - Pod Lasem"), user_id=1)
+    result = service.add_water(
+        db, water(name="Łowisko Poniaty - Pod Lasem", lat=52.6229547, lon=20.8875144), user_id=1
+    )
 
     assert result.lake.water_type is None
     assert result.lake.water_type_source is None
