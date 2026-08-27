@@ -7,6 +7,7 @@ angler gets a map with a satellite view and a pin within a second of choosing.
 
 from __future__ import annotations
 
+import json
 import math
 import re
 import unicodedata
@@ -21,7 +22,7 @@ from app.core.time import iso, parse_iso, utcnow
 from app.discover import pzw
 from app.discover.nominatim import Candidate
 from app.jobs import queue
-from app.jobs.handlers import NEW_WATER_PIPELINE
+from app.jobs.handlers import NEW_WATER_PIPELINE, OUTLINE
 from app.notebook import water_type as water_type_mod
 
 # Values for `Lake.water_type_source`.
@@ -207,6 +208,82 @@ def add_water(
     db.flush()
 
     for kind in NEW_WATER_PIPELINE:
+        queue.enqueue(db, kind, lake_id=lake.id, now=now)
+
+    return AddResult(lake=lake, created=True)
+
+
+def find_existing_district(db: Session, water: pzw.PzwWater) -> Lake | None:
+    """The district this entry already is, if it is already a water here."""
+    return db.execute(select(Lake).where(Lake.pzw_key == water.key)).scalar_one_or_none()
+
+
+def add_district(
+    db: Session,
+    water: pzw.PzwWater,
+    *,
+    user_id: int,
+    now: datetime | None = None,
+) -> AddResult:
+    """Add a PZW fishing district as a water in its own right.
+
+    A river is not one water. PZW cuts it into numbered districts - Narew
+    nr 6, nr 7, nr 8 - and each has its own permit, its own closed seasons,
+    its own size limits and its own catch statistics in the okreg's annual
+    report. Treating "the Narew" as a single water pools four sets of rules
+    and four sets of CPUE into one row, which is exactly the corruption law 3
+    exists to prevent.
+
+    The district's own stretch of course comes from the okreg's map, so the
+    water on screen is the water the permit covers. It has no polygon and
+    therefore no zone overlay - a river's shoreline is not something PZW
+    publishes and not something to invent.
+    """
+    now = now or utcnow()
+
+    existing = find_existing_district(db, water)
+    if existing is not None:
+        return AddResult(lake=existing, created=False)
+
+    if quota_left(db, user_id, now) <= 0:
+        raise QuotaExceededError(f"{DAILY_ADD_QUOTA} waters a day")
+
+    if water.line:
+        # GeoJSON is (lon, lat); the registry stores (lat, lon).
+        course = {
+            "type": "MultiLineString",
+            "coordinates": [[[lon, lat] for lat, lon in water.line]],
+        }
+        lat = sum(p[0] for p in water.line) / len(water.line)
+        lon = sum(p[1] for p in water.line) / len(water.line)
+    else:
+        course = None
+        lat, lon = float(water.lat or 0.0), float(water.lon or 0.0)
+
+    lake = Lake(
+        slug=unique_slug(db, slugify(water.name)),
+        name=water.name,
+        water_type=water_type_mod.PZW,
+        water_type_source=SOURCE_REGISTRY,
+        pzw_key=water.key,
+        centroid_lat=lat,
+        centroid_lon=lon,
+        course_geojson=json.dumps(course) if course else None,
+        outline_source="pzw_line" if course else "none",
+        timezone="Europe/Warsaw",
+        origin="discovered",
+        added_by_user_id=user_id,
+        created_at=iso(now),
+    )
+    db.add(lake)
+    db.flush()
+
+    # The outline job is skipped: PZW's own stretch is the geometry here, and
+    # asking Overpass for a polygon would either find nothing or find the whole
+    # river, which is a different water from this district.
+    for kind in NEW_WATER_PIPELINE:
+        if kind == OUTLINE:
+            continue
         queue.enqueue(db, kind, lake_id=lake.id, now=now)
 
     return AddResult(lake=lake, created=True)

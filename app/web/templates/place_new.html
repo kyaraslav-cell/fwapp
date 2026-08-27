@@ -34,6 +34,44 @@
 {% endif %}
 {% endif %}
 
+{# PZW cuts a river into numbered districts and each is a separate water with
+   its own permit, closed seasons and catch statistics. They are offered as
+   themselves rather than behind one OSM river spanning all of them. #}
+{% if districts %}
+<div class="section-label">{{ t('discover.districts') }}</div>
+{% for d in districts %}
+  {% if d.existing_slug %}
+  <a href="/lake/{{ d.existing_slug }}" style="text-decoration:none; color:inherit;">
+    <div class="place-card">
+      <div class="place-info">
+        <div class="place-name">{{ d.name }}</div>
+        <div class="place-meta">{{ t('discover.pzw_district') }}</div>
+      </div>
+      <span class="badge badge-neutral">{{ t('discover.already_added') }}</span>
+    </div>
+  </a>
+  {% else %}
+  <form method="post" action="/places/new" class="candidate-form">
+    <input type="hidden" name="q" value="{{ query }}">
+    <input type="hidden" name="pzw_key" value="{{ d.key }}">
+    <input type="hidden" name="name" value="{{ d.name }}">
+    <input type="hidden" name="lat" value="0">
+    <input type="hidden" name="lon" value="0">
+    <button type="submit" class="place-card candidate-card">
+      <div class="place-info">
+        <div class="place-name">{{ d.name }}</div>
+        <div class="place-meta">
+          {{ t('discover.pzw_district') }}{% if d.okreg %} · {{ d.okreg }}{% endif %}
+        </div>
+      </div>
+      <span class="badge badge-green">{{ t('discover.add') }} · {{ t('water_type.pzw') }}</span>
+    </button>
+  </form>
+  {% endif %}
+{% endfor %}
+{% if candidates %}<div class="section-label">{{ t('discover.on_the_map') }}</div>{% endif %}
+{% endif %}
+
 {% for row in candidates %}
   {% set c = row.candidate %}
   {# A result already in the database is a link, not an add button. Two rows

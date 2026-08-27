@@ -71,6 +71,11 @@ class MapWater:
     kind: str
     note: str = ""
     ring: list[tuple[float, float]] | None = None
+    # The line a river district runs along. PZW cuts a river into numbered
+    # districts - Narew nr 6, nr 7, nr 8 - and each is its own water with its
+    # own rules; the map draws each as its own polyline. Discarding these kept
+    # only the lakes and left every river district with nothing but a point.
+    line: list[tuple[float, float]] | None = None
     # A representative position for EVERY water, ring or not. River reaches are
     # polylines and can never contain a point, but they still have a location,
     # and "how far is this water from me" is a question worth answering about
@@ -130,6 +135,25 @@ def _thin(points: list[tuple[float, float]], limit: int = MAX_POINTS) -> list[tu
     return [(round(lat, 6), round(lon, 6)) for lon, lat in simplified.exterior.coords]
 
 
+def _thin_line(
+    points: list[tuple[float, float]], limit: int = MAX_POINTS
+) -> list[tuple[float, float]]:
+    """Reduce an open line, keeping its ends.
+
+    Douglas-Peucker needs a ring; an open line is thinned by index instead,
+    which is safe here because there is no topology to break - the failure mode
+    that forced simplification on rings (a self-intersecting boundary that
+    `contains()` could not answer about) does not exist for a line nobody asks
+    containment questions of.
+    """
+    if len(points) <= limit:
+        return points
+    step = len(points) / float(limit - 1)
+    kept = [points[int(i * step)] for i in range(limit - 1)]
+    kept.append(points[-1])
+    return kept
+
+
 def parse(page: str) -> list[MapWater]:
     waters: list[MapWater] = []
     for match in RECORD.finditer(page):
@@ -142,9 +166,12 @@ def parse(page: str) -> list[MapWater]:
             for lat, lon in LATLNG.findall(match.group("points"))
         ]
         ring: list[tuple[float, float]] | None = None
+        line: list[tuple[float, float]] | None = None
         # A ring needs three distinct corners before it encloses anything.
         if kind == CLOSED_RING and len(points) >= 3:
             ring = _thin(points)
+        elif len(points) >= 2:
+            line = _thin_line(points)
         note = _field(match.group("body"), "tresc")[:200]
         point = None
         if points:
@@ -152,7 +179,9 @@ def parse(page: str) -> list[MapWater]:
                 round(sum(p[0] for p in points) / len(points), 6),
                 round(sum(p[1] for p in points) / len(points), 6),
             )
-        waters.append(MapWater(name=name, kind=kind, note=note, ring=ring, point=point))
+        waters.append(
+            MapWater(name=name, kind=kind, note=note, ring=ring, line=line, point=point)
+        )
     return waters
 
 
@@ -199,6 +228,10 @@ def to_yaml(waters: list[MapWater], okreg: str, source: str) -> str:
             lines.append("    ring:")
             for lat, lon in water.ring:
                 lines.append(f"      - [{lat}, {lon}]")
+        if water.line:
+            lines.append("    line:")
+            for lat, lon in water.line:
+                lines.append(f"      - [{lat}, {lon}]")
     return "\n".join(lines) + "\n"
 
 
@@ -221,8 +254,10 @@ def main(argv: list[str] | None = None) -> int:
 
     with_ring = sum(1 for w in waters if w.ring)
     print(f"{len(waters)} waters -> {out}")
+    with_line = sum(1 for w in waters if w.line)
     print(f"  with a usable boundary: {with_ring}")
-    print(f"  river reaches (no boundary): {len(waters) - with_ring}")
+    print(f"  river/canal districts with a course: {with_line}")
+    print(f"  with neither: {len(waters) - with_ring - with_line}")
     return 0
 
 

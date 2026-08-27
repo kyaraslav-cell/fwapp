@@ -34,6 +34,7 @@ def _render(
         "error": None,
         "searched": False,
         "suggestions": [],
+        "districts": [],
         "quota_left": None,
         "quota_reset": None,
     }
@@ -77,12 +78,30 @@ def search_form(
     # nearest names as a re-search rather than a dead end.
     suggestions = [w.name for w in pzw.suggest(query)] if not found else []
 
+    # PZW cuts a river into numbered districts and each is a separate water
+    # with its own permit and its own rules, so they are offered as themselves
+    # rather than hidden behind one OSM river that spans all of them.
+    districts = [
+        {
+            "key": w.key,
+            "name": w.name,
+            "okreg": w.place or w.okreg,
+            "existing_slug": (
+                found_lake.slug
+                if (found_lake := service.find_existing_district(db, w)) is not None
+                else None
+            ),
+        }
+        for w in pzw.districts(query)
+    ]
+
     return _render(
         request,
         query=query,
         searched=True,
         candidates=[_row(db, c) for c in found],
         suggestions=suggestions,
+        districts=districts,
         quota_left=quota,
         quota_reset=_local(reset),
     )
@@ -100,6 +119,7 @@ def add(
     area_ha: str = Form(default=""),
     is_water: str = Form(default="1"),
     water_type: str = Form(default=""),
+    pzw_key: str = Form(default=""),
     q: str = Form(default=""),
     user: CurrentUser = Depends(require_user),
     db: Session = Depends(get_db),
@@ -111,6 +131,24 @@ def add(
     told us thirty seconds ago is exactly the kind of waste that gets an IP
     blocked.
     """
+    if pzw_key.strip():
+        listed = pzw.by_key(pzw_key.strip())
+        if listed is None:
+            return _refused(
+                request, db, query=q or name, status_code=404,
+                error="discover.error.not_water",
+                quota_left=service.quota_left(db, user.id),
+            )
+        try:
+            result = service.add_district(db, listed, user_id=user.id)
+        except service.QuotaExceededError:
+            return _refused(
+                request, db, query=q or name, status_code=429,
+                error="discover.error.quota", quota_left=0,
+                quota_reset=_local(service.next_quota_reset(db, user.id)),
+            )
+        return RedirectResponse(url=f"/lake/{result.lake.slug}", status_code=303)
+
     candidate = Candidate(
         name=name.strip(),
         display_name=display_name.strip() or name.strip(),

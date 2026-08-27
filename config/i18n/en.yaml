@@ -54,6 +54,7 @@ lake:
   fish_here: Fish here?
   start_session_link: Start session →
   provenance: Provisional — not yet checked against a single logged catch.
+  section: Stretch
   registered: 'Anglers registered {rate} kg a day here in {year} ({n} returns).'
   registered_species: 'Mostly {species} — {pct}% of it.'
   right_now: Right now
@@ -258,6 +259,9 @@ discover:
   add: Add
   not_water: Not a water
   add_as_pzw: PZW
+  districts: PZW fishing districts
+  pzw_district: Numbered PZW district — its own permit and rules
+  on_the_map: Found on the map
   add_as_commercial: Commercial
   water_type_why: Not on the PZW list, so tell us which it is - fish per hour is not comparable between the two.
   already_added: Already here

@@ -54,6 +54,7 @@ lake:
   fish_here: Łowić tutaj?
   start_session_link: Rozpocznij sesję →
   provenance: Wstępna — nie sprawdzona jeszcze na żadnym zapisanym braniu.
+  section: Odcinek
   registered: 'Wędkarze zarejestrowali tu {rate} kg dziennie w {year} r. ({n} rejestrów).'
   registered_species: 'Głównie {species} — {pct}% połowu.'
   right_now: Teraz
@@ -247,6 +248,9 @@ discover:
   add: Dodaj
   not_water: To nie akwen
   add_as_pzw: PZW
+  districts: Obwody rybackie PZW
+  pzw_district: Numerowany obwód PZW — własne zezwolenie i przepisy
+  on_the_map: Znalezione na mapie
   add_as_commercial: Komercyjne
   water_type_why: Nie ma go na liście PZW, więc wskaż rodzaj - ryb na godzinę nie da się porównywać między nimi.
   already_added: Już jest

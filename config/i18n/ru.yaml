@@ -54,6 +54,7 @@ lake:
   fish_here: Ловить здесь?
   start_session_link: Начать сессию →
   provenance: Предварительно — ещё не проверено ни на одной записанной поклёвке.
+  section: Участок
   registered: 'Рыболовы зарегистрировали здесь {rate} кг в день в {year} г. ({n} отчётов).'
   registered_species: 'В основном {species} — {pct}% улова.'
   right_now: Сейчас
@@ -247,6 +248,9 @@ discover:
   add: Добавить
   not_water: Не водоём
   add_as_pzw: PZW
+  districts: Рыболовные округа PZW
+  pzw_district: Нумерованный округ PZW — своё разрешение и правила
+  on_the_map: Найдено на карте
   add_as_commercial: Коммерческий
   water_type_why: Его нет в списке PZW, поэтому укажите тип - рыба в час между ними несравнима.
   already_added: Уже есть

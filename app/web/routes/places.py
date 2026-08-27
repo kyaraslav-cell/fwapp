@@ -12,7 +12,7 @@ from app.core.i18n import COOKIE_NAME, normalise
 from app.core.models import Lake
 from app.core.time import parse_iso, to_display, utcnow
 from app.features.season import derive_season
-from app.geo import hires_cache
+from app.geo import hires_cache, sections
 from app.geo import service as geo_service
 from app.geo.thumbnail import course_thumbnail_path, outline_thumbnail_path
 from app.ingest.open_meteo import ingest_forecast
@@ -289,6 +289,15 @@ def lake_detail(slug: str, request: Request, db: Session = Depends(get_db)):
             # A river or canal has no polygon, only the line it runs along.
             # Drawn on the map; never used as an outline (no grid, no overlay).
             "course_json": lake.course_geojson or "null",
+            # A river is fished by stretch, not by spot in open water, and it
+            # has no polygon to grid. Sections carry NO score: the zone model
+            # is wind fetch and distance-to-bank, neither of which means
+            # anything on a river. See app/geo/sections.py.
+            "sections_json": json.dumps(
+                sections.to_geojson(sections.split_course(json.loads(lake.course_geojson)))
+            )
+            if lake.course_geojson
+            else "null",
             "outline_source": lake.outline_source or "unknown",
             # Collected local knowledge. Empty for almost every water, which is
             # the honest state and renders as nothing at all rather than as an

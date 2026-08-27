@@ -91,6 +91,10 @@ class PzwWater:
     # some sources carry geometry, and only lakes have it - a river reach is a
     # polyline and cannot contain a point.
     ring: tuple[tuple[float, float], ...] = ()
+    # The line a river district runs along. PZW cuts a river into numbered
+    # districts - Narew nr 6, nr 7, nr 8 - and each is a separate water with
+    # its own rules, its own permit and its own catch statistics.
+    line: tuple[tuple[float, float], ...] = ()
     # A representative position, where the source gives one. Present for river
     # reaches too, which have no ring but do have a place on the map.
     lat: float | None = None
@@ -203,15 +207,20 @@ def _load_file(path: Path) -> list[PzwWater]:
         if not name or not key:
             continue
         area = row.get("area_ha")
-        ring_raw = row.get("ring") or []
-        ring: list[tuple[float, float]] = []
-        if isinstance(ring_raw, list):
-            for point in ring_raw:
+        def _coords(raw: object) -> list[tuple[float, float]]:
+            out: list[tuple[float, float]] = []
+            if not isinstance(raw, list):
+                return out
+            for point in raw:
                 if isinstance(point, list | tuple) and len(point) == 2:
                     try:
-                        ring.append((float(point[0]), float(point[1])))
+                        out.append((float(point[0]), float(point[1])))
                     except (TypeError, ValueError):
                         continue
+            return out
+
+        ring = _coords(row.get("ring"))
+        line = _coords(row.get("line"))
         waters.append(
             PzwWater(
                 name=name,
@@ -221,6 +230,7 @@ def _load_file(path: Path) -> list[PzwWater]:
                 place=str(row.get("place") or ""),
                 area_ha=float(area) if isinstance(area, int | float) else None,
                 ring=tuple(ring),
+                line=tuple(line),
                 lat=float(row["lat"]) if isinstance(row.get("lat"), int | float) else None,
                 lon=float(row["lon"]) if isinstance(row.get("lon"), int | float) else None,
             )
@@ -259,6 +269,7 @@ def _richest(group: list[PzwWater]) -> PzwWater:
     """
     best = max(group, key=lambda w: len(w.name))
     ring = next((w.ring for w in group if w.ring), ())
+    line = next((w.line for w in group if w.line), ())
     lat = next((w.lat for w in group if w.lat is not None), None)
     lon = next((w.lon for w in group if w.lon is not None), None)
     place = next((w.place for w in group if w.place.strip()), "")
@@ -272,6 +283,7 @@ def _richest(group: list[PzwWater]) -> PzwWater:
         place=place,
         area_ha=area,
         ring=ring,
+        line=line,
         lat=lat,
         lon=lon,
     )
@@ -330,6 +342,70 @@ def _bounded() -> tuple[tuple[PzwWater, tuple[float, float, float, float]], ...]
         lons = [p[1] for p in water.ring]
         out.append((water, (min(lats), min(lons), max(lats), max(lons))))
     return tuple(out)
+
+
+# A PZW fishing district: a river cut into numbered stretches. "Rzeka Narew
+# nr 8" and "Obwód rybacki Narew Nr 7" are districts; each is a separate water
+# with its own permit, its own closed seasons and its own catch statistics.
+DISTRICT_NUMBER = re.compile(r"nr\s*(\d+)", re.IGNORECASE)
+
+# "Kanał Żerański (ob. ryb. Zbiornika Zegrzyńskiego rzeki Narew nr 7)" is NOT
+# a district - it is a water that belongs to one. The parenthetical names the
+# district it sits in.
+MEMBER_OF_DISTRICT = re.compile(r"\((?:[^)]*(?<![a-z])ob\.?\s*ryb|[^)]*obw[oó]d)", re.IGNORECASE)
+
+
+def is_district(water: PzwWater) -> bool:
+    """Is this entry a fishing district in its own right?
+
+    A district carries a number and does not name another district in
+    parentheses. The distinction matters because the two are not the same kind
+    of thing: adding "Narew nr 8" adds a stretch of river you can buy a permit
+    for, while adding "Kanał Żerański (ob. ryb. ... Narew nr 7)" would add a
+    water that is already part of one.
+    """
+    if MEMBER_OF_DISTRICT.search(water.name):
+        return False
+    return bool(DISTRICT_NUMBER.search(water.name))
+
+
+def districts(query: str, limit: int = 8) -> list[PzwWater]:
+    """Districts matching what was typed, best first.
+
+    Only those we can actually place on a map: a district with no geometry and
+    no position cannot be added as a water, and offering it would be a button
+    that fails.
+    """
+    wanted = normalise(query)
+    if len(wanted) < 3:
+        return []
+
+    scored: list[tuple[float, PzwWater]] = []
+    for water in registry():
+        if not is_district(water):
+            continue
+        if not water.line and water.lat is None:
+            continue
+        ratio = SequenceMatcher(None, wanted, water.key).ratio()
+        # The river's name is the front of the key, so a query of just the
+        # river should surface all of its districts.
+        if water.key.startswith(wanted):
+            ratio += 0.35
+        elif wanted in water.key:
+            ratio += 0.2
+        if ratio >= SUGGEST_MIN_RATIO:
+            scored.append((ratio, water))
+
+    scored.sort(key=lambda pair: (-pair[0], pair[1].name))
+    return [water for _, water in scored[:limit]]
+
+
+def by_key(key: str) -> PzwWater | None:
+    """One listed water by its exact registry key."""
+    for water in registry():
+        if water.key == key:
+            return water
+    return None
 
 
 def lookup_by_position(lat: float, lon: float) -> Match | None:

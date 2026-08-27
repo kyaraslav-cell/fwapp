@@ -256,6 +256,11 @@ const OUTLINE = {{ outline_json | safe }};
 // runs along. Drawn so the water is visible; it is never an outline, so
 // these waters still get no zone overlay.
 const COURSE = {{ course_json | safe }};
+// A river district cut into fishable stretches. No score and no colour: the
+// zone model is built from wind fetch and distance-to-bank and neither means
+// anything on a river, so these divide the water honestly and wait for a
+// river model. See app/geo/sections.py.
+const SECTIONS = {{ sections_json | safe }};
 const GRID = {{ grid_meta | safe }};
 const DEFAULT_WIND = {{ default_wind }};
 const PHASE = "{{ season.phase }}";
@@ -312,7 +317,8 @@ const I18N = {
   forecast_only: {{ t('calendar.forecast_only') | tojson }},
   forecast_badge: {{ t('calendar.badge') | tojson }},
   calendar_note: {{ t('calendar.note') | tojson }},
-  no_reason: {{ t('calendar.no_reason') | tojson }}
+  no_reason: {{ t('calendar.no_reason') | tojson }},
+  section: {{ t('lake.section') | tojson }}
 };
 let currentWind = DEFAULT_WIND !== null ? DEFAULT_WIND : 270;
 const TODAY_WIND = currentWind;
@@ -401,7 +407,28 @@ try {
     L.geoJSON(OUTLINE, { style: { color: '#ffffff', weight: 2, fill: false, opacity: 0.85 } }).addTo(map);
   }
   let courseLayer = null;
-  if (COURSE) {
+  if (SECTIONS && SECTIONS.features && SECTIONS.features.length) {
+    // Two shades of the same blue, alternating. Not two weights - that made
+    // the canal look like a string of beads - and not two hues, because this
+    // page's colour language is "green good, red bad" and a second hue would
+    // read as a rating these stretches do not carry.
+    L.geoJSON(SECTIONS, {
+      style: (f) => ({
+        color: f.properties.index % 2 === 0 ? '#8ed8ff' : '#4d9fd6',
+        weight: 5,
+        opacity: 0.95
+      }),
+      onEachFeature: (f, layer) => {
+        const km = (f.properties.length_m / 1000).toFixed(1);
+        layer.bindTooltip(`${I18N.section} ${f.properties.index + 1} · ${km} km`, { sticky: true });
+        layer.on('click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          pickSpot(f.properties.mid_lat, f.properties.mid_lon, e.containerPoint);
+        });
+      }
+    }).addTo(map);
+    courseLayer = L.geoJSON(COURSE, { style: { opacity: 0 } });
+  } else if (COURSE) {
     courseLayer = L.geoJSON(COURSE, {
       style: { color: '#7fd3ff', weight: 4, opacity: 0.95 }
     }).addTo(map);
