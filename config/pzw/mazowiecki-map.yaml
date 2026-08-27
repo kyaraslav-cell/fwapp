@@ -12,6 +12,8 @@ waters:
   - name: 'Glinianki Bagienice'
     key: 'bagienice'
     note: 'glinianki Bagienice [2.5h]'
+    lat: 53.255889
+    lon: 20.847918
     ring:
       - [53.256575, 20.847518]
       - [53.256292, 20.846982]
@@ -31,6 +33,8 @@ waters:
   - name: 'Basen'
     key: 'basen'
     note: 'Basen [2 ha]'
+    lat: 52.155169
+    lon: 20.709736
     ring:
       - [52.155298, 20.708592]
       - [52.155409, 20.708699]
@@ -53,12 +57,18 @@ waters:
       - [52.155238, 20.708592]
   - name: 'Jezioro Białe'
     key: 'biale'
+    lat: 52.492988
+    lon: 19.513561
   - name: 'Jezioro Białobrzegi'
     key: 'bialobrzegi'
     note: 'Jezioro należy do obwodu Nr 1'
+    lat: 52.470182
+    lon: 19.888295
   - name: 'Błonie'
     key: 'blonie'
     note: 'Błonie [6 ha]'
+    lat: 52.202812
+    lon: 20.612188
     ring:
       - [52.203935, 20.611528]
       - [52.20475, 20.611871]
@@ -78,9 +88,13 @@ waters:
       - [52.20375, 20.611356]
   - name: 'Jezioro Borowiec (Wildno)'
     key: 'borowiec wildno'
+    lat: 52.948803
+    lon: 19.211748
   - name: 'Jezioro Borówko'
     key: 'borowko'
     note: 'Jezioro Borówko należy do obwodu rybackiego jeziora Borówko w zlewni rzeki Omulew nr 7 , powierzchnia całowita 9,9 ha, średnia głębokość 5,6 m.'
+    lat: 53.683878
+    lon: 20.88369
     ring:
       - [53.684442, 20.882882]
       - [53.685204, 20.884083]
@@ -97,6 +111,8 @@ waters:
   - name: 'Jezioro Brajnickie'
     key: 'brajnickie'
     note: 'Jezioro Brajnickie należy do obwodu rybackiego jeziora Sasek Mały w zlewni rzeki Omulew nr 9 , powierzchnia całowita 168,5 ha, średnia głębokość 2,8 m.'
+    lat: 53.551455
+    lon: 20.813447
     ring:
       - [53.549298, 20.808044]
       - [53.550204, 20.807851]
@@ -175,20 +191,32 @@ waters:
   - name: 'Rzeka Brok mały'
     key: 'brok maly'
     note: 'rzeka Brok mały (niewielka rzeka dorzecza Bugu, lewy dopływ Broku, o długości ok. 30 km)'
+    lat: 52.800777
+    lon: 22.109519
   - name: 'Rzeka Brok nr 1'
     key: 'brok nr 1'
     note: 'Rzeka Brok (ob. ryb. rz. Brok nr 1), obejmuje odcinek od źródeł do jej ujścia do rzeki Bug wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodnych połączonych dopły'
+    lat: 52.801534
+    lon: 22.210003
   - name: 'Jezioro Brzeźno'
     key: 'brzezno'
+    lat: 52.821785
+    lon: 18.735376
   - name: 'Rzeka Bug'
     key: 'bug'
     note: 'Obwód rybacki Zbiornika Zegrzyńskiego na rzece Narew nr 7, obejmuje wody: - rzeki Narew na odcinku od ujścia rzeki Orzyc do czoła zapory zbionika Zegrzyńskiego w Dębem, - rzeki Bug na odcinku od u'
+    lat: 52.552369
+    lon: 21.345563
   - name: 'Rzeka Bug nr 5'
     key: 'bug nr 5'
     note: 'Obwód rybacki obejmuje wody: - rzeki Bug na odcinku od ujścia rzeki Nurzec do ujścia rzeki Liwiec, - zbiornik Serdyń Uwaga: Nadbużański Park Krajobrazowy'
+    lat: 52.656997
+    lon: 21.8192
   - name: 'Jezioro Burdąg'
     key: 'burdag'
     note: 'Jezioro Burdąg należy do obwodu rybackiego jeziora Małszewskiego w zlewni rzeki Łyna nr 14.'
+    lat: 53.561423
+    lon: 20.745654
     ring:
       - [53.560122, 20.7424]
       - [53.560549, 20.742507]
@@ -218,12 +246,18 @@ waters:
       - [53.560071, 20.742475]
   - name: 'Jezioro Bytoń'
     key: 'byton'
+    lat: 52.555296
+    lon: 18.598782
   - name: 'Rzeka Bzura nr 1'
     key: 'bzura nr 1'
     note: 'obwód rybacki obejmuje: a) rzeki Bzura na odcinku od jej źródeł do ujścia rzeki Ochnia, b) rzeki Ochnia, wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wod'
+    lat: 51.927286
+    lon: 19.291643
   - name: 'Cegielnia Wymysłów'
     key: 'cegielnia wymyslow'
     note: 'Woda drobna 4,5 ha'
+    lat: 51.678367
+    lon: 19.265582
     ring:
       - [51.678731, 19.264904]
       - [51.678691, 19.26529]
@@ -252,6 +286,8 @@ waters:
       - [51.678744, 19.264797]
   - name: 'Jezioro Chojno'
     key: 'chojno'
+    lat: 53.037496
+    lon: 19.308769
     ring:
       - [53.03711, 19.30757]
       - [53.036568, 19.309309]
@@ -266,6 +302,8 @@ waters:
   - name: 'Zalew Chorzele'
     key: 'chorzele'
     note: 'Zalew chorzele [5 ha]'
+    lat: 53.25381
+    lon: 20.907839
     ring:
       - [53.253211, 20.908802]
       - [53.253147, 20.909617]
@@ -285,15 +323,25 @@ waters:
     key: 'ciechanowiec'
   - name: 'Jezioro Ciechomickie'
     key: 'ciechomickie'
+    lat: 52.467527
+    lon: 19.675966
   - name: 'Jezioro Czarne Baruchowskie'
     key: 'czarne baruchowskie'
+    lat: 52.499684
+    lon: 19.336499
   - name: 'Jezioro Czarne (Gostynin)'
     key: 'czarne gostynin'
+    lat: 52.443462
+    lon: 19.444788
   - name: 'Jezioro Czarne (Wocławek)'
     key: 'czarne woclawek'
+    lat: 52.62952
+    lon: 19.076033
   - name: 'Jezioro Czarownica (Borzymińskie)'
     key: 'czarownica borzyminskie'
     note: 'Jezioro Czarownica (Borzymińskie) na dopływie z Jeziora Trąbińskiego w zlewni rzeki Rypienica'
+    lat: 53.062159
+    lon: 19.315044
     ring:
       - [53.067668, 19.313374]
       - [53.065563, 19.314147]
@@ -337,6 +385,8 @@ waters:
   - name: 'Jezioro Czerskie'
     key: 'czerskie'
     note: 'Jezioro Czerskie (wody drobne) , powierzchnia całowita 9 ha.'
+    lat: 51.957335
+    lon: 21.237822
     ring:
       - [51.960282, 21.237409]
       - [51.960365, 21.237597]
@@ -380,11 +430,17 @@ waters:
   - name: 'Rzeka Ełk'
     key: 'elk'
     note: 'Rzek Ełk (ob. ryb. rz Ełk nr 45), obejmuje odcinek od jazu piętrzącego elektrowni w miejscowości Nowa Wieś Ełcka do granicy Biebrzańskiego Parku Narodowego,wraz z wodami jej dopływów oraz wody sta'
+    lat: 53.697414
+    lon: 22.443567
   - name: 'Jezioro Fręckie'
     key: 'freckie'
     note: 'Jezioro Fręckie należy do obwodu rybackiego jeziora Sasek Wielki w zlewni Omulew nr 6 , powierzchnia całowita 12,5 ha, średnia głębokość 2,5 m.'
+    lat: 53.610047
+    lon: 20.95893
   - name: 'Jezioro Głęboczek (Rypiński)'
     key: 'gleboczek rypinski'
+    lat: 53.026576
+    lon: 19.334214
     ring:
       - [53.025419, 19.333963]
       - [53.024438, 19.337397]
@@ -401,6 +457,8 @@ waters:
   - name: 'Zbiornik Głuchów'
     key: 'gluchow'
     note: 'Zbiornik Głuchów należy do obwodu rybackiego rzeki Jeziorka nr 1.'
+    lat: 51.905405
+    lon: 20.852367
     ring:
       - [51.905647, 20.852962]
       - [51.90533, 20.855022]
@@ -418,6 +476,8 @@ waters:
       - [51.905727, 20.852404]
   - name: 'Jezioro Gocławskie'
     key: 'goclawskie'
+    lat: 52.231255
+    lon: 21.076618
     ring:
       - [52.232495, 21.075989]
       - [52.231801, 21.07614]
@@ -449,6 +509,8 @@ waters:
   - name: 'Jezioro Góra'
     key: 'gora'
     note: 'Jezioro Góra należy do obwodu rybackiego rzeki Narew nr 8 , powierzchnia całowita 40 ha, średnia głębokość 5 m.'
+    lat: 52.452509
+    lon: 20.777363
     ring:
       - [52.451259, 20.771173]
       - [52.451495, 20.771559]
@@ -503,9 +565,13 @@ waters:
       - [52.451214, 20.771044]
   - name: 'Jezioro Górskie'
     key: 'gorskie'
+    lat: 52.479125
+    lon: 19.65197
   - name: 'Zbiornik Grodzisk'
     key: 'grodzisk'
     note: 'zbiornik Grodzisk [5.4h]'
+    lat: 52.95928
+    lon: 21.734525
     ring:
       - [52.960398, 21.73259]
       - [52.959932, 21.732033]
@@ -523,6 +589,8 @@ waters:
   - name: 'Grodzisk Mazowiecki'
     key: 'grodzisk mazowiecki'
     note: 'Grodzisk Mazowiecki [25 ha]'
+    lat: 52.100979
+    lon: 20.637273
     ring:
       - [52.101127, 20.636385]
       - [52.10174, 20.637147]
@@ -535,9 +603,13 @@ waters:
       - [52.101074, 20.636353]
   - name: 'Jezioro Grójeckie'
     key: 'grojeckie'
+    lat: 52.477708
+    lon: 18.854843
   - name: 'Jezioro Gromskie'
     key: 'gromskie'
     note: 'Jezioro należy do obwodu rybackiego jeziora Sasek Wielki w zlewni rzeki Omulew nr 6, powierzchnia całowita 240 ha, średnia głębokość 6m.'
+    lat: 53.629429
+    lon: 20.881886
     ring:
       - [53.625788, 20.888655]
       - [53.625444, 20.88844]
@@ -616,9 +688,13 @@ waters:
       - [53.625928, 20.888826]
   - name: 'Jezioro Huta'
     key: 'huta'
+    lat: 53.000973
+    lon: 19.354535
   - name: 'Jezioro Jasne'
     key: 'jasne'
     note: 'Jezioro Jasne należy do obwodu rybackiego jeziora Rekowe w zlewni rzeki Omulew nr 3 , powierzchnia całowita 15 ha, średnia głębokość 3 m.'
+    lat: 53.50512
+    lon: 20.829116
     ring:
       - [53.505587, 20.824775]
       - [53.505929, 20.82469]
@@ -652,6 +728,8 @@ waters:
   - name: 'Jedwabne'
     key: 'jedwabne'
     note: 'Jedwabne [3 ha]'
+    lat: 53.28263
+    lon: 22.298329
     ring:
       - [53.282754, 22.297852]
       - [53.281664, 22.297788]
@@ -668,11 +746,15 @@ waters:
   - name: 'Rzeka Jeziorka'
     key: 'jeziorka'
     note: 'Rzeka Jeziorka (ob. ryb. rz. Jeziorka nr 1), obejmuje odcinek od zbiornika w Głuchowie do jej ujścia do rzeki Wisła wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wo'
+    lat: 52.049973
+    lon: 21.027368
   - name: 'JezioroCzarne Włocławskie'
     key: 'jezioroczarne wloclawskie'
   - name: 'Kałamarz'
     key: 'kalamarz'
     note: 'Kałamarz [1 ha]'
+    lat: 53.190084
+    lon: 22.09099
     ring:
       - [53.189499, 22.090639]
       - [53.189512, 22.090897]
@@ -686,6 +768,8 @@ waters:
   - name: 'Jezioro Kamionkowskie'
     key: 'kamionkowskie'
     note: 'Jezioro Kamionkowskie należy do obwodu rybackiego Wisła nr 3, powierzchnia całowita 12 ha, średnia głębokość 2-5 m.'
+    lat: 52.245209
+    lon: 21.053664
     ring:
       - [52.245592, 21.048646]
       - [52.246406, 21.048346]
@@ -709,9 +793,13 @@ waters:
       - [52.245461, 21.048775]
   - name: 'Jezioro Karaśnia'
     key: 'karasnia'
+    lat: 52.393799
+    lon: 18.877502
   - name: 'Zbiornik Karwacz'
     key: 'karwacz'
     note: 'Zbornik Karwacz [11,4h]'
+    lat: 53.002726
+    lon: 20.962144
     ring:
       - [53.007314, 20.960181]
       - [53.006797, 20.960781]
@@ -740,9 +828,13 @@ waters:
     key: 'kepiste borowe'
   - name: 'Jezioro Kępka Szlachecka'
     key: 'kepka szlachecka'
+    lat: 52.475899
+    lon: 19.110035
   - name: 'Jezioro Klimek (Konik)'
     key: 'klimek konik'
     note: 'Jezioro Klimek należy do obwodu rybackiego jeziora Rekowe w zlewni rzeki Omulew nr 3 , powierzchnia całowita 36 ha, średnia głębokość 4 m.'
+    lat: 53.48032
+    lon: 20.819432
     ring:
       - [53.476002, 20.819176]
       - [53.475555, 20.819176]
@@ -793,6 +885,8 @@ waters:
   - name: 'Staw Kobylocha'
     key: 'kobylocha'
     note: 'Staw Kobylocha [39 ha]'
+    lat: 53.618208
+    lon: 20.942097
     ring:
       - [53.621054, 20.937254]
       - [53.620444, 20.943692]
@@ -808,9 +902,13 @@ waters:
       - [53.620749, 20.936911]
   - name: 'Jezioro Kocioł'
     key: 'kociol'
+    lat: 52.437158
+    lon: 19.448873
   - name: 'Kolejniak'
     key: 'kolejniak'
     note: 'Kolejniak [4 ha]'
+    lat: 52.239767
+    lon: 21.29945
     ring:
       - [52.239913, 21.298683]
       - [52.240189, 21.298855]
@@ -823,9 +921,13 @@ waters:
   - name: 'Rzeka Kraska'
     key: 'kraska'
     note: 'Rzeka Kraska (ob.ryb. rz. Jeziorka nr 1), obejmuje odcinek od źródeł do jej ujścia do rzeki Jeziorka wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodnych poł'
+    lat: 51.835937
+    lon: 20.925912
   - name: 'Krzywie'
     key: 'krzywie'
     note: 'woda drobna 21 ha'
+    lat: 51.853126
+    lon: 19.454178
     ring:
       - [51.852613, 19.449629]
       - [51.852672, 19.451603]
@@ -845,9 +947,13 @@ waters:
   - name: 'Kanał Kuwasy'
     key: 'kuwasy'
     note: 'Kanał Kuwassy (ob. ryb. rz. Ełk nr 45), obejmuje odcinek od osi podłużnej mostu w miejscowości Czarna Wieś do Rzeki Ełk.'
+    lat: 53.631631
+    lon: 22.585364
   - name: 'Łacha Nowowiejska'
     key: 'lacha nowowiejska'
     note: 'Łacha Nowowiejska [11 ha]'
+    lat: 52.135664
+    lon: 21.187715
     ring:
       - [52.140241, 21.183418]
       - [52.138292, 21.184748]
@@ -867,11 +973,17 @@ waters:
       - [52.140425, 21.183718]
   - name: 'Jezioro Łąki Zwiastowe'
     key: 'laki zwiastowe'
+    lat: 52.464736
+    lon: 18.917936
   - name: 'Jezioro Łazieniec'
     key: 'lazieniec'
+    lat: 52.869372
+    lon: 18.712903
   - name: 'Jezioro Łaźnica'
     key: 'laznica'
     note: 'Jezioro Łaźnica należy do obwodu rybackiego jeziora Sasek Mały w zlewni rzeki Omulew nr 9 , powierzchnia całowita 25,6 ha, średnia głębokość 0,9 m.'
+    lat: 53.509151
+    lon: 20.8444
     ring:
       - [53.511631, 20.842026]
       - [53.511873, 20.842949]
@@ -895,9 +1007,13 @@ waters:
   - name: 'Rzeka Lejkowska Struga (Wielki Rów)'
     key: 'lejkowska struga wielki row'
     note: 'Rzeka Lejkowska Struga (ob. ryb. rz. Omulew nr 1) wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodnych połączonych dopływem lub odpływem do wód tego odcinka rzek'
+    lat: 53.439447
+    lon: 21.079329
   - name: 'Jezioro Lemańskie'
     key: 'lemanskie'
     note: 'Jezioro Lemańskie należy do obwodu rybackiego jeziora Wałpusz w zlewni rzeki Omulew nr 17 , powierzchnia całowita 20,5 ha, średnia głębokość 2,7 m.'
+    lat: 53.58827
+    lon: 21.034905
     ring:
       - [53.587033, 21.033638]
       - [53.588306, 21.032565]
@@ -928,6 +1044,8 @@ waters:
   - name: 'Zbiornik Łoje'
     key: 'loje'
     note: 'zbiornik Łoje [5h]'
+    lat: 53.124333
+    lon: 20.805591
     ring:
       - [53.125883, 20.807702]
       - [53.126218, 20.808346]
@@ -964,10 +1082,16 @@ waters:
     key: 'lowisko specjalne halinow'
   - name: 'Jezioro Łuba'
     key: 'luba'
+    lat: 52.63377
+    lon: 19.008702
   - name: 'Jezioro Lubiechowskie'
     key: 'lubiechowskie'
+    lat: 52.547511
+    lon: 19.24909
   - name: 'Jezioro Lucieńskie'
     key: 'lucienskie'
+    lat: 52.50196
+    lon: 19.443219
     ring:
       - [52.506884, 19.429372]
       - [52.506466, 19.429544]
@@ -1007,18 +1131,26 @@ waters:
       - [52.507198, 19.428771]
   - name: 'Jezioro Ługowskie (Szczytnowskie)'
     key: 'lugowskie szczytnowskie'
+    lat: 52.449614
+    lon: 18.961908
   - name: 'Łupawa'
     key: 'lupawa'
   - name: 'Jezioro Lutoborskie'
     key: 'lutoborskie'
+    lat: 52.475949
+    lon: 19.085157
   - name: 'Jezioro Machniacz'
     key: 'machniacz'
     note: 'Jezioro Machniacz należy do obwodu rybackiego jeziora Sasek Wielki w zlewni rzeki Omulew nr 6 , powierzchnia całowita 10 ha.'
+    lat: 53.609346
+    lon: 20.865531
   - name: 'Zalew Maków Mazowiecki'
     key: 'makow mazowiecki'
   - name: 'Jezioro Małszewskie'
     key: 'malszewskie'
     note: 'Jezioro należy do obwodu rybackiego jeziora Małszewskiego w zlewni rzeki Łyna nr 14 , powierzchnia całowita 202,2 ha, średnia głębokość 6,3 m.'
+    lat: 53.583136
+    lon: 20.724998
     ring:
       - [53.580177, 20.718271]
       - [53.579285, 20.719215]
@@ -1087,6 +1219,8 @@ waters:
   - name: 'Jezioro Mierucie'
     key: 'mierucie'
     note: 'Jezioro (wody drobne) , powierzchnia całowita 32 ha, średnia głębokość 2 m.'
+    lat: 53.672818
+    lon: 22.431526
     ring:
       - [53.673032, 22.42895]
       - [53.673452, 22.429358]
@@ -1121,6 +1255,8 @@ waters:
   - name: 'Moczydło-Jeziórko'
     key: 'moczydlo jeziorko'
     note: 'Moczydło-Jeziorko [4 ha]'
+    lat: 52.070051
+    lon: 21.242227
     ring:
       - [52.071267, 21.24203]
       - [52.071079, 21.242512]
@@ -1147,20 +1283,32 @@ waters:
   - name: 'Rzeka Mołtawa'
     key: 'moltawa'
     note: 'Obwód rybacki obejmuje wody rzeki Mołtawa od jej źródeł do jej ujścia do rzeki Wisła wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodnych o ciągłym bądź ok'
+    lat: 52.516862
+    lon: 19.994478
   - name: 'Jezioro Nagórki'
     key: 'nagorki'
+    lat: 52.680409
+    lon: 18.663067
   - name: 'Rzeka Narew nr 6'
     key: 'narew nr 6'
     note: 'obwód rybacki rz. Narew nr 6, obejmuje wody: - rzeki Narew na odcinku od ujścia rzeki Szkwa do ujścia rzeki Orzyc, - jeziora Sieluńskie, - Starorzecza Zimna woda.'
+    lat: 52.934612
+    lon: 21.475839
   - name: 'Rzeka Narew Nr 7'
     key: 'narew nr 7'
     note: 'Obwód rybacki Zbiornika Zegrzyńskiego na rzece Narew nr 7, obejmuje wody: - rzeki Narew na odcinku od ujścia rzeki Orzyc do czoła zapory zbionika Zegrzyńskiego w Dębem, - rzeki Bug na odcinku od u'
+    lat: 52.688348
+    lon: 21.119762
   - name: 'Rzeka Narew nr 8'
     key: 'narew nr 8'
     note: 'Obwód rybacki rz. Narew nr 8, obejmuje odcinek od czoła zapory zbiornika Zegrzyńskiego do jej ujścia do rzeki Wisła wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodn'
+    lat: 52.462829
+    lon: 20.785435
   - name: 'Jezioro Natać'
     key: 'natac'
     note: 'Jezioro Natać należy do obwodu rybackiego jeziora Sasek Mały w zlewni rzeki Omulew nr 9 , powierzchnia całowita 18,5 ha, średnia głębokość 2 m.'
+    lat: 53.562014
+    lon: 20.891179
     ring:
       - [53.562069, 20.888984]
       - [53.562783, 20.888876]
@@ -1196,23 +1344,37 @@ waters:
   - name: 'Jezioro Nożyce'
     key: 'nozyce'
     note: 'Jezioro Nożyce należy do obwódu rybackiego jeziora Nożyce w zlewni rzeki Szkwa nr 3, powierzchnia całkowita 55 ha, średnia głebokość 6m.'
+    lat: 53.620155
+    lon: 21.192126
   - name: 'Rzeka Ochnia'
     key: 'ochnia'
     note: 'rzeka Ochnia'
+    lat: 52.29406
+    lon: 19.213105
   - name: 'Jezioro Okonin'
     key: 'okonin'
+    lat: 53.015386
+    lon: 19.236542
   - name: 'Rzeka Omulew'
     key: 'omulew'
     note: 'Rzeka Omulew (ob. ryb. ra. Omulew nr 1), obejmuje odcine od przepławki poniżej wypływu z jeziora Omulew do jej ujścia do rzeki Narew wraz z wodami jej dopływów oraz wody starorzeczy i innych zbio'
+    lat: 53.293335
+    lon: 21.121782
   - name: 'Rzeka Orz'
     key: 'orz'
     note: 'Rzeka Orz (ob. ryb. rz. Orz nr 1), obejmuje odcinek od jej źródeł do jej ujścia do rzeki Narew wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodnych poł'
+    lat: 52.92
+    lon: 21.701042
   - name: 'Rzeka Orzyc'
     key: 'orzyc'
     note: 'Rzeka Orzyc (ob ryb. rz. Orzyc nr 1), obejmuje odcinek od jej źródeł do jej ujścia do rzeki Narew wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodnych połączonych dopły'
+    lat: 53.044454
+    lon: 20.997308
   - name: 'Zbiornik Osieczek'
     key: 'osieczek'
     note: 'Zbiornik Osieczek należy do obwodu rzeki jeziorka nr 1.'
+    lat: 51.884261
+    lon: 20.729566
     ring:
       - [51.885398, 20.727167]
       - [51.885219, 20.728196]
@@ -1235,11 +1397,15 @@ waters:
       - [51.885391, 20.72707]
   - name: 'Jezioro Ostrowąs (Plebanka)'
     key: 'ostrowas plebanka'
+    lat: 53.061199
+    lon: 19.29419
   - name: 'Jezioro Ostrowickie na rzece Ruziec Nr 1'
     key: 'ostrowickie na rzece ruziec nr 1'
   - name: 'Park Miejski'
     key: 'park miejski'
     note: 'Park Miejski [7 ha]'
+    lat: 52.166922
+    lon: 20.812151
     ring:
       - [52.167519, 20.809947]
       - [52.168414, 20.810827]
@@ -1257,12 +1423,16 @@ waters:
       - [52.167361, 20.809861]
   - name: 'Jezioro Peł (Wieleńskie)'
     key: 'pel wielenskie'
+    lat: 52.940551
+    lon: 19.216495
   - name: 'Zalew Piechota - Koła organizujące zawody na zalewie Piechota zobowiązane są do kontaktu ze stowarzyszeniem Profifink Sport 501328 095'
     key: 'piechota kola organizujace zawody na zalewie piechota zobowiazane sa do kontaktu ze stowarzyszeniem profifink sport 501328 095'
     note: 'Koła organizujące zawody na zalewie Piechota zobowiązane są do kontaktu ze stowarzyszeniem Profifink Sport 501328 095'
   - name: 'Jezioro Płociczno'
     key: 'plociczno'
     note: 'Jezioro Płociczno należy do obwodu rybackiego jeziora Rekowe w zlewni rzeki Omulew nr 6 , powierzchnia całowita 18,5 ha, średnia głębokość 3,1 m.'
+    lat: 53.50935
+    lon: 20.820479
     ring:
       - [53.509737, 20.816812]
       - [53.510286, 20.817896]
@@ -1293,6 +1463,8 @@ waters:
   - name: 'Jezioro Pomocnia'
     key: 'pomocnia'
     note: 'Jezioro Pomocnia należy do obwodu rybackiego jeziora Pomocnia w zlewni rzeki Wkra nr 4, powierzchnia całowita 9 ha.'
+    lat: 52.543161
+    lon: 20.67547
     ring:
       - [52.543883, 20.67385]
       - [52.544144, 20.675738]
@@ -1309,14 +1481,22 @@ waters:
   - name: 'Rzeka Prut'
     key: 'prut'
     note: 'Rzeka Prut (ob. ryb. Zbiornika Zegrzyńskiego rz. Narew nr 7), obejmuje odcinek od jej źródeł do jej ujścia do rzeki Narew wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodn'
+    lat: 52.649219
+    lon: 21.24824
   - name: 'Jezioro Przytomne'
     key: 'przytomne'
+    lat: 52.476126
+    lon: 19.383158
   - name: 'Staw Radziejów'
     key: 'radziejow'
   - name: 'Jezioro Radziszewskie'
     key: 'radziszewskie'
+    lat: 52.504056
+    lon: 19.327217
   - name: 'Jezioro Radzynek (Paproty)'
     key: 'radzynek paproty'
+    lat: 52.999284
+    lon: 19.254668
   - name: 'Rzeka Rakutówka'
     key: 'rakutowka'
   - name: 'Rzeka Rakutowska'
@@ -1324,6 +1504,8 @@ waters:
   - name: 'Jezioro Rekowe'
     key: 'rekowe'
     note: 'Jezioro Rekowe należy do obwodu rybackiego jeziora Rekowe w zlewni rzeki Omulew nr 3 , powierzchnia całowita 63,5 ha, średnia głębokość 3,5 m.'
+    lat: 53.488699
+    lon: 20.803124
     ring:
       - [53.488346, 20.796035]
       - [53.488984, 20.795262]
@@ -1400,6 +1582,8 @@ waters:
   - name: 'Jezioro Rokola'
     key: 'rokola'
     note: 'Jezioro Rokola należy do obwodu rybackiego rzeki Wisła nr 3 , średnia głębokość 3 m.'
+    lat: 52.040691
+    lon: 21.241346
     ring:
       - [52.048505, 21.232882]
       - [52.048453, 21.233826]
@@ -1438,14 +1622,20 @@ waters:
   - name: 'Rzeka Rozoga'
     key: 'rozoga'
     note: 'Obwód rybacki rz. Rozoga nr 1, obejmuje odcinek od wypływu z jeziora Marksoby do jej ujścia do rzeki Narew ,wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wo'
+    lat: 53.360735
+    lon: 21.371839
   - name: 'Rzeka Rozoga ( ob. ryb. rz. Szkwa nr 1 )'
     key: 'rozoga ob ryb rz szkwa nr 1'
     note: 'Rzeka Rozoga (ob. ryb. rz. Rozoga nr 1), obejmuje odcinek od wypływu z jeziora Marksoby do jej ujścia do rzeki Narew ,wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wo'
+    lat: 53.539285
+    lon: 21.293877
   - name: 'Staw Ruda'
     key: 'ruda'
   - name: 'Kanał Rudzki'
     key: 'rudzki'
     note: 'Kanał Rudzki (ob. ryb. rz. Ełk nr 45), obejmuje odcinek od Rzeki Ełk do granicy Biebrzańskiego Parku Narodowego.'
+    lat: 53.538498
+    lon: 22.589145
   - name: 'Jezioro Rybnica na rzece Rybniczanka Nr 3'
     key: 'rybnica na rzece rybniczanka nr 3'
   - name: 'Rzeka Rybniczanka'
@@ -1453,6 +1643,8 @@ waters:
   - name: 'Rzeka Rządza'
     key: 'rzadza'
     note: 'Rzeka Rządza (ob. ryb. rz. Rządzy nr 1), obejmuje odcinek od mostu kolejowego na trasie Mińsk Maz.-Tłuszcz do jej ujścia do zbiornika Zegrzyńskiego wraz z wodami jej dopływów oraz wody starorzeczy i i'
+    lat: 52.435097
+    lon: 21.216168
   - name: 'RzekaSkrwa Lewa Nr 1'
     key: 'rzekaskrwa lewa nr 1'
   - name: 'Rzeka San'
@@ -1460,6 +1652,8 @@ waters:
   - name: 'Jezioro Sasek Mały'
     key: 'sasek maly'
     note: 'Jezioro Sasek Mały należy do obwodu rybackiego jeziora Sasek Mały w zlewni rzeki Omulew nr 9, powierzchnia całowita 319,1 ha, średnia głębokość 3,7 m.'
+    lat: 53.502943
+    lon: 20.880446
     ring:
       - [53.497614, 20.875302]
       - [53.497129, 20.874937]
@@ -1533,6 +1727,8 @@ waters:
   - name: 'Jezioro Sasek Wielki'
     key: 'sasek wielki'
     note: 'Jezioro Sasek Wielki należy do obwodu rybackiego jeziora Sasek Wielki w zlewni rzeki Omulew nr 6 , powierzchnia całowita 870,5 ha, średnia głębokość 8,1 m.'
+    lat: 53.650733
+    lon: 20.922753
     ring:
       - [53.650809, 20.921126]
       - [53.651458, 20.921169]
@@ -1685,9 +1881,13 @@ waters:
   - name: 'Rzeka Sawica'
     key: 'sawica'
     note: 'Rzeka Sawica (obw. ryb. rz. Omulew nr 1), obejmuje odcinek od osi podłużnej mostu na drodze Sasek Wielki - Sasek Mały wody starorzeczy i innych zbiorników wodnych połączonych dopływem lub odpły'
+    lat: 53.55453
+    lon: 20.90322
   - name: 'Schronisko Pogorzelec'
     key: 'schronisko pogorzelec'
     note: '06-121 Pogorzelec, gm. Pokrzywnica, tel.601-39-11-53 www.kolonr3mokotow.ompzw.pl'
+    lat: 52.577807
+    lon: 21.104235
   - name: 'Schronisko Pomocnia'
     key: 'schronisko pomocnia'
     note: 'ul. Słowiańskiego 117, Błędowo 15-180 Błędowo, gm. Pomiechówek, tel. (22) 785-50-78 www.kolo5.ompzw.pl'
@@ -1700,15 +1900,23 @@ waters:
   - name: 'Schronisko Soczewka'
     key: 'schronisko soczewka'
     note: 'schronisko Soczewka, Soczewka gm. Duninów, ul. Widokowa 2, 09 - 586 Sczewka, Koło nr 117 Płock: tel. 24/261 01 12, 661 570 707'
+    lat: 52.543294
+    lon: 19.567595
   - name: 'Schronisko Strzyże'
     key: 'schronisko strzyze'
     note: '06-126 Strzyże, gmina Pokrzywnica, tel. 603 352 713 www.ursus.ompzw.pl'
+    lat: 52.582187
+    lon: 21.166608
   - name: 'Schronisko Zegrze Trzynastka'
     key: 'schronisko zegrze trzynastka'
     note: '05-130 Zegrze Płd., ul. Rybaki 11a, tel. (22) 782-25-62 www.pzw13.pzw.pl'
+    lat: 52.455836
+    lon: 20.989827
   - name: 'Jezioro Sędańskie'
     key: 'sedanskie'
     note: 'Jezioro Sedańskie należy do obwodu rybackiego jeziora Sasek Mały w zlewni rzeki Omulew nr 9 , powierzchnia całowita 186 ha, średnia głębokość 4,5 m.'
+    lat: 53.538355
+    lon: 20.912303
     ring:
       - [53.537071, 20.906645]
       - [53.538104, 20.907225]
@@ -1759,6 +1967,8 @@ waters:
   - name: 'Jezioro Skonieczne'
     key: 'skonieczne'
     note: 'Jezioro Skonieczne należy do obwodu rybackiego jeziora Rekowe w zlewni rzeki Omulew nr 3 , powierzchnia całowita 27,5 ha, średnia głębokość 3,2 m.'
+    lat: 53.516153
+    lon: 20.799386
     ring:
       - [53.517385, 20.798636]
       - [53.518303, 20.798893]
@@ -1787,16 +1997,28 @@ waters:
   - name: 'Rzeka Skrwa Prawa'
     key: 'skrwa prawa'
     note: 'Obwód rybacki obejmuje wody rzeki Skrwa Prawa od jej źródeł do jej ujścia do rzeki Wisła wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodnych o ciąg'
+    lat: 52.63219
+    lon: 19.546015
   - name: 'Jezioro Skrwilno'
     key: 'skrwilno'
+    lat: 53.026873
+    lon: 19.643639
   - name: 'Jezioro Skrzyneckie'
     key: 'skrzyneckie'
+    lat: 52.521207
+    lon: 19.326932
   - name: 'Jezioro Służewo'
     key: 'sluzewo'
+    lat: 52.853709
+    lon: 18.645472
   - name: 'Jezioro Smoczynek'
     key: 'smoczynek'
+    lat: 52.791442
+    lon: 18.730803
   - name: 'Jezioro Soczewka'
     key: 'soczewka'
+    lat: 52.535727
+    lon: 19.557786
     ring:
       - [52.540341, 19.559541]
       - [52.539349, 19.559112]
@@ -1911,6 +2133,8 @@ waters:
   - name: 'Jezioro Średnie'
     key: 'srednie'
     note: 'Jezioro Średnie należy do obwodu rybackiego jeziora Rekowe w zlewni rzeki Omulew nr 3 , powierzchnia całowita 25 ha, średnia głębokość 3,8 m.'
+    lat: 53.504779
+    lon: 20.795198
     ring:
       - [53.501937, 20.793442]
       - [53.504911, 20.793678]
@@ -1942,15 +2166,21 @@ waters:
   - name: 'Stanica wędkarska SUM'
     key: 'stanica wedkarska sum'
     note: 'Przystań wędkarska SUM położonej w Warszawie koło mostu Siekierkowskiego ul. Wal Miedzeszyński 297 www.kolo4.ompzw.pl'
+    lat: 52.185889
+    lon: 21.016914
   - name: 'Stanica wędkarska Świetajno'
     key: 'stanica wedkarska swietajno'
     note: '12-140 Kolonia (k. Racibór) Kolonia 56 tel. (89) 622-60-48 www.kolo4.ompzw.pl'
+    lat: 53.582591
+    lon: 21.29455
   - name: 'Stanica wędkarska Zegrze Rybaki'
     key: 'stanica wedkarska zegrze rybaki'
     note: '05-130 Zegrze Płd. Rybaki, tel. (22) 782-25-67 www.kolo4.ompzw.pl'
   - name: 'Jezioro Stawinoga (buchta Stawinoga)'
     key: 'stawinoga buchta stawinoga'
     note: 'Jezioro Stawinoga należy do obwodu rybackiego zbiornika Zegrzyńskiego na rzece Narew nr 7.'
+    lat: 52.575326
+    lon: 21.122167
     ring:
       - [52.574899, 21.120075]
       - [52.574704, 21.121448]
@@ -1975,6 +2205,8 @@ waters:
   - name: 'Zbiornik Sterdyń'
     key: 'sterdyn'
     note: 'Zbiornik Serdyń należy do obwodu rybackiego rzeki Bug nr 5, powierzchnia całowita 1,8 ha, średnia głębokość 1,5 m.'
+    lat: 52.581231
+    lon: 22.290281
     ring:
       - [52.581576, 22.291155]
       - [52.581315, 22.291262]
@@ -1987,11 +2219,17 @@ waters:
   - name: 'Rzeka Świder'
     key: 'swider'
     note: 'Rzeka Świder (ob.ryb. rz Świder nr 1), Obwód rybacki obejmuje wody: od jej źródeł do mostu w m. Dłużew, od mostu w m. Świdry Wielkie do jej ujścia do rzeki Wisły,Uwaga: Rezerwat przyrody'
+    lat: 52.063364
+    lon: 21.568187
   - name: 'Jezioro Świesz'
     key: 'swiesz'
+    lat: 52.540658
+    lon: 18.559471
   - name: 'Jezioro Świętajno'
     key: 'swietajno'
     note: 'Jezioro Narty należy do obwodu rybackiego jeziora Sasek Mały w zlewni rzeki Omulew nr 9 , powierzchnia całowita 175 ha.'
+    lat: 53.544977
+    lon: 20.785818
     ring:
       - [53.542124, 20.77718]
       - [53.544062, 20.77203]
@@ -2017,6 +2255,8 @@ waters:
   - name: 'Szczęśliwice'
     key: 'szczesliwice'
     note: 'Szczęśliwice [7ha] zobacz mape batymetryczną'
+    lat: 52.205425
+    lon: 20.960685
     ring:
       - [52.20809, 20.959743]
       - [52.208143, 20.960516]
@@ -2055,12 +2295,18 @@ waters:
       - [52.20805, 20.95955]
   - name: 'Jezioro Szczutkowskie'
     key: 'szczutkowskie'
+    lat: 52.475066
+    lon: 19.066788
   - name: 'Rzeka Szkwa'
     key: 'szkwa'
     note: 'Rzeka Szkwa (ob. ryb. rz. Szkwa nr 1), odcinek obejmuje od mostu w miejscowości Rozogi do jej ujścia do rzeki Narew wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wo'
+    lat: 53.359492
+    lon: 21.504799
   - name: 'Talar - Montoprzem'
     key: 'talar montoprzem'
     note: 'Woda drobna 2 ha'
+    lat: 51.575034
+    lon: 19.249581
     ring:
       - [51.575699, 19.248995]
       - [51.575112, 19.249789]
@@ -2083,6 +2329,8 @@ waters:
   - name: 'Talar prawa strona'
     key: 'talar prawa strona'
     note: 'Woda drobna, 3,4 ha'
+    lat: 51.575896
+    lon: 19.247519
     ring:
       - [51.576632, 19.248116]
       - [51.576832, 19.246399]
@@ -2098,9 +2346,13 @@ waters:
     key: 'tazyna'
   - name: 'Jezioro Telążna'
     key: 'telazna'
+    lat: 52.585345
+    lon: 19.244931
   - name: 'Tłuszcz'
     key: 'tluszcz'
     note: 'Tłuszcz [3 ha]'
+    lat: 52.467631
+    lon: 21.509262
     ring:
       - [52.467779, 21.50892]
       - [52.467851, 21.509231]
@@ -2116,6 +2368,8 @@ waters:
   - name: 'Jezioro Toczyłowo'
     key: 'toczylowo'
     note: 'Jezioro Toczyłowo należy do obwodu rybackiego rzeki Ełk nr 43, powierzchnia całowita 104,55 ha, średnia głębokość 4,7 m.'
+    lat: 53.685492
+    lon: 22.472998
     ring:
       - [53.691336, 22.467269]
       - [53.692042, 22.468717]
@@ -2192,12 +2446,18 @@ waters:
       - [53.691294, 22.467223]
   - name: 'Jezioro Trzebowskie'
     key: 'trzebowskie'
+    lat: 52.487681
+    lon: 19.365689
   - name: 'Rzeka Utrata'
     key: 'utrata'
     note: 'Rzeka Utrata (ob. ryb. rz. Utrata nr 1 ), obejmuje odcinek od jej źródeł do jej ujścia do rzeki Bzura wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodnych poł'
+    lat: 52.141238
+    lon: 20.679262
   - name: 'Jezioro Wałpusz'
     key: 'walpusz'
     note: 'Jezioro Wałpusz należy do obwodu rybackiego rzeki j. Wałpusz w zlewni rzeki Omulew nr 17 , powierzchnia całowita 371 ha, średnia głębokość 4,2 m.'
+    lat: 53.604483
+    lon: 21.068917
     ring:
       - [53.601516, 21.077047]
       - [53.600879, 21.07754]
@@ -2289,9 +2549,13 @@ waters:
   - name: 'Rzeka Wałpusza'
     key: 'walpusza'
     note: 'Rzeka Wałpusza (ob. ryb. rz Omulew nr 1), obejmuje odcinek od jazu piętrzącego w miejscowości Młynisko do jej zlewni wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodny'
+    lat: 53.424866
+    lon: 21.032411
   - name: 'Jezioro Warchałdzkie'
     key: 'warchaldzkie'
     note: 'Jezioro Warchałdzkie należy do obwodu rybackiego jeziora Sasek Mały w zlewni rzeki Omulew nr 9 , powierzchnia całowita 43,7 ha, średnia głębokość 6,2 m.'
+    lat: 53.530733
+    lon: 20.814147
     ring:
       - [53.533768, 20.807298]
       - [53.534087, 20.807319]
@@ -2339,9 +2603,13 @@ waters:
     key: 'wda'
   - name: 'Jezioro Widoń'
     key: 'widon'
+    lat: 52.595145
+    lon: 19.130366
   - name: 'Staw Wielgie'
     key: 'wielgie'
     note: 'Woda drobna 4,22 h'
+    lat: 52.698644
+    lon: 19.259516
     ring:
       - [52.698962, 19.259677]
       - [52.698208, 19.258261]
@@ -2349,9 +2617,13 @@ waters:
       - [52.698858, 19.259892]
   - name: 'Jezioro Wikaryjskie'
     key: 'wikaryjskie'
+    lat: 52.605192
+    lon: 19.119608
   - name: 'Jezioro Wilanowskie'
     key: 'wilanowskie'
     note: 'Jezioro Wilanowskie należy do obwodu rybackiego rzeki Wisła nr 3 , powierzchnia całowita 7 ha.'
+    lat: 52.168088
+    lon: 21.091801
     ring:
       - [52.171649, 21.08993]
       - [52.172108, 21.090041]
@@ -2498,6 +2770,8 @@ waters:
   - name: 'Wincenta Kozioł'
     key: 'wincenta koziol'
     note: 'Wincenta Kozioł [1h]'
+    lat: 53.447202
+    lon: 21.853158
     ring:
       - [53.447371, 21.852805]
       - [53.447448, 21.852976]
@@ -2513,15 +2787,23 @@ waters:
   - name: 'Rzeka Wisła nr 3'
     key: 'wisla nr 3'
     note: 'Rzeka Wisła nr 3 (ob. ryb. rz. Wisła nr 3), obejmuje odcinek od ujścia rzeki Pilicy do ujścia rzeki Narew wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodnych połą'
+    lat: 52.185018
+    lon: 21.046783
   - name: 'Rzeka Wisła nr 4'
     key: 'wisla nr 4'
     note: 'Rzeka Wisła nr 4 (ob. ryb. rz. Wisła nr 4) obejmuje odcinek od ujścia rzeki Narew do ujścia rzeki Mołtawa wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodnych połąc'
+    lat: 52.404727
+    lon: 20.343917
   - name: 'Rzeka Wisła nr 5'
     key: 'wisla nr 5'
     note: 'Rzeka Wisła nr 5 (ob. ryb.zbiornika Włocławskiego na rzece Wisła nr 5) Obwód rybacki obejmuje wody rzeki Wisła na odcinku od ujścia rzeki Mołtawa do granicy regionu wodnego Środkowej Wisły i region'
+    lat: 52.547196
+    lon: 19.573774
   - name: 'Rzeka Wissa'
     key: 'wissa'
     note: 'Rzeka Wissa (ob. ryb. rz. Biebrzy nr 3), obejmuje odcink od źródeł do granicy BPN, wraz z wodami jej dopływów oraz wody starorzeczy i innych zbiorników wodnych po'
+    lat: 53.512869
+    lon: 22.337576
   - name: 'Zbiornik Włocławski na rzece Wisła Nr 5'
     key: 'wloclawski na rzece wisla nr 5'
   - name: 'Jezioro Wólka Komorowska'
@@ -2529,6 +2811,8 @@ waters:
   - name: 'Zbiornik Wykrot'
     key: 'wykrot'
     note: 'Zbiornik Wykrot należy do obwodu rybackiego rzeki Rozoga nr 1.'
+    lat: 53.336085
+    lon: 21.411129
     ring:
       - [53.339182, 21.41104]
       - [53.339387, 21.409194]
@@ -2566,6 +2850,8 @@ waters:
   - name: 'Zalew Zalesie Dolne'
     key: 'zalesie dolne'
     note: 'Zalew Zalesie Dolne [8 ha]'
+    lat: 52.049724
+    lon: 21.021886
     ring:
       - [52.049624, 21.01887]
       - [52.047737, 21.019084]
@@ -2587,9 +2873,13 @@ waters:
       - [52.049637, 21.018977]
   - name: 'Jezioro Zdworskie'
     key: 'zdworskie'
+    lat: 52.435813
+    lon: 19.687877
   - name: 'Jezioro Zegrzyńskie'
     key: 'zegrzynskie'
     note: 'Jezioro Zegrzyńskie należy do obwodu rybackiego rzeki Narew 7 , powierzchnia całowita 3300 ha, średnia głębokość 3 m.'
+    lat: 52.448139
+    lon: 21.036463
     ring:
       - [52.456137, 21.015018]
       - [52.458706, 21.018311]
@@ -2734,11 +3024,15 @@ waters:
   - name: 'Kanał Żerański'
     key: 'zeranski'
     note: 'Kanał Żerański należy do obwodu rybackiego Zbiornika Zegrzyńskiego rzeki narew nr 7'
+    lat: 52.367439
+    lon: 21.03076
   - name: 'Rzeka Zgłowiączka Nr 2'
     key: 'zglowiaczka nr 2'
   - name: 'Jezioro Zielonka'
     key: 'zielonka'
     note: 'Jezioro Zielonka (wody drobne) , powierzchnia całowita 6,4 ha.'
+    lat: 53.598573
+    lon: 21.034805
     ring:
       - [53.599882, 21.033777]
       - [53.599997, 21.034335]
@@ -2765,6 +3059,8 @@ waters:
   - name: 'Zielonka'
     key: 'zielonka'
     note: 'Zielonka [26 ha]'
+    lat: 52.321689
+    lon: 21.172386
     ring:
       - [52.323154, 21.171874]
       - [52.323901, 21.172775]

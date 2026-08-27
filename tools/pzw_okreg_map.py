@@ -71,6 +71,11 @@ class MapWater:
     kind: str
     note: str = ""
     ring: list[tuple[float, float]] | None = None
+    # A representative position for EVERY water, ring or not. River reaches are
+    # polylines and can never contain a point, but they still have a location,
+    # and "how far is this water from me" is a question worth answering about
+    # them.
+    point: tuple[float, float] | None = None
 
 
 def _decode(value: str) -> str:
@@ -141,7 +146,13 @@ def parse(page: str) -> list[MapWater]:
         if kind == CLOSED_RING and len(points) >= 3:
             ring = _thin(points)
         note = _field(match.group("body"), "tresc")[:200]
-        waters.append(MapWater(name=name, kind=kind, note=note, ring=ring))
+        point = None
+        if points:
+            point = (
+                round(sum(p[0] for p in points) / len(points), 6),
+                round(sum(p[1] for p in points) / len(points), 6),
+            )
+        waters.append(MapWater(name=name, kind=kind, note=note, ring=ring, point=point))
     return waters
 
 
@@ -181,6 +192,9 @@ def to_yaml(waters: list[MapWater], okreg: str, source: str) -> str:
         lines.append(f"    key: {key!r}")
         if water.note:
             lines.append(f"    note: {water.note!r}")
+        if water.point:
+            lines.append(f"    lat: {water.point[0]}")
+            lines.append(f"    lon: {water.point[1]}")
         if water.ring:
             lines.append("    ring:")
             for lat, lon in water.ring:

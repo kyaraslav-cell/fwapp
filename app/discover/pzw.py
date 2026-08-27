@@ -85,6 +85,10 @@ class PzwWater:
     # some sources carry geometry, and only lakes have it - a river reach is a
     # polyline and cannot contain a point.
     ring: tuple[tuple[float, float], ...] = ()
+    # A representative position, where the source gives one. Present for river
+    # reaches too, which have no ring but do have a place on the map.
+    lat: float | None = None
+    lon: float | None = None
 
 
 # How a match was arrived at, weakest last.
@@ -201,6 +205,8 @@ def _load_file(path: Path) -> list[PzwWater]:
                 place=str(row.get("place") or ""),
                 area_ha=float(area) if isinstance(area, int | float) else None,
                 ring=tuple(ring),
+                lat=float(row["lat"]) if isinstance(row.get("lat"), int | float) else None,
+                lon=float(row["lon"]) if isinstance(row.get("lon"), int | float) else None,
             )
         )
     return waters
@@ -237,6 +243,8 @@ def _richest(group: list[PzwWater]) -> PzwWater:
     """
     best = max(group, key=lambda w: len(w.name))
     ring = next((w.ring for w in group if w.ring), ())
+    lat = next((w.lat for w in group if w.lat is not None), None)
+    lon = next((w.lon for w in group if w.lon is not None), None)
     place = next((w.place for w in group if w.place.strip()), "")
     section = next((w.section for w in group if w.section.strip()), "")
     area = next((w.area_ha for w in group if w.area_ha is not None), None)
@@ -248,6 +256,8 @@ def _richest(group: list[PzwWater]) -> PzwWater:
         place=place,
         area_ha=area,
         ring=ring,
+        lat=lat,
+        lon=lon,
     )
 
 
