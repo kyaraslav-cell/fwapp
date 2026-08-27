@@ -23,6 +23,8 @@ from typing import Any
 
 import httpx
 
+from app.discover import pzw
+
 logger = logging.getLogger("fishlog.discover.nominatim")
 
 SEARCH_URL = "https://nominatim.openstreetmap.org/search"
@@ -93,6 +95,16 @@ NOT_WATER_TYPES = frozenset(
 # `leisure` is mostly dry - pitches, parks, playgrounds - so it is the one
 # category that keeps an allowlist rather than an exclusion list.
 LEISURE_WATER_TYPES = frozenset({"fishing", "marina", "swimming_area", "water_park"})
+
+# Waters that are a LINE, not an area. OpenStreetMap routinely splits one of
+# these into many ways - Kanal Zeranski comes back as three - and a bounding
+# box around a 17 km line says nothing about how much water there is.
+LINEAR_WATER_TYPES = frozenset({"canal", "river", "stream", "ditch", "drain", "riverbank"})
+
+# Two areal waters of the same name this close together are one water mapped
+# twice, not two lakes. Wider than the DB-level dedupe because these are
+# separate OSM objects whose centres can sit some way apart.
+SAME_AREAL_WATER_M = 1500.0
 
 
 def is_water_tag(category: str, type_name: str) -> bool:
@@ -193,9 +205,77 @@ def _to_candidate(row: dict[str, Any]) -> Candidate | None:
         osm_type=str(row.get("osm_type", "")),
         osm_id=int(row.get("osm_id", 0) or 0),
         kind=f"{cls}={typ}" if cls else typ,
-        area_ha=_area_ha_from_bbox(row.get("boundingbox")),
+        # A bounding box around a long thin line is not an area, and showing
+        # "~6477 ha" for a canal is simply wrong. Left unknown; the outline
+        # job fills in a real figure if the water turns out to have one.
+        area_ha=(
+            None if typ in LINEAR_WATER_TYPES else _area_ha_from_bbox(row.get("boundingbox"))
+        ),
         is_water=is_water_tag(cls, typ),
     )
+
+
+def _is_linear(candidate: Candidate) -> bool:
+    _, _, type_name = candidate.kind.partition("=")
+    return type_name in LINEAR_WATER_TYPES
+
+
+def _metres_between(a: Candidate, b: Candidate) -> float:
+    """Flat-earth distance. Over a few kilometres the error is metres."""
+    mid = math.radians((a.lat + b.lat) / 2.0)
+    dy = (a.lat - b.lat) * 111_320.0
+    dx = (a.lon - b.lon) * 111_320.0 * math.cos(mid)
+    return math.hypot(dx, dy)
+
+
+def _completeness(candidate: Candidate) -> tuple[int, float]:
+    """How complete a picture of the water this result is, biggest first.
+
+    A relation is the whole feature; a way is usually one segment of it; a node
+    is a label. Between two of the same kind, the one covering more ground is
+    the fuller record.
+    """
+    rank = {"relation": 2, "way": 1, "node": 0}.get(candidate.osm_type, 0)
+    return (rank, candidate.area_ha or 0.0)
+
+
+def collapse_duplicates(candidates: list[Candidate]) -> list[Candidate]:
+    """One row per water, not one row per OSM object.
+
+    Searching "Kanał Żerański" returned three results - three ways of the one
+    canal, offering the angler a choice between segments of the same water and
+    an area of "~6477 ha" that was really a bounding box around a 17 km line.
+
+    Linear waters collapse on the name alone: OSM splits a canal or a river
+    into as many ways as it likes, and those pieces are never separate waters.
+
+    Areal waters collapse only when they are also close together, because two
+    lakes sharing a name genuinely are two lakes - there are dozens of Jezioro
+    Białe - and hiding one would be worse than showing both.
+
+    The fullest record wins: a relation over a way, then the one covering more
+    ground. Order is otherwise preserved, so the geocoder's own ranking still
+    decides what comes first.
+    """
+    groups: list[list[Candidate]] = []
+    for candidate in candidates:
+        key = pzw.normalise(candidate.name)
+        placed = False
+        for group in groups:
+            if pzw.normalise(group[0].name) != key:
+                continue
+            if _is_linear(candidate) and _is_linear(group[0]):
+                group.append(candidate)
+                placed = True
+                break
+            if not _is_linear(candidate) and not _is_linear(group[0]):
+                if _metres_between(candidate, group[0]) <= SAME_AREAL_WATER_M:
+                    group.append(candidate)
+                    placed = True
+                    break
+        if not placed:
+            groups.append([candidate])
+    return [max(group, key=_completeness) for group in groups]
 
 
 def search(name: str, *, country_codes: str = "pl", limit: int = MAX_RESULTS) -> list[Candidate]:
@@ -243,7 +323,9 @@ def search(name: str, *, country_codes: str = "pl", limit: int = MAX_RESULTS) ->
 
     candidates = [c for c in (_to_candidate(row) for row in rows) if c is not None and c.is_water]
     # Bigger first - the named water someone means is more often the reservoir
-    # than the farm pond sharing its name.
+    # than the farm pond sharing its name. Sorted BEFORE collapsing so that the
+    # order the geocoder implied survives into the collapsed list.
     candidates.sort(key=lambda c: -(c.area_ha or 0.0))
+    candidates = collapse_duplicates(candidates)
     _cache[key] = candidates
     return candidates

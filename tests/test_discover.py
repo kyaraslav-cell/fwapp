@@ -215,6 +215,90 @@ def test_the_water_rule_fails_open_but_not_daft(
     assert nominatim.is_water_tag(category, type_name) is expected
 
 
+def _osm(name: str, kind: str, osm_type: str, osm_id: int,
+         lat: float = 52.3, lon: float = 21.0, area: float | None = None) -> Candidate:
+    return Candidate(
+        name=name, display_name=f"{name}, Poland", lat=lat, lon=lon,
+        osm_type=osm_type, osm_id=osm_id, kind=kind, area_ha=area, is_water=True,
+    )
+
+
+def test_one_canal_split_into_ways_collapses_to_one_row() -> None:
+    """The owner's report: Kanal Zeranski offered three times.
+
+    OSM splits a canal into as many ways as it likes. Those pieces are never
+    separate waters, and offering a choice between them asks the angler a
+    question with no right answer.
+    """
+    collapsed = nominatim.collapse_duplicates([
+        _osm("Kanał Żerański", "waterway=canal", "way", 1, lat=52.42, lon=20.98),
+        _osm("Kanał Żerański", "waterway=canal", "relation", 2, lat=52.31, lon=21.02),
+        _osm("Kanał Żerański", "waterway=canal", "way", 3, lat=52.29, lon=21.05),
+    ])
+
+    assert len(collapsed) == 1
+    assert collapsed[0].osm_type == "relation", "the whole feature beats a segment of it"
+
+
+def test_two_lakes_of_the_same_name_are_both_kept() -> None:
+    """There are dozens of Jezioro Białe and they are different lakes.
+
+    Collapsing on the name alone would hide real waters, which is why only
+    LINEAR waters collapse that way.
+    """
+    collapsed = nominatim.collapse_duplicates([
+        _osm("Jezioro Białe", "water=lake", "way", 1, lat=52.3, lon=21.0, area=150.0),
+        _osm("Jezioro Białe", "water=lake", "way", 2, lat=53.9, lon=17.4, area=44.0),
+    ])
+
+    assert len(collapsed) == 2
+
+
+def test_one_lake_mapped_twice_collapses() -> None:
+    """Same name, a few hundred metres apart: one lake, two OSM objects."""
+    collapsed = nominatim.collapse_duplicates([
+        _osm("Jezioro Pomocnia", "natural=water", "way", 1, lat=52.5431, lon=20.6762, area=9.0),
+        _osm("Jezioro Pomocnia", "water=lake", "relation", 2, lat=52.5436, lon=20.6771, area=9.2),
+    ])
+
+    assert len(collapsed) == 1
+    assert collapsed[0].osm_type == "relation"
+
+
+def test_a_linear_water_claims_no_area() -> None:
+    """A bounding box round a 17 km line is not an area.
+
+    The live search showed "~6477 ha" for Kanal Zeranski, which is the box, not
+    the water. Better unknown than wrong - the outline job fills in a real
+    figure if the water has one.
+    """
+    candidate = _to_candidate({
+        "lat": "52.3200", "lon": "20.9900",
+        "category": "waterway", "type": "canal",
+        "osm_type": "way", "osm_id": 42,
+        "display_name": "Kanał Żerański, Poland",
+        "boundingbox": ["52.28", "52.45", "20.90", "21.10"],
+    })
+    assert candidate is not None
+    assert candidate.area_ha is None
+
+
+def test_an_areal_water_still_reports_its_area() -> None:
+    candidate = _to_candidate({
+        "lat": "52.4500", "lon": "21.0500",
+        "category": "natural", "type": "water",
+        "osm_type": "relation", "osm_id": 7,
+        "display_name": "Zalew Zegrzyński, Poland",
+        "boundingbox": ["52.40", "52.48", "21.00", "21.12"],
+    })
+    assert candidate is not None
+    assert candidate.area_ha and candidate.area_ha > 100
+
+
+def test_collapsing_keeps_nothing_when_there_is_nothing() -> None:
+    assert nominatim.collapse_duplicates([]) == []
+
+
 def test_a_result_with_no_coordinates_is_dropped() -> None:
     assert _to_candidate({"category": "natural", "type": "water"}) is None
 
