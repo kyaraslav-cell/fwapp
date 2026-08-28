@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;600;700&family=Caveat:wght@500;600&display=swap">
+  <style>
+    body { margin:0; font-family:'Nunito',system-ui,sans-serif; }
+    a { color:#8A5A1E; } a:hover { color:#68430F; }
+    .scr { width:390px; height:844px; background:#E8E0CB; position:relative; overflow:hidden;
+           display:flex; flex-direction:column; color:#33301F; }
+    .grain { position:absolute; inset:0; pointer-events:none; opacity:.16;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    .disp { font-family:'Quicksand',system-ui,sans-serif; }
+    .hand { font-family:'Caveat',cursive; }
+    .card { background:#F5F0E1; border-radius:18px; border:1.5px solid #CFC3A2; }
+    .rule { height:1px; background:#D3C7A6; }
+  </style>
+</helmet>
+
+<div class="scr">
+  <div class="grain"></div>
+
+  <!-- margin line-art: rod with reel mounted, drawn like a notebook sketch -->
+  <svg width="60" height="300" viewBox="0 0 60 300" aria-hidden="true"
+       style="position:absolute; right:2px; top:150px; opacity:.3">
+    <path d="M30 12 L30 280" stroke="#8A7C55" stroke-width="2.6" stroke-linecap="round"/>
+    <rect x="24" y="238" width="12" height="42" rx="6" fill="none" stroke="#8A7C55" stroke-width="2"/>
+    <circle cx="30" cy="60" r="5" fill="none" stroke="#8A7C55" stroke-width="1.6"/>
+    <circle cx="30" cy="112" r="6" fill="none" stroke="#8A7C55" stroke-width="1.6"/>
+    <circle cx="30" cy="170" r="7" fill="none" stroke="#8A7C55" stroke-width="1.6"/>
+    <rect x="14" y="196" width="16" height="14" rx="4" fill="none" stroke="#8A7C55" stroke-width="2"/>
+    <path d="M14 203 L6 197" stroke="#8A7C55" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="5" cy="196" r="2.6" fill="#8A5A1E"/>
+  </svg>
+
+  <div style="padding:24px 20px 8px; position:relative">
+    <div style="display:flex; align-items:baseline; gap:10px">
+      <div class="disp" style="font-size:27px; font-weight:700; letter-spacing:-0.3px">fwapp</div>
+      <div class="hand" style="font-size:19px; color:#7A6E48">— the waters</div>
+    </div>
+  </div>
+
+  <div style="padding:6px 20px 12px; display:flex; gap:16px; align-items:center">
+    <div class="disp" style="font-size:14px; font-weight:700; border-bottom:2.5px solid #33301F; padding-bottom:3px">All 4</div>
+    <div class="disp" style="font-size:14px; font-weight:600; color:#7A6E48">PZW 3</div>
+    <div class="disp" style="font-size:14px; font-weight:600; color:#7A6E48">Commercial 1</div>
+    <div class="disp" style="font-size:14px; font-weight:600; color:#7A6E48">★ 2</div>
+  </div>
+
+  <div class="rule" style="margin:0 20px"></div>
+
+  <div style="display:flex; flex-direction:column; gap:9px; padding:14px 20px 0; flex-grow:1; position:relative">
+
+    <div class="card" style="padding:12px 13px; display:flex; align-items:center; gap:12px">
+      <svg width="44" height="44" viewBox="0 0 52 52" aria-hidden="true">
+        <path d="M12 27 C9 16 21 8 32 11 C43 14 46 27 40 36 C33 46 16 43 12 27 Z"
+              fill="#D8DFC2" stroke="#7C8558" stroke-width="1.8"/>
+      </svg>
+      <div style="flex-grow:1">
+        <div class="disp" style="font-size:17px; font-weight:700">Jezioro Pomocnia</div>
+        <div style="font-size:12.5px; color:#7A6E48; font-weight:600; margin-top:2px">
+          PZW · 9 ha · 14 sessions · 0.71 / h
+        </div>
+      </div>
+      <div style="font-size:19px; color:#B0862C">★</div>
+    </div>
+
+    <div class="card" style="padding:12px 13px; display:flex; align-items:center; gap:12px">
+      <svg width="44" height="44" viewBox="0 0 52 52" aria-hidden="true">
+        <path d="M8 32 C10 18 20 9 33 12 C46 15 45 25 38 30 C31 35 34 43 24 44 C15 45 7 41 8 32 Z"
+              fill="#D8DFC2" stroke="#7C8558" stroke-width="1.8"/>
+      </svg>
+      <div style="flex-grow:1">
+        <div class="disp" style="font-size:17px; font-weight:700">Zalew Zegrzyński</div>
+        <div style="font-size:12.5px; color:#7A6E48; font-weight:600; margin-top:2px">
+          PZW · 3 030 ha · 2 sessions · n too small
+        </div>
+      </div>
+      <div style="font-size:19px; color:#BEB395">☆</div>
+    </div>
+
+    <div class="card" style="padding:12px 13px; display:flex; align-items:center; gap:12px">
+      <svg width="44" height="44" viewBox="0 0 52 52" aria-hidden="true">
+        <path d="M6 14 C16 20 20 30 30 34 C38 37 42 42 46 46"
+              fill="none" stroke="#7C8558" stroke-width="5" stroke-linecap="round"/>
+      </svg>
+      <div style="flex-grow:1">
+        <div class="disp" style="font-size:17px; font-weight:700">Rzeka Narew nr 7</div>
+        <div style="font-size:12.5px; color:#7A6E48; font-weight:600; margin-top:2px">
+          PZW district · 6 sessions · 0.42 / h
+        </div>
+      </div>
+      <div style="font-size:19px; color:#B0862C">★</div>
+    </div>
+
+    <div class="card" style="padding:12px 13px; display:flex; align-items:center; gap:12px">
+      <svg width="44" height="44" viewBox="0 0 52 52" aria-hidden="true">
+        <path d="M14 20 C14 14 38 14 38 20 L38 33 C38 39 14 39 14 33 Z"
+              fill="#EFE3BF" stroke="#A8914F" stroke-width="1.8"/>
+      </svg>
+      <div style="flex-grow:1">
+        <div class="disp" style="font-size:17px; font-weight:700">Stawy Szczęśliwice</div>
+        <div style="font-size:12.5px; color:#7A6E48; font-weight:600; margin-top:2px">
+          Commercial · 2.1 ha · 1 session · n too small
+        </div>
+      </div>
+      <div style="font-size:19px; color:#BEB395">☆</div>
+    </div>
+
+    <div class="hand" style="font-size:18px; color:#7A6E48; padding:4px 6px">
+      two blanks last week — still counted
+    </div>
+
+  </div>
+
+  <div style="padding:10px 20px 28px">
+    <div class="disp" style="background:#33301F; color:#F5F0E1; border-radius:16px; height:54px;
+                display:flex; align-items:center; justify-content:center; gap:10px;
+                font-size:17px; font-weight:700">
+      <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5 L12 19 M5 12 L19 12" stroke="#F5F0E1" stroke-width="2.6" stroke-linecap="round"/>
+      </svg>
+      Add a water
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

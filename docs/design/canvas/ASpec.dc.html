@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap">
+  <style>
+    body { margin:0; font-family:'Nunito',system-ui,sans-serif; }
+    a { color:#B2541C; } a:hover { color:#8A3F14; }
+    .spec { width:1240px; height:250px; background:#EFE7D6; color:#2E2A20;
+            padding:22px 26px; box-sizing:border-box; display:flex; gap:26px; }
+    .disp { font-family:'Baloo 2',system-ui,sans-serif; }
+    .sw { width:56px; border-radius:12px; height:44px; }
+    .lbl { font-size:10.5px; font-weight:700; color:#6B6250; letter-spacing:.6px; margin-bottom:6px; }
+    .col { display:flex; flex-direction:column; }
+    .warn { background:#F7E2C0; border-radius:10px; padding:8px 11px; font-size:12px;
+            font-weight:700; color:#6A4A18; }
+  </style>
+</helmet>
+
+<div class="spec">
+
+  <div class="col" style="width:250px">
+    <div class="disp" style="font-size:26px; font-weight:700">A · Tackle box</div>
+    <div style="font-size:13px; color:#6B6250; font-weight:600; margin-top:4px; line-height:1.45">
+      Kraft ground, chunky rounded trays like compartments. Tackle icons do
+      wayfinding work, not decoration.
+    </div>
+    <div style="margin-top:auto">
+      <div class="lbl">SIGNATURE</div>
+      <div style="font-size:13.5px; font-weight:700; line-height:1.4">
+        The tray. Every card is a rounded compartment with a 1px rim.
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="lbl">GROUND &amp; INK</div>
+    <div style="display:flex; gap:7px">
+      <div class="col"><div class="sw" style="background:#EFE7D6; border:1px solid #DED2B8"></div>
+        <div style="font-size:10px; margin-top:4px; font-weight:700">#EFE7D6</div></div>
+      <div class="col"><div class="sw" style="background:#FBF7EF; border:1px solid #DED2B8"></div>
+        <div style="font-size:10px; margin-top:4px; font-weight:700">#FBF7EF</div></div>
+      <div class="col"><div class="sw" style="background:#2E2A20"></div>
+        <div style="font-size:10px; margin-top:4px; font-weight:700">#2E2A20</div></div>
+      <div class="col"><div class="sw" style="background:#6B6250"></div>
+        <div style="font-size:10px; margin-top:4px; font-weight:700">#6B6250</div></div>
+    </div>
+    <div class="lbl" style="margin-top:16px">ACCENT · one, locked</div>
+    <div style="display:flex; gap:7px">
+      <div class="col"><div class="sw" style="background:#B2541C"></div>
+        <div style="font-size:10px; margin-top:4px; font-weight:700">#B2541C</div></div>
+    </div>
+    <div style="font-size:11px; color:#6B6250; font-weight:600; margin-top:10px; max-width:250px; line-height:1.4">
+      Ink on ground 13.4:1. Accent is used for the one primary action per screen,
+      never as decoration.
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="lbl">RESERVED DAY BANDS · tint carries text, bar carries the signal</div>
+    <div style="display:flex; gap:9px">
+      <div class="col"><div style="width:82px; height:44px; border-radius:12px; background:#D6E9D2;
+             display:flex; align-items:flex-end"><div style="height:8px; width:100%; background:#2F7D4F;
+             border-radius:0 0 12px 12px"></div></div>
+        <div style="font-size:10px; margin-top:4px; font-weight:700">good</div></div>
+      <div class="col"><div style="width:82px; height:44px; border-radius:12px; background:#E6EBCB;
+             display:flex; align-items:flex-end"><div style="height:8px; width:100%; background:#8DA53C;
+             border-radius:0 0 12px 12px"></div></div>
+        <div style="font-size:10px; margin-top:4px; font-weight:700">fair</div></div>
+      <div class="col"><div style="width:82px; height:44px; border-radius:12px; background:#F7E2C0;
+             display:flex; align-items:flex-end"><div style="height:8px; width:100%; background:#D99A2B;
+             border-radius:0 0 12px 12px"></div></div>
+        <div style="font-size:10px; margin-top:4px; font-weight:700">poor</div></div>
+      <div class="col"><div style="width:82px; height:44px; border-radius:12px; background:#F3D2CB;
+             display:flex; align-items:flex-end"><div style="height:8px; width:100%; background:#C2452D;
+             border-radius:0 0 12px 12px"></div></div>
+        <div style="font-size:10px; margin-top:4px; font-weight:700">bad</div></div>
+    </div>
+    <div class="warn" style="margin-top:14px; max-width:370px; line-height:1.45">
+      These four saturated hues are reserved. Nothing decorative may use them at
+      this saturation, or the warning stops reading as a warning.
+    </div>
+  </div>
+
+  <div class="col" style="width:290px">
+    <div class="lbl">TYPE</div>
+    <div class="disp" style="font-size:29px; font-weight:700; line-height:1.1">Baloo 2</div>
+    <div style="font-size:12px; color:#6B6250; font-weight:600">display · headings, numbers</div>
+    <div style="font-size:21px; font-weight:600; margin-top:10px">Nunito</div>
+    <div style="font-size:12px; color:#6B6250; font-weight:600">body · labels, readouts</div>
+    <div style="margin-top:14px; padding:9px 11px; background:#F3D2CB; border-radius:10px;
+                font-size:11.5px; font-weight:700; color:#7A2F20; line-height:1.45">
+      Baloo 2 has no Cyrillic. Russian headings would fall back to Nunito, which
+      does. Either accept a two-face split by language, or drop Baloo.
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

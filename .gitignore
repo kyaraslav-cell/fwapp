@@ -32,3 +32,7 @@ scrollcraft/builds/*/out/
 scrollcraft/builds/*/node_modules/
 scrollcraft/builds/*/package*.json
 scrollcraft/builds/*/gf.css
+
+# Seeded design canvas output - re-seeded from the .dc.html working files
+docs/design/canvas/*.html
+!docs/design/canvas/*.dc.html

@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;600;700&family=Caveat:wght@500;600&display=swap">
+  <style>
+    body { margin:0; font-family:'Nunito',system-ui,sans-serif; }
+    a { color:#8A5A1E; } a:hover { color:#68430F; }
+    .scr { width:390px; height:844px; background:#E8E0CB; position:relative; overflow:hidden;
+           display:flex; flex-direction:column; color:#33301F; }
+    .grain { position:absolute; inset:0; pointer-events:none; opacity:.16;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    .disp { font-family:'Quicksand',system-ui,sans-serif; }
+    .hand { font-family:'Caveat',cursive; }
+    .card { background:#F5F0E1; border-radius:18px; border:1.5px solid #CFC3A2; }
+    .ghost { border-radius:14px; border:1.5px solid #CFC3A2; background:#F5F0E1;
+             font-weight:700; font-size:14.5px; height:48px;
+             display:flex; align-items:center; justify-content:center; flex-grow:1; }
+  </style>
+</helmet>
+
+<div class="scr">
+  <div class="grain"></div>
+
+  <div style="padding:22px 20px 0; position:relative; display:flex; align-items:flex-start; gap:14px">
+    <div style="flex-grow:1">
+      <div style="display:flex; align-items:center; gap:7px">
+        <div style="width:8px; height:8px; border-radius:999px; background:#2F7D4F"></div>
+        <div style="font-size:11.5px; font-weight:700; letter-spacing:.7px; color:#7A6E48">RUNNING SINCE 13:48</div>
+      </div>
+      <div class="disp" style="font-size:44px; font-weight:700; line-height:1.05;
+                  font-variant-numeric:tabular-nums; margin-top:2px">3:12</div>
+      <div style="font-size:13px; color:#7A6E48; font-weight:600">
+        Pomocnia · north bay, swim 4
+      </div>
+    </div>
+    <!-- reel sketch in the margin -->
+    <svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true" style="opacity:.42; margin-top:6px">
+      <rect x="11" y="12" width="21" height="19" rx="4" fill="none" stroke="#8A7C55" stroke-width="2"/>
+      <path d="M11 18 L32 18 M11 25 L32 25" stroke="#8A7C55" stroke-width="1.4"/>
+      <path d="M32 21 L39 14" stroke="#8A7C55" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="40" cy="12" r="3" fill="#B04A22"/>
+      <path d="M17 31 L17 38 L26 38" fill="none" stroke="#8A7C55" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div style="padding:12px 20px 0; position:relative">
+    <div class="card" style="padding:10px 14px; display:flex; align-items:center; gap:12px">
+      <svg width="62" height="26" viewBox="0 0 66 30" aria-hidden="true">
+        <rect x="2" y="12" width="15" height="7" rx="3.5" fill="#C79A5C"/>
+        <path d="M17 15.5 L62 9" stroke="#8A7C55" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="30" cy="14" r="2.6" fill="none" stroke="#8A7C55" stroke-width="1.3"/>
+        <circle cx="44" cy="12" r="2.2" fill="none" stroke="#8A7C55" stroke-width="1.3"/>
+        <circle cx="56" cy="10.2" r="1.8" fill="none" stroke="#8A7C55" stroke-width="1.3"/>
+      </svg>
+      <div class="disp" style="font-size:16px; font-weight:700; flex-grow:1">Feeder · 2 rods</div>
+      <div style="font-size:12.5px; color:#7A6E48; font-weight:700; font-variant-numeric:tabular-nums">0.94 / h</div>
+    </div>
+  </div>
+
+  <div style="padding:16px 20px 0; position:relative; flex-grow:1">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px">
+      <div style="font-size:11.5px; font-weight:700; color:#7A6E48; letter-spacing:.7px">CATCHES · 3</div>
+      <div class="hand" style="font-size:17px; color:#7A6E48">bites slowed after 4</div>
+    </div>
+
+    <div class="card" style="padding:2px 12px">
+      <div style="display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid #DFD5B8">
+        <svg width="42" height="23" viewBox="0 0 44 24" aria-hidden="true">
+          <path d="M11 12 C15 5 30 5 40 12 C30 19 15 19 11 12 Z" fill="#9AAE7E"/>
+          <path d="M11 12 L2 6 L6 12 L2 18 Z" fill="#9AAE7E"/>
+          <path d="M23 6.6 C25 3.4 29 3.6 30 6.4" fill="none" stroke="#9AAE7E" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="36" cy="10.6" r="1.5" fill="#F5F0E1"/>
+        </svg>
+        <div style="flex-grow:1">
+          <div class="disp" style="font-size:15.5px; font-weight:700">Roach</div>
+          <div style="font-size:12px; color:#7A6E48; font-weight:600">14:20 · sweetcorn · 18 cm</div>
+        </div>
+        <div class="disp" style="font-size:15.5px; font-weight:700; font-variant-numeric:tabular-nums">220 g</div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid #DFD5B8">
+        <svg width="42" height="23" viewBox="0 0 44 24" aria-hidden="true">
+          <path d="M12 12 C16 2 32 2.5 41 12 C32 22 16 22 12 12 Z" fill="#9AAE7E"/>
+          <path d="M12 12 L1 3 L6 12 L2 23 Z" fill="#9AAE7E"/>
+          <path d="M25 3.4 C27 0 31 0.4 32 3.2" fill="none" stroke="#9AAE7E" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="37" cy="10.4" r="1.4" fill="#F5F0E1"/>
+        </svg>
+        <div style="flex-grow:1">
+          <div class="disp" style="font-size:15.5px; font-weight:700">Bream</div>
+          <div style="font-size:12px; color:#7A6E48; font-weight:600">15:05 · worm · 36 cm</div>
+        </div>
+        <div class="disp" style="font-size:15.5px; font-weight:700; font-variant-numeric:tabular-nums">810 g</div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:11px; padding:9px 0">
+        <svg width="42" height="23" viewBox="0 0 44 24" aria-hidden="true">
+          <path d="M14 12 C17 3 32 3 40 12 C32 21 17 21 14 12 Z" fill="#9AAE7E"/>
+          <path d="M14 12 C7 5 3 12 5 15 C7 18 10 17 14 12 Z" fill="#9AAE7E"/>
+          <path d="M24 4 C26 1.2 31 1.6 32 4.4" fill="none" stroke="#9AAE7E" stroke-width="2.6" stroke-linecap="round"/>
+          <circle cx="36" cy="10.6" r="1.4" fill="#F5F0E1"/>
+        </svg>
+        <div style="flex-grow:1">
+          <div class="disp" style="font-size:15.5px; font-weight:700">Crucian carp</div>
+          <div style="font-size:12px; color:#7A6E48; font-weight:600">16:41 · sweetcorn · 21 cm</div>
+        </div>
+        <div class="disp" style="font-size:15.5px; font-weight:700; font-variant-numeric:tabular-nums">340 g</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:14px 20px 0; position:relative; display:flex; gap:8px">
+    <div class="ghost">Conditions</div>
+    <div class="ghost">Map</div>
+    <div class="ghost">History</div>
+  </div>
+
+  <div style="padding:10px 20px 10px; position:relative">
+    <div class="disp" style="background:#33301F; color:#F5F0E1; border-radius:16px; height:58px;
+                display:flex; align-items:center; justify-content:center; gap:10px;
+                font-size:18px; font-weight:700">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5 L12 19 M5 12 L19 12" stroke="#F5F0E1" stroke-width="2.7" stroke-linecap="round"/>
+      </svg>
+      Log a catch
+    </div>
+  </div>
+  <div style="padding:0 20px 26px; text-align:center; position:relative">
+    <span style="font-size:14.5px; font-weight:700; color:#8A5A1E">End the session</span>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap">
+  <style>
+    body { margin:0; font-family:'Nunito',system-ui,sans-serif; }
+    a { color:#B2541C; } a:hover { color:#8A3F14; }
+    .scr { width:390px; height:844px; background:#EFE7D6; position:relative; overflow:hidden;
+           display:flex; flex-direction:column; color:#2E2A20; }
+    .disp { font-family:'Baloo 2',system-ui,sans-serif; }
+    .tray { background:#FBF7EF; border-radius:22px; border:1px solid #DED2B8; }
+    .ghost { border-radius:999px; border:2px solid #C9BB9C; background:transparent;
+             color:#2E2A20; font-weight:700; font-size:15px; height:48px;
+             display:flex; align-items:center; justify-content:center; gap:8px; flex-grow:1; }
+  </style>
+</helmet>
+
+<div class="scr">
+
+  <!-- live strip: the session is running -->
+  <div style="background:#2E2A20; color:#EFE7D6; padding:16px 22px 18px">
+    <div style="display:flex; align-items:center; gap:8px">
+      <div style="width:9px; height:9px; border-radius:999px; background:#8DA53C"></div>
+      <div style="font-size:13px; font-weight:700; letter-spacing:.6px">SESSION RUNNING</div>
+    </div>
+    <div class="disp" style="font-size:47px; font-weight:700; line-height:1.05; margin-top:6px;
+                font-variant-numeric:tabular-nums">3:12</div>
+    <div style="font-size:14px; font-weight:600; color:#C4B896; margin-top:2px">
+      Jezioro Pomocnia · north bay, swim 4
+    </div>
+  </div>
+
+  <!-- rods out: real rod drawing, tapering with guides and a cork grip -->
+  <div style="padding:16px 22px 0">
+    <div class="tray" style="padding:14px 16px; display:flex; align-items:center; gap:14px">
+      <svg width="66" height="30" viewBox="0 0 66 30" aria-hidden="true">
+        <rect x="2" y="12" width="15" height="7" rx="3.5" fill="#C79A5C"/>
+        <path d="M17 15.5 L62 9" stroke="#8A7E60" stroke-width="3.4" stroke-linecap="round"/>
+        <circle cx="30" cy="14" r="2.6" fill="none" stroke="#8A7E60" stroke-width="1.4"/>
+        <circle cx="44" cy="12" r="2.2" fill="none" stroke="#8A7E60" stroke-width="1.4"/>
+        <circle cx="56" cy="10.2" r="1.8" fill="none" stroke="#8A7E60" stroke-width="1.4"/>
+      </svg>
+      <div style="flex-grow:1">
+        <div style="font-size:13px; color:#6B6250; font-weight:700">METHOD</div>
+        <div class="disp" style="font-size:19px; font-weight:600">Feeder · 2 rods</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- catches -->
+  <div style="padding:16px 22px 0; flex-grow:1; display:flex; flex-direction:column">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:9px">
+      <div style="font-size:13px; font-weight:700; color:#6B6250; letter-spacing:.4px">CATCHES</div>
+      <div style="font-size:13px; font-weight:700; color:#6B6250; font-variant-numeric:tabular-nums">
+        3 fish · 0.94 / h
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:9px">
+      <div class="tray" style="padding:11px 14px; display:flex; align-items:center; gap:13px">
+        <!-- roach: slender, moderate fork -->
+        <svg width="44" height="24" viewBox="0 0 44 24" aria-hidden="true">
+          <path d="M11 12 C15 5 30 5 40 12 C30 19 15 19 11 12 Z" fill="#A9BE97"/>
+          <path d="M11 12 L2 6 L6 12 L2 18 Z" fill="#A9BE97"/>
+          <path d="M23 6.6 C25 3.4 29 3.6 30 6.4" fill="none" stroke="#A9BE97" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="36" cy="10.6" r="1.5" fill="#FBF7EF"/>
+        </svg>
+        <div style="flex-grow:1">
+          <div class="disp" style="font-size:17px; font-weight:600">Roach</div>
+          <div style="font-size:13px; color:#6B6250; font-weight:600">14:20 · sweetcorn</div>
+        </div>
+        <div class="disp" style="font-size:17px; font-weight:600; font-variant-numeric:tabular-nums">220 g</div>
+      </div>
+
+      <div class="tray" style="padding:11px 14px; display:flex; align-items:center; gap:13px">
+        <!-- bream: deep body, long unequal fork, small head -->
+        <svg width="44" height="24" viewBox="0 0 44 24" aria-hidden="true">
+          <path d="M12 12 C16 2 32 2.5 41 12 C32 22 16 22 12 12 Z" fill="#A9BE97"/>
+          <path d="M12 12 L1 3 L6 12 L2 23 Z" fill="#A9BE97"/>
+          <path d="M25 3.4 C27 0 31 0.4 32 3.2" fill="none" stroke="#A9BE97" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="37" cy="10.4" r="1.4" fill="#FBF7EF"/>
+        </svg>
+        <div style="flex-grow:1">
+          <div class="disp" style="font-size:17px; font-weight:600">Bream</div>
+          <div style="font-size:13px; color:#6B6250; font-weight:600">15:05 · worm</div>
+        </div>
+        <div class="disp" style="font-size:17px; font-weight:600; font-variant-numeric:tabular-nums">810 g</div>
+      </div>
+
+      <div class="tray" style="padding:11px 14px; display:flex; align-items:center; gap:13px">
+        <!-- crucian: very deep round body, rounded convex fan tail -->
+        <svg width="44" height="24" viewBox="0 0 44 24" aria-hidden="true">
+          <path d="M14 12 C17 3 32 3 40 12 C32 21 17 21 14 12 Z" fill="#A9BE97"/>
+          <path d="M14 12 C7 5 3 12 5 15 C7 18 10 17 14 12 Z" fill="#A9BE97"/>
+          <path d="M24 4 C26 1.2 31 1.6 32 4.4" fill="none" stroke="#A9BE97" stroke-width="2.6" stroke-linecap="round"/>
+          <circle cx="36" cy="10.6" r="1.4" fill="#FBF7EF"/>
+        </svg>
+        <div style="flex-grow:1">
+          <div class="disp" style="font-size:17px; font-weight:600">Crucian carp</div>
+          <div style="font-size:13px; color:#6B6250; font-weight:600">16:41 · sweetcorn</div>
+        </div>
+        <div class="disp" style="font-size:17px; font-weight:600; font-variant-numeric:tabular-nums">340 g</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- conditions and map stay reachable mid-session -->
+  <div style="padding:14px 22px 0; display:flex; gap:9px">
+    <div class="ghost">Conditions</div>
+    <div class="ghost">Map</div>
+  </div>
+
+  <!-- primary action, thumb zone -->
+  <div style="padding:12px 22px 14px">
+    <div class="disp" style="background:#B2541C; color:#FFF8EC; border-radius:999px; height:60px;
+                display:flex; align-items:center; justify-content:center; gap:11px;
+                font-size:19px; font-weight:600">
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5 L12 19 M5 12 L19 12" stroke="#FFF8EC" stroke-width="2.8" stroke-linecap="round"/>
+      </svg>
+      Log a catch
+    </div>
+  </div>
+  <div style="padding:0 22px 26px; text-align:center">
+    <span style="font-size:15px; font-weight:700; color:#8A5A3A">End the session</span>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

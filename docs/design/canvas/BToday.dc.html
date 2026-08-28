@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&family=Nunito+Sans:wght@400;600;700&display=swap">
+  <style>
+    body { margin:0; font-family:'Nunito Sans',system-ui,sans-serif; }
+    a { color:#3F6B4C; } a:hover { color:#2C4E37; }
+    .scr { width:390px; height:844px; background:#F4F7EA; position:relative; overflow:hidden;
+           display:flex; flex-direction:column; color:#24352A; }
+    .disp { font-family:'Comfortaa',system-ui,sans-serif; }
+    .row { background:#FFFFFF; border-radius:28px; }
+    .n { font-size:12px; color:#5E7365; font-weight:700; font-variant-numeric:tabular-nums; }
+  </style>
+</helmet>
+
+<div class="scr">
+
+  <div style="padding:44px 26px 0">
+    <div style="font-size:14px; color:#5E7365; font-weight:600">Jezioro Pomocnia</div>
+    <div class="disp" style="font-size:29px; font-weight:700; margin-top:2px">Today</div>
+  </div>
+
+  <!-- the band: a wide ring of tint, one saturated arc as the reserved signal -->
+  <div style="padding:26px 26px 0; text-align:center">
+    <div style="position:relative; height:190px; display:flex; align-items:center; justify-content:center">
+      <svg width="190" height="190" viewBox="0 0 190 190" aria-hidden="true"
+           style="position:absolute; inset:0; margin:auto">
+        <circle cx="95" cy="95" r="80" fill="#E4F0DA"/>
+        <circle cx="95" cy="95" r="80" fill="none" stroke="#CBDEC0" stroke-width="10"/>
+        <path d="M95 15 A80 80 0 0 1 168 62" fill="none" stroke="#2F7D4F"
+              stroke-width="10" stroke-linecap="round"/>
+      </svg>
+      <div style="position:relative">
+        <div class="disp" style="font-size:27px; font-weight:700; line-height:1.15">A good<br>day</div>
+      </div>
+    </div>
+    <div style="font-size:14px; color:#4E6353; margin-top:6px; padding:0 16px">
+      Falling pressure, warm south-west wind.
+    </div>
+  </div>
+
+  <div style="padding:26px 26px 0">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:11px">
+      <div style="font-size:12px; font-weight:700; color:#5E7365; letter-spacing:.7px">NEXT 8 DAYS</div>
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="16" rx="5" fill="none" stroke="#5E7365" stroke-width="2"/>
+        <path d="M8 3 L8 7 M16 3 L16 7" stroke="#5E7365" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div style="display:flex; gap:7px; align-items:flex-end">
+      <div style="flex-grow:1; text-align:center">
+        <div style="height:12px; border-radius:999px; background:#2F7D4F"></div>
+        <div class="n" style="margin-top:6px">Fri</div>
+      </div>
+      <div style="flex-grow:1; text-align:center">
+        <div style="height:12px; border-radius:999px; background:#8DA53C"></div>
+        <div class="n" style="margin-top:6px">Sat</div>
+      </div>
+      <div style="flex-grow:1; text-align:center">
+        <div style="height:12px; border-radius:999px; background:#8DA53C"></div>
+        <div class="n" style="margin-top:6px">Sun</div>
+      </div>
+      <div style="flex-grow:1; text-align:center">
+        <div style="height:12px; border-radius:999px; background:#D99A2B"></div>
+        <div class="n" style="margin-top:6px">Mon</div>
+      </div>
+      <div style="flex-grow:1; text-align:center">
+        <div style="height:12px; border-radius:999px; background:#C2452D"></div>
+        <div class="n" style="margin-top:6px">Tue</div>
+      </div>
+      <div style="flex-grow:1; text-align:center">
+        <div style="height:12px; border-radius:999px; background:#D99A2B"></div>
+        <div class="n" style="margin-top:6px">Wed</div>
+      </div>
+      <div style="flex-grow:1; text-align:center">
+        <div style="height:12px; border-radius:999px; background:#2F7D4F"></div>
+        <div class="n" style="margin-top:6px">Thu</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:26px 26px 0; display:flex; flex-direction:column; gap:2px; flex-grow:1">
+    <div style="display:flex; align-items:center; padding:15px 6px; border-bottom:1px solid #E2EAD5">
+      <div style="flex-grow:1">
+        <div style="font-size:12px; color:#5E7365; font-weight:700; letter-spacing:.5px">PRESSURE</div>
+        <div class="disp" style="font-size:19px; font-weight:600; margin-top:2px">1004 hPa · falling</div>
+      </div>
+      <div class="n">n 412</div>
+    </div>
+    <div style="display:flex; align-items:center; padding:15px 6px; border-bottom:1px solid #E2EAD5">
+      <div style="flex-grow:1">
+        <div style="font-size:12px; color:#5E7365; font-weight:700; letter-spacing:.5px">WIND</div>
+        <div class="disp" style="font-size:19px; font-weight:600; margin-top:2px">14 km/h SW</div>
+      </div>
+      <div class="n">n 412</div>
+    </div>
+    <div style="display:flex; align-items:center; padding:15px 6px">
+      <div style="flex-grow:1">
+        <div style="font-size:12px; color:#5E7365; font-weight:700; letter-spacing:.5px">WATER · MODELLED</div>
+        <div class="disp" style="font-size:19px; font-weight:600; margin-top:2px">17.4 °C ± 1.2</div>
+      </div>
+      <div class="n">n 27</div>
+    </div>
+    <div style="font-size:13px; color:#5E7365; padding:6px">
+      Modelled from air temperature — never measured in the water.
+    </div>
+  </div>
+
+  <div style="padding:10px 26px 34px">
+    <div class="disp" style="background:#3F6B4C; color:#F4F7EA; border-radius:999px; height:56px;
+                display:flex; align-items:center; justify-content:center;
+                font-size:17px; font-weight:600">
+      Open the map
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
