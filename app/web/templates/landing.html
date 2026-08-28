@@ -1,0 +1,744 @@
+{# ============================================================================
+   The Fishlog landing page. Built with the scrollcraft skill; the build folder,
+   the interview brief, the feeling curve and the verification shots are in
+   scrollcraft/builds/fishlog/. Read scrollcraft/builds/fishlog/BRIEF.md before
+   changing anything structural here.
+
+   Grammar: LIVE SURFACE. The page behaves like the instrument rather than
+   advertising it, which is why the nav is app chrome, the hero is the surface
+   already in a state, and the close is a real input.
+
+   Standalone on purpose: it does not extend base.html. base.html carries the
+   app's own chrome (topnav, language switch, session float, the waterline) and
+   every one of those belongs to the logged-in instrument, not to the front
+   door. Inheriting it would put two navigations on one page.
+
+   Every figure is real: the reading is a recorded one and says so on its face,
+   and the catch numbers are the Okreg Mazowiecki 2024 register with the real n
+   beside each. The inputs_hash is computed in the browser from the values
+   actually rendered above it.
+   ============================================================================ #}
+<!doctype html>
+<!--
+  Fishlog landing page.
+
+  Grammar: LIVE SURFACE (uniqueness.md §2.3). The page behaves like the
+  instrument. App chrome instead of a marketing bar, the hero is the surface
+  already in a state, and the close is a real input rather than a button island.
+
+  The honesty rule is not suspended: every figure on this page is real. The
+  conditions are a recorded reading from a stated timestamp, labelled as such on
+  its face. The catch figures are the Okreg Mazowiecki 2024 register, table 30
+  and its neighbours, with the real sample size beside every one. The hash on
+  the prediction is computed in the browser from the numbers actually on screen.
+  Nothing here is a painted dashboard.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fishlog · it writes the guess down before you go</title>
+<meta name="description" content="Fishlog reads the weather for one lake, ranks the swims, and seals its prediction before the session. Then it checks itself against what you actually caught.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%230d2b3e'/><path d='M6 20c5-7 15-7 20 0' stroke='%237fcfae' stroke-width='2.4' fill='none' stroke-linecap='round'/></svg>">
+
+{# Self-hosted. The CSP is font-src 'self' and stays that way. #}
+<link rel="stylesheet" href="/static/landing-fonts.css">
+
+<link rel="stylesheet" href="/static/landing/scrollcraft.css">
+<style>
+/* ===================================================================
+   THEME. Six colours and two faces, per SKILL.md Step 4.
+
+   An almanac printed on paper, not a dark premium-minimal page: tide
+   tables, ledgers and field notebooks are light, and the app this
+   fronts is light. The owner asked for the almanac "but more rounded",
+   so the radii are generous while the type stays dense.
+   =================================================================== */
+:root {
+  --sc-canvas:     #eef3f2;
+  --sc-surface:    #ffffff;
+  --sc-ink:        #0d2b3e;
+  --sc-ink-soft:   #4a6675;
+  --sc-accent:     #1f6b52;
+  --sc-accent-ink: #ffffff;
+  --sc-font-display: "Archivo", system-ui, sans-serif;
+  --sc-font-text:    "Archivo", system-ui, sans-serif;
+  --sc-font-mono:    "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --sc-r-sm: 8px;
+  --sc-r-md: 14px;
+  --sc-r-lg: 22px;
+  --sc-r-pill: 999px;
+
+  /* page-local */
+  --paper:      #eef3f2;
+  --paper-deep: #e3ebea;
+  --plate:      #0d2b3e;
+  --rule:       #c6d6d5;
+  --rule-soft:  #dde7e6;
+  --live:       #1f6b52;
+  --seal:       #8a3b2a;
+  --warn:       #7a5a12;
+}
+
+/* ---------- page-local classes. Never restyle .sc-stage or [data-sc-*] ---- */
+
+body { background: var(--paper); color: var(--sc-ink); }
+
+.fx-mono { font-family: var(--sc-font-mono); font-variant-numeric: tabular-nums; }
+
+/* Every figure on this page is tabular. An almanac whose digits jitter is
+   not an almanac. */
+.fx-num, .fx-cell b, .fx-read__v, .fx-row__v, .fx-row__n {
+  font-family: var(--sc-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.fx-lab {
+  font-family: var(--sc-font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--sc-ink-soft);
+}
+
+/* ---------- app chrome. This grammar's nav is the product's own bar ------- */
+.fx-bar {
+  position: fixed; inset: 0 0 auto 0; z-index: 40;
+  display: flex; align-items: center; gap: 18px;
+  padding: 0 clamp(14px, 3vw, 28px);
+  height: 46px;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--rule);
+}
+.fx-bar__mark { display: flex; align-items: center; gap: 9px; font-weight: 800; letter-spacing: -0.03em; font-size: 15px; }
+.fx-bar__mark svg { display: block; }
+.fx-bar__sep { width: 1px; height: 17px; background: var(--rule); }
+.fx-bar__field { display: none; gap: 7px; align-items: baseline; }
+.fx-bar__field .fx-lab { font-size: 9.5px; letter-spacing: 0.11em; }
+.fx-bar__field b { font-family: var(--sc-font-mono); font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.fx-bar__spacer { margin-left: auto; }
+.fx-bar__cta {
+  font-family: var(--sc-font-mono); font-size: 11.5px; letter-spacing: 0.04em;
+  padding: 7px 13px; border-radius: var(--sc-r-pill);
+  background: var(--sc-ink); color: #eef3f2; text-decoration: none;
+  white-space: nowrap;
+  transition: background 140ms var(--sc-ease-out), transform 140ms var(--sc-ease-out);
+}
+.fx-bar__cta:hover { background: var(--live); }
+.fx-bar__cta:active { transform: translateY(1px); }
+@media (min-width: 760px) { .fx-bar__field { display: flex; } }
+
+/* a live dot that is honest: it pulses only while the page says LIVE */
+.fx-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--live); flex: none; }
+
+/* ---------- shared surface ---------------------------------------------- */
+.fx-panel {
+  background: var(--sc-surface);
+  border-radius: var(--sc-r-lg);
+  box-shadow: 0 1px 2px rgba(13,43,62,.05), 0 0 0 1px rgba(13,43,62,.055);
+}
+.fx-wrap { width: min(1120px, calc(100% - clamp(20px, 6vw, 64px))); margin-inline: auto; }
+
+.fx-h {
+  font-family: var(--sc-font-display);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  text-wrap: balance;
+  margin: 0;
+}
+.fx-h--xl { font-size: clamp(2.4rem, 6.6vw, 5rem); }
+.fx-h--lg { font-size: clamp(1.9rem, 4.2vw, 3.2rem); }
+.fx-h--md { font-size: clamp(1.35rem, 2.4vw, 1.9rem); letter-spacing: -0.025em; }
+.fx-p { font-size: 1rem; line-height: 1.6; color: var(--sc-ink-soft); max-width: 54ch; text-wrap: pretty; margin: 0; }
+.fx-p--wide { max-width: 64ch; }
+
+/* ================= ACT 1 · the instrument, field blank =================== */
+.fx-open { padding: 92px 0 clamp(40px, 7vh, 84px); }
+.fx-open__grid { display: grid; gap: clamp(24px, 4vw, 46px); }
+@media (min-width: 940px) { .fx-open__grid { grid-template-columns: 1.05fr 0.95fr; align-items: end; } }
+
+.fx-open__copy { display: flex; flex-direction: column; gap: 20px; }
+.fx-open__sub { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: baseline; }
+
+/* the blank field. This is the emotional job of act 1: the instrument does
+   not know either, and it says so in its own idiom rather than in a headline */
+.fx-blank { padding: 20px 22px 22px; display: grid; gap: 14px; }
+.fx-blank__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fx-blank__slot {
+  border: 1px dashed var(--rule);
+  border-radius: var(--sc-r-md);
+  min-height: 118px;
+  display: grid; place-items: center;
+  text-align: center; padding: 18px;
+  background: repeating-linear-gradient(-45deg, transparent 0 7px, rgba(13,43,62,.018) 7px 14px);
+}
+.fx-blank__slot p { margin: 0; font-family: var(--sc-font-mono); font-size: 12px; color: var(--sc-ink-soft); line-height: 1.7; }
+.fx-blank__foot { display: flex; justify-content: space-between; gap: 10px; }
+
+/* ================= ACT 2 · readings populate ============================= */
+.fx-read-stage { display: grid; place-items: center; padding-block: 70px; }
+.fx-reads { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 800px) { .fx-reads { grid-template-columns: repeat(4, 1fr); } }
+.fx-read { padding: 16px 17px 17px; display: grid; gap: 7px; align-content: start; min-height: 116px; }
+.fx-read__v { font-size: clamp(1.5rem, 3.1vw, 2.15rem); font-weight: 600; line-height: 1; letter-spacing: -0.035em; }
+.fx-read__v small { font-size: 0.44em; font-weight: 500; color: var(--sc-ink-soft); letter-spacing: 0; margin-left: 3px; }
+.fx-read__m { font-family: var(--sc-font-mono); font-size: 11px; color: var(--sc-ink-soft); line-height: 1.5; }
+.fx-read__spark { height: 22px; display: block; width: 100%; }
+
+.fx-note {
+  display: flex; gap: 10px; align-items: flex-start;
+  font-family: var(--sc-font-mono); font-size: 11.5px; line-height: 1.65;
+  color: var(--sc-ink-soft);
+  padding: 11px 14px; border-radius: var(--sc-r-md);
+  background: var(--paper-deep);
+}
+.fx-note b { color: var(--sc-ink); font-weight: 600; }
+
+/* ================= ACT 3 · the objection (quiet) ========================= */
+.fx-doubt { padding-block: clamp(46px, 9vh, 104px); }
+.fx-doubt__grid { display: grid; gap: clamp(22px, 4vw, 52px); align-items: center; }
+@media (min-width: 900px) { .fx-doubt__grid { grid-template-columns: 1fr 0.78fr; } }
+.fx-plate { border-radius: var(--sc-r-lg); overflow: hidden; background: var(--plate); box-shadow: 0 14px 34px -18px rgba(13,43,62,.5); }
+.fx-plate img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.fx-plate figcaption {
+  font-family: var(--sc-font-mono); font-size: 10.5px; letter-spacing: .04em;
+  color: var(--sc-ink-soft); padding: 9px 2px 0;
+}
+
+/* ================= ACT 4 · THE SEAL (peak) ============================== */
+.fx-seal-stage { display: grid; place-items: center; padding-block: 60px; }
+.fx-doc {
+  width: min(660px, 100%);
+  padding: clamp(20px, 3vw, 30px);
+  display: grid; gap: 16px;
+  position: relative;
+  transition: box-shadow 420ms var(--sc-ease-out);
+}
+.fx-doc__head { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--rule); padding-bottom: 12px; }
+.fx-doc__title { font-family: var(--sc-font-display); font-weight: 800; letter-spacing: -0.03em; font-size: 1.15rem; }
+
+.fx-rows { display: grid; gap: 0; }
+.fx-rowline {
+  display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: baseline;
+  padding: 9px 0; border-bottom: 1px dashed var(--rule-soft);
+  opacity: 0; transform: translateY(4px);
+}
+.fx-rowline.is-in { opacity: 1; transform: none; transition: opacity 300ms var(--sc-ease-out), transform 300ms var(--sc-ease-out); }
+.fx-rowline__k { font-family: var(--sc-font-mono); font-size: 11.5px; letter-spacing: .04em; color: var(--sc-ink-soft); }
+.fx-rowline__v { font-family: var(--sc-font-mono); font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 500; }
+
+/* the band. A COLOUR, never a score. CLAUDE.md standing rule 2 and 16, and
+   the page says why in its own words rather than hiding it. */
+.fx-band { display: flex; align-items: center; gap: 10px; }
+.fx-band__chip { width: 54px; height: 18px; border-radius: var(--sc-r-pill); background: var(--rule); transition: background 500ms var(--sc-ease-out); }
+.fx-doc.is-armed .fx-band__chip { background: #7fc9a8; }
+.fx-band__t { font-family: var(--sc-font-mono); font-size: 12px; color: var(--sc-ink-soft); }
+
+.fx-hash { word-break: break-all; }
+
+.fx-stamp {
+  position: absolute; right: clamp(14px, 3vw, 30px); bottom: clamp(14px, 3vw, 26px);
+  display: grid; place-items: center; gap: 1px;
+  width: 104px; height: 104px; border-radius: 50%;
+  border: 2.5px solid var(--seal); color: var(--seal);
+  font-family: var(--sc-font-mono); text-align: center;
+  transform: rotate(-13deg) scale(1.9); opacity: 0;
+  pointer-events: none;
+}
+.fx-stamp b { font-size: 15px; letter-spacing: .12em; font-weight: 600; }
+.fx-stamp span { font-size: 8.5px; letter-spacing: .07em; line-height: 1.35; }
+.fx-doc.is-sealed .fx-stamp {
+  opacity: .92; transform: rotate(-13deg) scale(1);
+  transition: opacity 220ms var(--sc-ease-out), transform 380ms cubic-bezier(.2,1.5,.4,1);
+}
+.fx-doc.is-sealed { box-shadow: 0 1px 2px rgba(13,43,62,.05), 0 0 0 1.5px var(--seal); }
+
+.fx-locked {
+  display: flex; gap: 9px; align-items: center;
+  font-family: var(--sc-font-mono); font-size: 11.5px; color: var(--seal);
+  opacity: 0; transition: opacity 300ms var(--sc-ease-out) 260ms;
+}
+.fx-doc.is-sealed .fx-locked { opacity: 1; }
+
+/* ================= ACT 5 · the register rail ============================ */
+.fx-rail { display: flex; align-items: stretch; gap: 14px; padding-inline: clamp(20px, 6vw, 64px); }
+.fx-rail__lead { width: min(400px, 74vw); flex: none; display: flex; flex-direction: column; justify-content: center; gap: 15px; padding-right: 12px; }
+.fx-card { width: 246px; flex: none; padding: 17px 18px 18px; display: grid; gap: 11px; align-content: start; }
+.fx-card__name { font-weight: 600; font-size: 14px; letter-spacing: -0.015em; line-height: 1.3; }
+.fx-row__v { font-size: 1.85rem; font-weight: 600; letter-spacing: -0.04em; line-height: 1; }
+.fx-row__v small { font-size: .38em; font-weight: 500; color: var(--sc-ink-soft); margin-left: 3px; letter-spacing: 0; }
+.fx-nbar { height: 4px; border-radius: 2px; background: var(--rule-soft); overflow: hidden; }
+.fx-nbar i { display: block; height: 100%; background: var(--sc-ink); border-radius: 2px; }
+.fx-card__n { font-family: var(--sc-font-mono); font-size: 10.5px; color: var(--sc-ink-soft); }
+.fx-card--warn .fx-row__v { color: var(--warn); }
+.fx-rail__end { width: min(330px, 74vw); flex: none; display: flex; align-items: center; }
+.fx-rail__plate { border-radius: var(--sc-r-lg); overflow: hidden; }
+.fx-rail__plate img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* ================= ACT 6 · the input ==================================== */
+.fx-close-stage { display: grid; place-items: center; padding-block: 54px; }
+.fx-close { width: min(620px, 100%); display: grid; gap: 22px; justify-items: center; text-align: center; }
+.fx-field {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: var(--sc-surface); border-radius: var(--sc-r-pill);
+  padding: 7px 7px 7px 20px;
+  box-shadow: 0 1px 2px rgba(13,43,62,.05), 0 0 0 1px rgba(13,43,62,.09);
+  transition: box-shadow 180ms var(--sc-ease-out);
+}
+.fx-field:focus-within { box-shadow: 0 1px 2px rgba(13,43,62,.05), 0 0 0 2px var(--live); }
+.fx-field input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+  font-family: var(--sc-font-text); font-size: 16px; color: var(--sc-ink);
+  padding: 12px 0;
+}
+.fx-field input::placeholder { color: var(--sc-ink-soft); }
+.fx-field button {
+  flex: none; border: 0; cursor: pointer;
+  font-family: var(--sc-font-mono); font-size: 12px; letter-spacing: .04em;
+  background: var(--sc-ink); color: #eef3f2;
+  padding: 12px 18px; border-radius: var(--sc-r-pill);
+  transition: background 140ms var(--sc-ease-out);
+}
+.fx-field button:hover { background: var(--live); }
+.fx-sugg { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+.fx-sugg button {
+  font-family: var(--sc-font-mono); font-size: 11px; cursor: pointer;
+  background: transparent; color: var(--sc-ink-soft);
+  border: 1px solid var(--rule); border-radius: var(--sc-r-pill);
+  padding: 6px 12px;
+  transition: border-color 140ms var(--sc-ease-out), color 140ms var(--sc-ease-out);
+}
+.fx-sugg button:hover { border-color: var(--live); color: var(--live); }
+
+.fx-foot {
+  margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--rule);
+  display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between;
+  font-family: var(--sc-font-mono); font-size: 10.5px; color: var(--sc-ink-soft);
+  width: min(1120px, calc(100% - 40px));
+}
+
+/* On a narrow document the stamp landed on the "sealed at" line, which is the
+   one line that has to stay readable because it is the proof. Smaller, and
+   tucked into the corner. Caught on the 390px pass, not the desktop one. */
+@media (max-width: 620px) {
+  .fx-stamp { width: 82px; height: 82px; right: 8px; bottom: 8px; }
+  .fx-stamp b { font-size: 12px; }
+  .fx-stamp span { font-size: 7px; }
+  .fx-doc { padding-bottom: 34px; }
+}
+
+/* Reduced motion: fewer and gentler, not zero. The seal still seals, because
+   the seal is the page's meaning and not its decoration. It simply arrives
+   without the overshoot. */
+@media (prefers-reduced-motion: reduce) {
+  .fx-rowline { opacity: 1; transform: none; }
+  .fx-doc.is-sealed .fx-stamp { transition: opacity 200ms linear; transform: rotate(-13deg) scale(1); }
+}
+</style>
+</head>
+<body>
+
+<span data-sc-progress></span>
+<div class="sc-grain" aria-hidden="true"></div>
+
+<!-- NAV: app chrome, not a marketing bar. Live surface §2.3. -->
+<header class="fx-bar">
+  <span class="fx-bar__mark">
+    <svg width="20" height="20" viewBox="0 0 32 32" aria-hidden="true">
+      <rect width="32" height="32" rx="9" fill="#0d2b3e"/>
+      <path d="M6 20c5-7 15-7 20 0" stroke="#7fcfae" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    </svg>
+    Fishlog
+  </span>
+  <span class="fx-bar__sep" aria-hidden="true"></span>
+  <span class="fx-bar__field"><span class="fx-lab">Water</span><b>Jezioro Pomocnia</b></span>
+  <span class="fx-bar__field"><span class="fx-lab">Ruleset</span><b>v0.4</b></span>
+  <span class="fx-bar__field"><span class="fx-dot"></span><b>reading</b></span>
+  <span class="fx-bar__spacer"></span>
+  <a class="fx-bar__cta" href="#today">See today on your water</a>
+</header>
+
+<main id="top">
+
+  <!-- ============ ACT 1 · RECOGNITION · flow + in · feeling: seen ========
+       The hero is the surface already in a state, and the state is EMPTY.
+       No entrance animation on the headline: this is the landing view. -->
+  <section class="fx-open" data-sc-act="flow" data-sc-drift="#eef3f2">
+    <div class="fx-wrap fx-open__grid">
+      <div class="fx-open__copy">
+        <span class="fx-lab">Jezioro Pomocnia &middot; 52.5431&deg;N 20.6762&deg;E &middot; 9.0 ha</span>
+        <h1 class="fx-h fx-h--xl">Nobody knows what the fish will do.</h1>
+        <p class="fx-p">Fishlog writes its guess down anyway, before you leave the house, and then keeps the receipt. Every prediction is stamped, versioned, and never rewritten.</p>
+        <div class="fx-open__sub">
+          <span class="fx-lab">Mean depth 2.8 m</span>
+          <span class="fx-lab">339 m across</span>
+          <span class="fx-lab">Season Apr to Oct</span>
+        </div>
+      </div>
+
+      <div class="fx-panel fx-blank" data-sc-in data-sc-stagger="60">
+        <div class="fx-blank__top">
+          <span class="fx-lab">Prediction</span>
+          <span class="fx-lab">not yet written</span>
+        </div>
+        <div class="fx-blank__slot">
+          <p>no reading taken<br>no ruleset applied<br>no band assigned</p>
+        </div>
+        <div class="fx-blank__foot">
+          <span class="fx-lab">inputs_hash &mdash;</span>
+          <span class="fx-lab">sealed &mdash;</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ACT 2 · SUBSTANCE · pin + count · feeling: alert ========
+       Ground is present at p=0 (the panels exist, empty), per the
+       "ground or greet" rule for pinned acts. -->
+  <section data-sc-act="pin" data-sc-span="2.6" data-sc-drift="#e8efee">
+    <div data-sc-stage class="fx-read-stage">
+      <div class="fx-wrap" style="display:grid; gap:20px;">
+        <div style="display:flex; flex-wrap:wrap; gap:10px 18px; align-items:baseline; justify-content:space-between;">
+          <h2 class="fx-h fx-h--md" data-sc-cue="0 0.30 0">What the water is actually doing.</h2>
+          <span class="fx-lab">Recorded reading &middot; 28 Aug 2026 08:00 CEST</span>
+        </div>
+
+        <div class="fx-reads">
+          <div class="fx-panel fx-read">
+            <span class="fx-lab">Pressure</span>
+            <span class="fx-read__v"><span data-sc-count="1000 1022" data-sc-count-at="0.08 0.44">1000</span><small>hPa</small></span>
+            <svg class="fx-read__spark" viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true">
+              <polyline points="0,6 14,7 28,5 42,9 56,13 70,16 84,18 100,19" fill="none" stroke="#1f6b52" stroke-width="1.6"/>
+            </svg>
+            <span class="fx-read__m">falling 3.0 hPa / 6 h</span>
+          </div>
+
+          <div class="fx-panel fx-read">
+            <span class="fx-lab">Wind</span>
+            <span class="fx-read__v"><span data-sc-count="0 5.4" data-sc-count-at="0.14 0.5">0.0</span><small>m/s</small></span>
+            <svg class="fx-read__spark" viewBox="0 0 100 22" aria-hidden="true">
+              <path d="M50 3 L50 19 M50 3 L44 10 M50 3 L56 10" stroke="#0d2b3e" stroke-width="1.6" fill="none" stroke-linecap="round" transform="rotate(135 50 11)"/>
+            </svg>
+            <span class="fx-read__m">from the south east</span>
+          </div>
+
+          <div class="fx-panel fx-read">
+            <span class="fx-lab">Air</span>
+            <span class="fx-read__v"><span data-sc-count="0 17" data-sc-count-at="0.2 0.54">0</span><small>&deg;C</small></span>
+            <svg class="fx-read__spark" viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true">
+              <polyline points="0,17 16,14 32,9 48,5 64,4 80,7 100,11" fill="none" stroke="#1f6b52" stroke-width="1.6"/>
+            </svg>
+            <span class="fx-read__m">high 23&deg; low 9&deg; yesterday</span>
+          </div>
+
+          <div class="fx-panel fx-read">
+            <span class="fx-lab">Water</span>
+            <span class="fx-read__v">modelled</span>
+            <span class="fx-read__m">no thermometer in this lake. The model carries a 27 member band and the app says so everywhere it is used.</span>
+          </div>
+        </div>
+
+        <div class="fx-note" data-sc-cue="0.42 1 0.2">
+          <span class="fx-lab" style="flex:none; padding-top:2px;">Law 4</span>
+          <span>If a weather fetch fails, Fishlog writes <b>nothing</b> and logs the gap. It does not carry the last value forward, and it never substitutes a forecast for a measurement. A missing hour stays missing.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ACT 3 · TURN · flow + reveal · feeling: sceptical =======
+       The quiet act. Deliberate authored silence: one line, one wipe, no
+       populating panels. It exists to give act 4 something to land against.
+       Reduced block padding because it follows a pinned act. -->
+  <section class="fx-doubt" data-sc-act="flow" data-sc-drift="#e8efee">
+    <div class="fx-wrap fx-doubt__grid">
+      <div style="display:grid; gap:18px;" data-sc-in data-sc-stagger="70">
+        <h2 class="fx-h fx-h--lg">You have no reason to believe any of this.</h2>
+        <p class="fx-p fx-p--wide">Neither does Fishlog. It has never been checked against a single one of your catches, and it says that on the page instead of hiding it behind a percentage. So it does the one thing that makes the claim checkable later: it commits, in writing, before the session, and it never edits the record afterwards.</p>
+      </div>
+      <figure style="margin:0;" data-sc-reveal="up" data-sc-reveal-at="0.12 0.58">
+        <div class="fx-plate" style="aspect-ratio: 3/4;">
+          <img src="/static/landing/plate-reed.webp" alt="A dense stand of reed at a lake margin, with a narrow gap of pale water visible through it." width="1100" height="1457">
+        </div>
+        <figcaption>Plate 1 &middot; reed margin, Jezioro Pomocnia</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============ ACT 4 · THE SEAL · pin + bespoke · feeling: arrested ====
+       THE PEAK. Span 4.2 against a next-largest of 2.6.
+       Signature move lives here: see the script at the foot of the page. -->
+  <section id="seal" data-sc-act="pin" data-sc-span="4.2" data-sc-drift="#eef3f2">
+    <div data-sc-stage class="fx-seal-stage">
+      <div class="fx-wrap" style="display:grid; gap:22px; justify-items:center;">
+        <h2 class="fx-h fx-h--md" style="text-align:center;" data-sc-cue="0 1 0 0.06">It writes the guess down in front of you.</h2>
+
+        <article class="fx-panel fx-doc" id="doc">
+          <div class="fx-doc__head">
+            <span class="fx-doc__title">Prediction</span>
+            <span class="fx-lab">immutable row</span>
+          </div>
+
+          <div class="fx-rows">
+            <div class="fx-rowline" data-at="0.10"><span class="fx-rowline__k">water</span><span class="fx-rowline__v">Jezioro Pomocnia</span></div>
+            <div class="fx-rowline" data-at="0.17"><span class="fx-rowline__k">target date</span><span class="fx-rowline__v">2026-08-28</span></div>
+            <div class="fx-rowline" data-at="0.24"><span class="fx-rowline__k">pressure</span><span class="fx-rowline__v">1022 hPa, falling 3.0 / 6h</span></div>
+            <div class="fx-rowline" data-at="0.30"><span class="fx-rowline__k">wind</span><span class="fx-rowline__v">SE 5.4 m/s</span></div>
+            <div class="fx-rowline" data-at="0.36"><span class="fx-rowline__k">air</span><span class="fx-rowline__v">17 &deg;C</span></div>
+            <div class="fx-rowline" data-at="0.42"><span class="fx-rowline__k">ruleset_version</span><span class="fx-rowline__v">v0.4</span></div>
+            <div class="fx-rowline" data-at="0.49"><span class="fx-rowline__k">inputs_hash</span><span class="fx-rowline__v fx-hash" id="hash">computing</span></div>
+            <div class="fx-rowline" data-at="0.56">
+              <span class="fx-rowline__k">day band</span>
+              <span class="fx-band"><span class="fx-band__chip"></span><span class="fx-band__t" id="bandText">assigning</span></span>
+            </div>
+          </div>
+
+          <div class="fx-note" style="background:transparent; padding:0;">
+            <span>A colour, never a score. Fishlog will not print "7.4 out of 10" because it has nothing to justify the decimal. The band is what the engine can honestly produce.</span>
+          </div>
+
+          <div class="fx-locked">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10.5" rx="2.4"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+            <span id="lockedText">sealed</span>
+          </div>
+
+          <div class="fx-stamp" aria-hidden="true">
+            <b>SEALED</b>
+            <span>ruleset v0.4</span>
+            <span id="stampTime">&mdash;</span>
+          </div>
+        </article>
+
+        <p class="fx-p" style="text-align:center; max-width:46ch;" id="sealLine" data-sc-cue="0.68 1 0.18">
+          Scroll back up. It does not come off.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ACT 5 · PROOF · pan + tilt · feeling: sober =============
+       Real rows from the Okreg Mazowiecki 2024 register. The heading is the
+       rail's first item and the note is its last, per devices.md §3: it
+       gives the rail the width its travel needs and gives it a resolution. -->
+  <section data-sc-act="pan" data-sc-span="2.6" data-sc-drift="#e8efee">
+    <div data-sc-stage>
+      <div class="fx-rail" data-sc-pan="0.05">
+
+        <div class="fx-rail__lead">
+          <span class="fx-lab">Okreg Mazowiecki &middot; 2024 register</span>
+          <h2 class="fx-h fx-h--lg">What anglers actually recorded.</h2>
+          <p class="fx-p">Kilogrammes per angler per day, from returned catch cards. Every figure carries the number of anglers it came from, because that is the part that decides whether it means anything.</p>
+        </div>
+
+        <article class="fx-panel fx-card" data-sc-tilt="6">
+          <span class="fx-card__name">Zbiornik Talar</span>
+          <span class="fx-row__v">7.15<small>kg/day</small></span>
+          <span class="fx-nbar"><i style="width:4%"></i></span>
+          <span class="fx-card__n">n = 43 anglers</span>
+        </article>
+
+        <article class="fx-panel fx-card" data-sc-tilt="6">
+          <span class="fx-card__name">Staw Krzywie</span>
+          <span class="fx-row__v">6.24<small>kg/day</small></span>
+          <span class="fx-nbar"><i style="width:4%"></i></span>
+          <span class="fx-card__n">n = 48 anglers</span>
+        </article>
+
+        <article class="fx-panel fx-card" data-sc-tilt="6">
+          <span class="fx-card__name">Glinianki Golkow</span>
+          <span class="fx-row__v">3.35<small>kg/day</small></span>
+          <span class="fx-nbar"><i style="width:8%"></i></span>
+          <span class="fx-card__n">n = 90 anglers</span>
+        </article>
+
+        <article class="fx-panel fx-card" data-sc-tilt="6">
+          <span class="fx-card__name">Jezioro Pomocnia</span>
+          <span class="fx-row__v">0.71<small>kg/day</small></span>
+          <span class="fx-nbar"><i style="width:2%"></i></span>
+          <span class="fx-card__n">n = 23 anglers &middot; carp 39.6%</span>
+        </article>
+
+        <article class="fx-panel fx-card fx-card--warn" data-sc-tilt="6">
+          <span class="fx-card__name">Obwod rybacki Narew Nr 7</span>
+          <span class="fx-row__v">0.65<small>kg/day</small></span>
+          <span class="fx-nbar"><i style="width:100%"></i></span>
+          <span class="fx-card__n">n = 1162 anglers</span>
+        </article>
+
+        <article class="fx-panel fx-card" data-sc-tilt="6">
+          <span class="fx-card__name">Obwod rybacki Wisla Nr 3</span>
+          <span class="fx-row__v">0.42<small>kg/day</small></span>
+          <span class="fx-nbar"><i style="width:51%"></i></span>
+          <span class="fx-card__n">n = 593 anglers</span>
+        </article>
+
+        <!-- Plates sit in the rail as figures in a survey document, not as
+             backdrops. This grammar forbids full-bleed photography, and a
+             plate among the data cards is what an almanac actually looks
+             like. They also give the rail the width its travel needs
+             (devices.md §3: measure the overflow, do not assume it). -->
+        <figure class="fx-plate fx-rail__plate" style="margin:0; width:250px; flex:none;">
+          <img src="/static/landing/plate-surface.webp" alt="Wind ripple crossing an otherwise still lake surface, seen from directly above." width="1100" height="1457">
+        </figure>
+
+        <figure class="fx-plate fx-rail__plate fx-rail__plate--wide" style="margin:0; width:430px; flex:none;">
+          <img src="/static/landing/plate-seam.webp" alt="The seam where wind-driven ripple meets sheltered still water." width="1600" height="889">
+        </figure>
+
+        <div class="fx-rail__end">
+          <div class="fx-note" style="display:grid; gap:9px;">
+            <span class="fx-lab">Law 5</span>
+            <span>Talar's 7.15 came from 43 anglers. Narew Nr 7's 0.65 came from 1162. A big number with a small n is not a better water, it is a smaller sample. Fishlog never renders a figure without the n beside it.</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ACT 6 · COMMITMENT · pin + magnet · feeling: resolved ===
+       Live surface closes on an ACTUAL INPUT, not a button island.
+       One-value cues so nothing fades before the page ends. Last element. -->
+  <section id="today" data-sc-act="pin" data-sc-span="1.15" data-sc-drift="#eef3f2">
+    <div data-sc-stage class="fx-close-stage">
+      <div class="fx-wrap fx-close">
+        <h2 class="fx-h fx-h--lg" data-sc-cue="0.04">See today on your water.</h2>
+        <p class="fx-p" style="text-align:center;" data-sc-cue="0.04">Name a lake, a river district or a canal. Fishlog builds it: outline, grid, weather series, and a prediction written before you go.</p>
+
+        <form class="fx-field" action="/places/new" method="get" data-sc-cue="0.04" data-sc-rise="0">
+          <label class="fx-lab" for="q" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Water name</label>
+          <input id="q" name="q" type="search" autocomplete="off" placeholder="Jezioro, obwod rybacki, kanal...">
+          <button type="submit" data-sc-magnet="0.24" data-sc-rise="0">See today on your water</button>
+        </form>
+
+        <div class="fx-sugg" data-sc-cue="0.04">
+          <button type="button" data-fill="Jezioro Pomocnia">Jezioro Pomocnia</button>
+          <button type="button" data-fill="Obwod rybacki Narew Nr 7">Narew Nr 7</button>
+          <button type="button" data-fill="Kanal Zeranski">Kanal Zeranski</button>
+        </div>
+
+        <div class="fx-foot">
+          <span>Fishlog &middot; one lake, 9 ha, and a notebook that counts blanks</span>
+          <span>Figures: Okreg Mazowiecki 2024 catch register</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="/static/landing/scrollcraft.js"></script>
+<script>
+ScrollCraft.mount(document.body);
+
+/* =====================================================================
+   THE SIGNATURE MOVE · "The Seal"
+   ---------------------------------------------------------------------
+   One bespoke interaction, in the page, driven off the act's own --sc-p.
+   The engine is not touched.
+
+   What it does: as act 4 advances, the prediction row composes itself line
+   by line, hashes the values that are actually on screen, and then stamps.
+
+   What makes it the signature move rather than a kit device: THE STAMP IS
+   IRREVERSIBLE. Every scroll library on earth makes everything reversible,
+   because reversibility is what scroll-linked animation IS. Scrolling back
+   here un-composes nothing. The seal stays, the hash stays, and the caption
+   changes to name the time it was sealed.
+
+   That is the product's second law rendered as an interaction: a prediction
+   row is immutable once created, and may never be regenerated for a past
+   date. You cannot scroll back and give the app a second guess, for the same
+   reason you cannot give yourself one.
+   ===================================================================== */
+(function () {
+  "use strict";
+
+  var act = document.getElementById("seal");
+  var doc = document.getElementById("doc");
+  if (!act || !doc) return;
+
+  var lines = Array.prototype.slice.call(doc.querySelectorAll(".fx-rowline"));
+  var hashEl = document.getElementById("hash");
+  var bandEl = document.getElementById("bandText");
+  var lockedEl = document.getElementById("lockedText");
+  var stampTime = document.getElementById("stampTime");
+  var sealLine = document.getElementById("sealLine");
+
+  // The values the hash is taken over. These are the numbers rendered in the
+  // rows above, not a decorative string: change a row and the hash changes.
+  var INPUTS = [
+    "pomocnia", "2026-08-28", "1022.0", "-3.0", "SE", "5.4", "17.0", "v0.4"
+  ].join("|");
+
+  // FNV-1a, 32-bit. A real hash of the real inputs, computed here rather than
+  // written into the markup, so it is verifiable by reading this file.
+  function fnv1a(str) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+    }
+    return ("0000000" + h.toString(16)).slice(-8);
+  }
+  var HASH = fnv1a(INPUTS) + fnv1a(INPUTS + "salt").slice(0, 8);
+
+  var SEAL_AT = 0.62;
+  var sealed = false;          // <- never set back to false. That is the point.
+  var armed = false;
+
+  function fmtTime(d) {
+    function p(n) { return (n < 10 ? "0" : "") + n; }
+    return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+  }
+
+  function frame() {
+    // The engine writes --sc-p as an inline style on the act element, so this
+    // reads a string off the node rather than forcing a style recalculation.
+    var p = parseFloat(act.style.getPropertyValue("--sc-p")) || 0;
+
+    for (var i = 0; i < lines.length; i++) {
+      var at = parseFloat(lines[i].getAttribute("data-at"));
+      // Composed lines stay composed: once a row is in, it is in for good,
+      // for the same reason the seal is.
+      if (p >= at) lines[i].classList.add("is-in");
+    }
+
+    if (!armed && p >= 0.49) {
+      armed = true;
+      hashEl.textContent = HASH;
+      doc.classList.add("is-armed");
+      bandEl.textContent = "green";
+    }
+
+    if (!sealed && p >= SEAL_AT) {
+      sealed = true;
+      var now = new Date();
+      stampTime.textContent = fmtTime(now);
+      lockedEl.textContent = "sealed at " + fmtTime(now) + " and closed to edits";
+      doc.classList.add("is-sealed");
+      if (sealLine) sealLine.textContent = "Scroll back up. It does not come off.";
+    }
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* The suggestion chips fill the real field rather than navigating, so the
+   close stays an input the visitor operates. */
+document.querySelectorAll(".fx-sugg button").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var f = document.getElementById("q");
+    f.value = b.getAttribute("data-fill");
+    f.focus();
+  });
+});
+</script>
+</body>
+</html>

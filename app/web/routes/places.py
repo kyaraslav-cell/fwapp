@@ -482,3 +482,24 @@ def spot_start_submit(
         # running-session pill says which water it is on.
         pass
     return RedirectResponse(url="/session/active", status_code=303)
+
+
+@router.get("/welcome")
+def welcome(request: Request) -> Response:
+    """The front door, for someone who has not seen Fishlog before.
+
+    Deliberately NOT the app's `/`. Standing rule 5 fixes the flow as
+    home (places) -> map -> spot -> method -> catch, and the conditions half of
+    this app is public on purpose, so hijacking `/` would put a pitch in front
+    of an angler who came to look at the water. This is a page you arrive at
+    from a link, and the topbar shows it only to a signed-out visitor.
+
+    Built with the scrollcraft skill. `scrollcraft/builds/fishlog/BRIEF.md`
+    carries the interview, the feeling curve and the reasoning; the verification
+    shots are beside it. Read those before changing the act order.
+
+    No database work: every figure on the page is either a recorded reading that
+    says so on its face, or the 2024 okreg register, which is a committed file.
+    A landing page that opens a session per visit would be a cost with no reader.
+    """
+    return templates.TemplateResponse(request, "landing.html")

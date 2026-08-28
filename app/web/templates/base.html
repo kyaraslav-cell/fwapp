@@ -39,6 +39,9 @@
         <button type="submit" class="account-signout">{{ t('auth.signout') }}</button>
       </form>
       {% else %}
+      {# Only for a signed-out visitor: someone already logged in has seen the
+         pitch and does not need a route back to it. #}
+      <a href="/welcome" class="account-signin">{{ t('nav.what_is_this') }}</a>
       <a href="/auth/login?next={{ current_path | urlencode }}" class="account-signin">{{ t('auth.signin') }}</a>
       {% endif %}
     </div>

@@ -22,3 +22,13 @@ spike-verdict.png
 # IS tracked - the owner reads them on GitHub and cannot download files.
 tools/design_shots/
 tools/asset_out/
+
+# scrollcraft build working output: verification shots, node_modules, the
+# 8MB PNGs kie.ai returns, and the fetched Google Fonts CSS. The BRIEF, the
+# page source, the generate script and the packed assets ARE tracked, and the
+# sheets worth keeping are copied into docs/design/.
+scrollcraft/builds/*/lab/
+scrollcraft/builds/*/out/
+scrollcraft/builds/*/node_modules/
+scrollcraft/builds/*/package*.json
+scrollcraft/builds/*/gf.css

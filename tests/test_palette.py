@@ -153,3 +153,37 @@ def test_the_reveal_cannot_permanently_hide_content() -> None:
     assert "getBoundingClientRect().top < fold" in js, (
         "the above-the-fold skip is gone; content already on screen would be hidden"
     )
+
+
+def test_the_landing_page_self_hosts_its_faces() -> None:
+    """The landing page uses Archivo and IBM Plex Mono, which the rest of the
+    app does not. They are served from this origin, never from Google.
+
+    Asserted because the obvious way to add a face is a Google Fonts link, and
+    the obvious way to make that work is to widen the CSP again. Both origins
+    were removed deliberately (docs/17 §2); this keeps the landing page from
+    quietly putting them back.
+    """
+    landing = pathlib.Path("app/web/templates/landing.html").read_text(encoding="utf-8")
+    for host in ("fonts.googleapis.com", "fonts.gstatic.com"):
+        assert host not in landing, f"landing.html reaches {host}"
+    assert "/static/landing-fonts.css" in landing
+
+    faces = pathlib.Path("app/web/static/landing-fonts.css").read_text(encoding="utf-8")
+    assert "https://" not in faces, "a @font-face still points off-origin"
+    for family in ("Archivo", "IBM Plex Mono"):
+        assert family in faces
+    font_dir = pathlib.Path("app/web/static/fonts")
+    assert list(font_dir.glob("*.woff2")), "no self-hosted woff2 files committed"
+
+
+def test_the_landing_page_ships_its_engine_and_plates() -> None:
+    """landing.html is generated from scrollcraft/builds/fishlog and references
+    files under /static/landing. A missing one is a page that half-renders, and
+    the browser says nothing useful about it."""
+    landing = pathlib.Path("app/web/templates/landing.html").read_text(encoding="utf-8")
+    referenced = set(re.findall(r'/static/landing/([A-Za-z0-9_.-]+)', landing))
+    assert referenced, "landing.html references nothing under /static/landing"
+    present = {p.name for p in pathlib.Path("app/web/static/landing").iterdir()}
+    missing = referenced - present
+    assert not missing, f"landing.html references files that are not committed: {missing}"

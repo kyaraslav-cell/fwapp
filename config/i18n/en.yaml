@@ -4,6 +4,7 @@ nav:
   places: Places
   history: History
   brand: Fishlog
+  what_is_this: What is this?
 
 home:
   filter_all: All
