@@ -62,6 +62,7 @@ Every finished change is merged there and pushed (rule 13).
 | Nominatim / Overpass / Open-Meteo | **run for real**, live on the owner's machine (`zalew-zegrzynski` added 2026-08-24) |
 | Offline / service worker | **not built** — `docs/15 §A5`, the biggest gap |
 | Gemini local-knowledge pass (`intel` job, `water_fact`) | **run for real**, 2026-08-24 — translated into all 3 site languages, trimmed to essentials (`docs/handoff/2026-08-24-2152-...md`) |
+| Design workflow: `design-kit` skill + 3 subagents | works - `.claude/skills/design-kit/`, `.claude/agents/`; see `docs/18` and `docs/18b` |
 | Sign in with Google | wired and verified end-to-end (real client id, correct redirect, correct consent-screen URL) — the human consent click-through is the owner's to complete |
 
 **Run it:**
