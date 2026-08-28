@@ -196,4 +196,18 @@
       }, true);
     }
   } catch (e) {}
+
+  /* Pause the ambient layer when the tab is not being looked at. A CSS
+     animation keeps running in a background tab, and this app spends its whole
+     working life in a pocket beside a rod - an animation nobody can see is
+     pure battery. The class drives animation-play-state; nothing here reads or
+     writes layout. */
+  try {
+    var root = document.documentElement;
+    var syncVisibility = function () {
+      root.classList.toggle("is-hidden", document.visibilityState === "hidden");
+    };
+    document.addEventListener("visibilitychange", syncVisibility);
+    syncVisibility();
+  } catch (e) {}
 })();

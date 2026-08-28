@@ -1,0 +1,73 @@
+{#- Ambient fish.
+
+    Four species crossing the page from time to time, per the owner's brief.
+    Decorative only: the layer is aria-hidden and pointer-events:none, it states
+    nothing the page does not already say in words, and it can never swallow a
+    tap meant for a control underneath it.
+
+    Zero bytes on the wire - inline SVG and CSS keyframes, no sprite, no
+    library. Motion is transform/opacity only, pauses when the tab is hidden,
+    and is removed entirely under prefers-reduced-motion (style.css, "Ambient
+    fish and tackle").
+
+    Every species owns its geometry, per CLAUDE.md. The tail alone identifies
+    each one: roach an even fork, bream a long unequal fork with the lower lobe
+    dropped, crucian a rounded convex fan, rudd an even fork on a deeper body
+    with an upturned mouth. Recolouring one silhouette four times would teach
+    the angler nothing and is explicitly forbidden.
+
+    --cross is the full cycle; --delay staggers them so they are occasional
+    rather than a parade. --top is where the arc happens. -#}
+<div class="ambient" aria-hidden="true">
+
+  {#- roach: slender body, even moderate fork -#}
+  <span class="ambient-fish" style="top: 22%; --cross: 34s; --delay: 3s;">
+    <span class="ambient-fish-arc" style="display:block; --cross: 34s; --delay: 3s;">
+      <svg width="46" height="26" viewBox="0 0 44 24" style="fill: var(--accent-soft)">
+        <path d="M11 12 C15 5 30 5 40 12 C30 19 15 19 11 12 Z"/>
+        <path d="M11 12 L2 6 L6 12 L2 18 Z"/>
+        <path d="M23 6.6 C25 3.4 29 3.6 30 6.4" fill="none"
+              style="stroke: var(--accent-soft)" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+    </span>
+  </span>
+
+  {#- bream: deep body, small head, long unequal fork -#}
+  <span class="ambient-fish" style="top: 47%; --cross: 41s; --delay: 17s;">
+    <span class="ambient-fish-arc" style="display:block; --cross: 41s; --delay: 17s;">
+      <svg width="44" height="25" viewBox="0 0 44 24" style="fill: var(--band-green)">
+        <path d="M12 12 C16 2 32 2.5 41 12 C32 22 16 22 12 12 Z"/>
+        <path d="M12 12 L1 3 L6 12 L2 23 Z"/>
+        <path d="M25 3.4 C27 0 31 0.4 32 3.2" fill="none"
+              style="stroke: var(--band-green)" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+    </span>
+  </span>
+
+  {#- crucian: very round body, rounded convex fan tail, no fork at all -#}
+  <span class="ambient-fish" style="top: 68%; --cross: 47s; --delay: 31s;">
+    <span class="ambient-fish-arc" style="display:block; --cross: 47s; --delay: 31s;">
+      <svg width="42" height="24" viewBox="0 0 44 24" style="fill: var(--accent-soft)">
+        <path d="M14 12 C17 3 32 3 40 12 C32 21 17 21 14 12 Z"/>
+        <path d="M14 12 C7 5 3 12 5 15 C7 18 10 17 14 12 Z"/>
+        <path d="M24 4 C26 1.2 31 1.6 32 4.4" fill="none"
+              style="stroke: var(--accent-soft)" stroke-width="2.6" stroke-linecap="round"/>
+      </svg>
+    </span>
+  </span>
+
+  {#- rudd: deeper than the roach, dorsal set back, mouth turned up -#}
+  <span class="ambient-fish" style="top: 34%; --cross: 53s; --delay: 46s;">
+    <span class="ambient-fish-arc" style="display:block; --cross: 53s; --delay: 46s;">
+      <svg width="44" height="25" viewBox="0 0 44 24" style="fill: var(--band-yellow)">
+        <path d="M13 13 C17 3.5 32 4 41 12 C33 22 17 22 13 13 Z"/>
+        <path d="M13 13 L3 5 L7 13 L3 22 Z"/>
+        <path d="M27 4.6 C29 1 33 1.4 34 4.6" fill="none"
+              style="stroke: var(--band-yellow)" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M41 12 L38 9.4" fill="none"
+              style="stroke: var(--band-yellow)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </span>
+  </span>
+
+</div>

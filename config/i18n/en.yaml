@@ -99,6 +99,8 @@ session:
   log_catch: Log this catch
   this_session: This session
   edit: Edit
+  delete: Delete
+  delete_confirm: 'Delete this catch? Unlike a water, a catch really is deleted and cannot be brought back.'
   end_session: ■ End session
 
 end:

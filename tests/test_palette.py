@@ -59,19 +59,43 @@ def test_the_stylesheet_defines_every_palette_token() -> None:
 
 
 def test_the_old_palette_is_gone() -> None:
-    """The pastel-blue design's colours, which several rules kept using after
-    the tokens were re-pointed. A leftover here is invisible in review and
-    obvious on screen: one blue card in a green app."""
+    """The Waterline design's colours, retired 2026-08-28 (docs/19). A leftover
+    is invisible in review and obvious on screen: one navy card in a kraft app.
+    The pastel-blue scheme before it is listed too - it was retired once already
+    and a rule that survived two re-skins would survive a third."""
     css = STYLESHEET.read_text(encoding="utf-8")
     retired = {
-        "#f2f8fd": "old --bg",
-        "#eaf3fb": "old --surface-alt",
-        "#dbe9f5": "old --border",
-        "#22384d": "old --text",
-        "#6fb1e8": "old --primary",
-        "#4a93d6": "old --primary-strong",
-        "#0d3a63": "old --primary-text",
-        "#e07a66": "old --danger",
+        # Waterline - navy ink on pale water, reed green
+        "#eef4f4": "Waterline --canvas",
+        "#e3edee": "Waterline --canvas-deep",
+        "#f4f9f9": "Waterline --surface-sunk",
+        "#0f2c40": "Waterline --ink",
+        "#415f72": "Waterline --ink-soft",
+        "#526d7d": "Waterline --ink-faint",
+        "#2a765d": "Waterline --accent",
+        "#8fcdb6": "Waterline --accent-soft",
+        "#dcefe7": "Waterline --accent-wash",
+        "#d2e1e3": "Waterline --line",
+        "#b9d0d3": "Waterline --line-strong",
+        "#7fc9a8": "Waterline --band-green",
+        "#e8d08a": "Waterline --band-yellow",
+        "#eeb08a": "Waterline --band-orange",
+        "#e59a8c": "Waterline --band-red",
+        "#123f31": "Waterline --primary-text (an alias-block literal)",
+        "#0e4d38": "Waterline --accent-green-text (an alias-block literal)",
+        "#6b2a1c": "Waterline --accent-coral-text (an alias-block literal)",
+        "#b24739": "Waterline --danger (an alias-block literal)",
+        "#963a2e": "Waterline --danger-strong (an alias-block literal)",
+        "#226150": "Waterline .btn-primary:hover, hardcoded",
+        # the pastel blue before it
+        "#f2f8fd": "pastel --bg",
+        "#eaf3fb": "pastel --surface-alt",
+        "#dbe9f5": "pastel --border",
+        "#22384d": "pastel --text",
+        "#6fb1e8": "pastel --primary",
+        "#4a93d6": "pastel --primary-strong",
+        "#0d3a63": "pastel --primary-text",
+        "#e07a66": "pastel --danger",
     }
     for value, what in retired.items():
         # Comments may still name a retired colour to explain why it went.
@@ -83,20 +107,77 @@ def test_the_old_palette_is_gone() -> None:
         assert not live, f"{value} ({what}) is still live in {STYLESHEET}: {live}"
 
 
+def test_the_alias_block_holds_no_literal_colour() -> None:
+    """The defect this test exists for shipped and sat unnoticed: five colours
+    were written as hex INSIDE the alias block, where tools/palette_check.py -
+    which walks the palette layer - could not see them. They rendered on screen
+    and were never contrast-tested. An alias may only ever be var(--something).
+    """
+    css = STYLESHEET.read_text(encoding="utf-8")
+    marker = "Legacy role names"
+    assert marker in css, "the alias block's header comment has moved"
+    block = css[css.index(marker):]
+    block = block[: block.index("}")]
+    live = [
+        line
+        for line in block.splitlines()
+        if re.search(r"#[0-9a-fA-F]{3,8}\b", line)
+        and not line.strip().startswith(("/*", "*", "//"))
+    ]
+    assert not live, (
+        "literal colour(s) in the alias block, invisible to palette_check.py: "
+        f"{live}"
+    )
+
+
 def test_no_webfont_is_requested() -> None:
-    """The system stack is a performance decision the app is read on a riverbank
-    to justify (docs/17 §2). A reintroduced font link is a silent regression:
-    everything still works, it is just slower on exactly the connection that
-    can least afford it."""
-    for template in pathlib.Path("app/web/templates").glob("*.html"):
-        text = template.read_text(encoding="utf-8")
+    """The app now ships a real typeface (docs/19b D3), but it is SELF-HOSTED.
+    A third-party font origin is what this guards: it costs a DNS lookup and a
+    connection on exactly the signal that can least afford one, and it re-opens
+    a CSP hole nobody is watching. Checked in the stylesheet as well as the
+    templates, because that is where the @font-face rules now live."""
+    targets = list(pathlib.Path("app/web/templates").glob("*.html")) + [STYLESHEET]
+    for target in targets:
+        text = target.read_text(encoding="utf-8")
         for host in ("fonts.googleapis.com", "fonts.gstatic.com"):
             live = [
                 line
                 for line in text.splitlines()
-                if host in line and "{#" not in line and not line.strip().startswith("#}")
+                if host in line
+                and "{#" not in line
+                and not line.strip().startswith(("#}", "/*", "*"))
             ]
-            assert not live, f"{template} requests {host}: {live}"
+            assert not live, f"{target} requests {host}: {live}"
+
+
+def test_the_faces_are_committed_and_within_budget() -> None:
+    """Split by unicode-range so a reader downloads only their own alphabet: a
+    Polish angler never fetches Cyrillic, and Baloo 2 ships no Cyrillic at all
+    because Russian headings fall through to Nunito in the stack.
+
+    The budget is the point. A "just add a weight" that doubles the download is
+    invisible in review and costs real seconds at a waterside."""
+    budget_kb = {
+        "nunito-latin.woff2": 40,
+        "nunito-latin-ext.woff2": 36,
+        "nunito-cyrillic.woff2": 22,
+        "baloo2-latin.woff2": 34,
+        "baloo2-latin-ext.woff2": 28,
+    }
+    font_dir = pathlib.Path("app/web/static/fonts")
+    css = STYLESHEET.read_text(encoding="utf-8")
+    for name, budget in budget_kb.items():
+        path = font_dir / name
+        assert path.exists(), f"{path} is declared in {STYLESHEET} but not committed"
+        kb = path.stat().st_size / 1024
+        assert kb <= budget, f"{name} is {kb:.1f}KB, budget {budget}KB"
+        assert f"/static/fonts/{name}" in css, f"{name} is committed but never used"
+        assert path.read_bytes()[:4] == b"wOF2", f"{name} is not a woff2 file"
+
+    assert css.count("font-display: swap") >= 5, (
+        "every @font-face needs font-display: swap - invisible text on a "
+        "riverbank is a worse failure than a swap"
+    )
 
 
 def test_the_generated_assets_stay_small() -> None:
@@ -117,10 +198,22 @@ def test_motion_respects_reduced_motion() -> None:
     Reduced motion means fewer and gentler, not zero - so the block must exist
     and must name each moving part."""
     css = STYLESHEET.read_text(encoding="utf-8")
-    assert "@media (prefers-reduced-motion: reduce)" in css
-    block = css.split("@media (prefers-reduced-motion: reduce)")[-1]
-    for moving in (".splash", ".waterline::after", ".js-reveal", ".is-biting"):
-        assert moving in block, f"{moving} is not handled under reduced motion"
+    marker = "@media (prefers-reduced-motion: reduce)"
+    assert marker in css
+    # Every such block, not just the last one. The first version of this test
+    # read `split(marker)[-1]`, so adding a SECOND reduced-motion block - which
+    # is the natural way to keep a new effect's answer beside the effect -
+    # hid the first block from the test and failed on rules that were present.
+    blocks = css.split(marker)[1:]
+    covered = "".join(blocks)
+    for moving in (
+        ".splash",
+        ".waterline::after",
+        ".js-reveal",
+        ".is-biting",
+        ".ambient",
+    ):
+        assert moving in covered, f"{moving} is not handled under reduced motion"
 
 
 def test_the_reveal_cannot_permanently_hide_content() -> None:
