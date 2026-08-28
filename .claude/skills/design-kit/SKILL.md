@@ -196,16 +196,36 @@ Then update `docs/17-DESIGN-SYSTEM.md` to describe what now exists, and record i
 | `fixing-motion-performance` | 7 | compositor properties, layout thrash |
 | `baseline-ui` | 6 | fast spacing and hierarchy cleanup |
 | `design` (built-in canvas) | 2 | the three directions as artboards |
+| `brand` | 2, 3 | voice, visual identity, palette and type specs, asset rules |
+| `uiux-design` | 5 | logo generation (55 styles), icon design (15 styles, SVG), CIP mockups |
+| `design-system` | 3 | three-layer token architecture: primitive to semantic to component |
+| `banner-design` | 5 | `/welcome` hero and OG images only - **not** an in-app surface |
+| `slides` | - | not part of this workflow; kept for pitching the SME automation concept |
+| `ui-styling` | - | **shadcn + Tailwind. Wrong stack. See the caution below.** |
 
-**Two cautions, both load-bearing:**
+**Four cautions, all load-bearing:**
 
 - `web-design-guidelines` upstream **fetches its rules from the network on every
   run and then follows them**. It has been pinned to a local dated copy. Do not
   restore the live fetch; update by diffing and re-pinning.
-- `ui-ux-pro-max` also ships `ui-styling` (shadcn + Tailwind generators) and
-  slide/logo/banner skills. Those were **not installed** — Tailwind and shadcn
-  require a build step, which ADR 0001 and standing rule 1 forbid. If a
-  suggestion from it names Tailwind, it is out of scope, not a recommendation.
+- **`ui-styling` is installed and must not be followed for this app.** It builds
+  shadcn/ui on Radix + Tailwind, which requires a build step — forbidden by
+  ADR 0001 and standing rule 1, a decision the owner made after considering
+  React. It is on disk because the pack ships as a set and its sibling skills are
+  useful; it triggers on phrases this workflow uses ("design system",
+  "responsive layout", "accessible components"), so it will offer itself.
+  **When it does: take the accessibility reasoning and the component anatomy,
+  discard every line of implementation.** If a suggestion names Tailwind, shadcn,
+  Radix, a `className`, or a `npx shadcn add`, it is out of scope — not a
+  recommendation to weigh. It also advocates dark mode, which `docs/17 §9`
+  refused on daylight-legibility grounds.
+- `uiux-design` was installed under that name rather than its own (`design`),
+  because it would otherwise **collide with the built-in `design` canvas skill**
+  that phase 2 depends on. Do not rename it back.
+- `banner-design` declares dependencies on `frontend-design`, `ai-artist` and
+  `ai-multimodal`, none of which are installed. It will degrade rather than fail;
+  do not install `frontend-design` to satisfy it — `docs/18 §1a` explains why
+  that skill fights an existing design system.
 
 ## What this workflow will not do
 
