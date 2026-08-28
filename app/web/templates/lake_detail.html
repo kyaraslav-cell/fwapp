@@ -165,14 +165,17 @@
   <svg class="fish-pin" id="fish-pin" viewBox="0 0 64 44" draggable="true" aria-label="{{ t('lake.pin_hint') }}">
     <defs>
       <linearGradient id="fishGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#6fb1e8"/>
-        <stop offset="100%" stop-color="#4a93d6"/>
+        {# The pin is a control, not a species, so it wears the app's accent
+           rather than a naturalistic colour - the fish in _fish_icons.html are
+           the ones that must stay true to the fish. #}
+        <stop offset="0%" stop-color="#8fcdb6"/>
+        <stop offset="100%" stop-color="#2a765d"/>
       </linearGradient>
     </defs>
     <path d="M4 22 C16 4, 40 4, 50 22 C40 40, 16 40, 4 22 Z" fill="url(#fishGrad)"/>
-    <path d="M50 22 L62 10 L58 22 L62 34 Z" fill="#4a93d6"/>
+    <path d="M50 22 L62 10 L58 22 L62 34 Z" fill="#2a765d"/>
     <circle cx="17" cy="19" r="3" fill="#fff"/>
-    <circle cx="17" cy="19" r="1.4" fill="#22384d"/>
+    <circle cx="17" cy="19" r="1.4" fill="#0f2c40"/>
     <path d="M24 22 C30 16, 38 16, 44 21" stroke="#ffffff" stroke-opacity="0.55" stroke-width="2" fill="none"/>
   </svg>
   <div class="pin-hint">{{ t('lake.pin_hint') }}</div>
@@ -568,7 +571,7 @@ function pickSpot(lat, lon, containerPoint) {
     marker.bindPopup(
       `<div style="text-align:center;font-family:inherit;">
          <div style="font-weight:600;margin-bottom:4px;">${forecastDay}</div>
-         <div style="color:#6c8299;font-size:0.86em;">${I18N.forecast_only}</div>
+         <div style="color:var(--ink-faint);font-size:0.86em;">${I18N.forecast_only}</div>
        </div>`
     ).openPopup();
     return;
@@ -578,7 +581,7 @@ function pickSpot(lat, lon, containerPoint) {
   marker.bindPopup(
     `<div style="text-align:center;font-family:inherit;">
        <div style="font-weight:600;margin-bottom:6px;">${I18N.fish_here}</div>
-       <a href="${href}" style="color:#4a93d6;font-weight:600;">${I18N.start_session}</a>
+       <a href="${href}" style="color:var(--accent);font-weight:600;">${I18N.start_session}</a>
      </div>`
   ).openPopup();
 }

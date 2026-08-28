@@ -81,9 +81,21 @@ def test_the_policy_admits_what_the_page_actually_loads() -> None:
     """A CSP that blocks the map is a CSP somebody will delete in a hurry."""
     assert "https://unpkg.com" in security.CSP           # Leaflet
     assert "arcgisonline.com" in security.CSP            # Esri tiles
-    assert "https://fonts.gstatic.com" in security.CSP   # the font FILES, not
-    assert "https://fonts.googleapis.com" in security.CSP  # only the stylesheet
     assert "data:" in security.CSP                       # the canvas overlay
+
+
+def test_no_third_party_font_origin_is_admitted() -> None:
+    """The Waterline design dropped the webfont for the system stack, so both
+    Google origins came out of the policy (docs/17-DESIGN-SYSTEM.md §2).
+
+    Asserted rather than merely deleted: a CSP that still admits an origin the
+    app stopped using is a standing permission nobody is watching, and the
+    usual way it comes back is somebody re-adding a font link and widening the
+    policy to match instead of asking whether the font is wanted.
+    """
+    assert "fonts.googleapis.com" not in security.CSP
+    assert "fonts.gstatic.com" not in security.CSP
+    assert "font-src 'self'" in security.CSP
 
 
 def test_the_policy_closes_what_it_should() -> None:

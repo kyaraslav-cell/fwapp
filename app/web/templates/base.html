@@ -8,11 +8,12 @@
      the pastel/minimal design rule (CLAUDE.md). Caught by tools/site_audit.py. #}
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Fishlog{% endblock %}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  {# No webfont. Inter cost two preconnects, a render-blocking stylesheet and up
+     to four woff2 files before any text could paint, and it could not be
+     subsetted because this UI ships Polish and Russian. The system stack is 0
+     bytes and covers all three alphabets. See docs/17-DESIGN-SYSTEM.md. #}
   <link rel="stylesheet" href="/static/style.css">
-  <meta name="theme-color" content="#f2f8fd">
+  <meta name="theme-color" content="#eef4f4">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -42,6 +43,11 @@
       {% endif %}
     </div>
   </div>
+
+  {# The waterline. Decorative, so it is hidden from assistive tech - it is a
+     duplicate of state the page already states in words (a form that is
+     submitting, a link that was tapped). See docs/17-DESIGN-SYSTEM.md §3. #}
+  <div class="waterline" aria-hidden="true"></div>
 
   <main class="page{% block page_class %}{% endblock %}">
     {% block content %}{% endblock %}
@@ -80,6 +86,10 @@
     <a href="/" class="{{ 'active' if active_nav == 'home' }}">{{ t('nav.places') }}</a>
     <a href="/history" class="{{ 'active' if active_nav == 'history' }}">{{ t('nav.history') }}</a>
   </nav>
+  {# `defer` rather than `async`: this reads the DOM, so it must not run before
+     the document is parsed, and it must never block first paint on a slow
+     connection. Loaded last so a failure here cannot affect anything above. #}
+  <script src="/static/waterline.js" defer></script>
   {% block extra_script %}{% endblock %}
 </body>
 </html>

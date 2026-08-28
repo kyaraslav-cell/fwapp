@@ -1,6 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Fishlog — Places{% endblock %}
 {% block content %}
+{# Decorative backdrop, so aria-hidden and no alt text: it says nothing the
+   heading does not, and announcing "illustration of a lake" to a screen reader
+   is noise. No text sits on it, so it needs no scrim.
+
+   The shipped file is pre-cropped to the reed line, the far bank and the water
+   (tools/design_assets_pack.py). Cropping in CSS instead was tried and looked
+   like a broken image: the generated frame is two thirds empty sky, and a
+   200px band taken from the whole frame is featureless.
+
+   Two widths, chosen by the same 720px breakpoint the layout already uses, so
+   a phone downloads 4KB instead of 19KB. `fetchpriority=high` because this is
+   the largest element above the fold and it is the one paint worth hurrying. #}
+<div class="water-hero" aria-hidden="true">
+  <picture>
+    <source media="(max-width: 719px)" srcset="/static/img/water-hero-m.webp">
+    {# No `decoding="async"` here. It contradicts fetchpriority=high on an
+       above-the-fold hero: it tells the browser this image may paint a frame
+       late, which is exactly what the largest element on the first screen must
+       not do. It also made the hero miss the frame in screenshots, so every
+       audit diff and every before/after sheet showed an empty box. #}
+    <img src="/static/img/water-hero.webp" alt="" width="1600" height="356"
+         fetchpriority="high">
+  </picture>
+</div>
 <div class="section-label">{{ t('home.section') }}</div>
 
 {# Filter only, and only here. A PZW water and a commercial fishery are
@@ -105,7 +129,12 @@
 {% endif %}
 </div>
 {% else %}
-  <p class="empty-state">{{ t('home.filter_empty') }}</p>
+  {# A float on still water, not a crossed-out icon: an empty list here means
+     nothing is logged yet, which is waiting, not an error. Decorative, so
+     aria-hidden - the sentence under it carries the meaning. #}
+  <img class="empty-state-art" src="/static/img/float-rings-m.webp" alt=""
+       width="620" height="344" loading="lazy" decoding="async" aria-hidden="true">
+  <p class="empty-state" style="text-align:center;">{{ t('home.filter_empty') }}</p>
 {% endfor %}
 
 <a href="/places/new" class="btn btn-ghost" style="margin-top: 8px;">{{ t('home.new_place') }}</a>

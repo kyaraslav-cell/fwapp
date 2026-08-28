@@ -15,8 +15,10 @@ down because it is also the argument for eventually vendoring these:
 
 - `unpkg.com` - Leaflet's script and stylesheet;
 - `*.arcgisonline.com` - Esri satellite tiles, as images;
-- Google Fonts, split across `googleapis` (the stylesheet) and `gstatic` (the
-  font files), which is the detail everyone gets wrong once;
+- Google Fonts: **no longer**. The Waterline design dropped the webfont for a
+  system stack (docs/17-DESIGN-SYSTEM.md), so both Google origins came out of
+  the policy. A CSP that still admits an origin the app stopped using is a
+  standing permission nobody is watching;
 - `'unsafe-inline'` for scripts, because the map, the day strip, the fish pin
   and the register form are all inline `<script>` blocks. This is the weakest
   line here and it is honest about being so: removing it means either nonces
@@ -68,8 +70,6 @@ from collections.abc import Mapping
 
 LEAFLET = "https://unpkg.com"
 TILES = "https://*.arcgisonline.com https://server.arcgisonline.com"
-FONTS_CSS = "https://fonts.googleapis.com"
-FONTS_FILES = "https://fonts.gstatic.com"
 
 def frame_ancestors() -> str:
     """`'none'` unless a dev container has explicitly asked to be allowed.
@@ -87,8 +87,11 @@ def _csp(ancestors: str) -> str:
         "default-src 'self'",
         # 'unsafe-inline' is the known weak point - see the module docstring.
         f"script-src 'self' 'unsafe-inline' {LEAFLET}",
-        f"style-src 'self' 'unsafe-inline' {LEAFLET} {FONTS_CSS}",
-        f"font-src 'self' {FONTS_FILES}",
+        f"style-src 'self' 'unsafe-inline' {LEAFLET}",
+        # No remote font origin: the app self-hosts nothing and downloads
+        # nothing. 'self' covers a future woff2 in /static without reopening
+        # the policy to a third party.
+        "font-src 'self'",
         # data: for the canvas-rendered heat overlay; blob: for nothing yet,
         # and so deliberately absent.
         f"img-src 'self' data: {TILES} {LEAFLET}",

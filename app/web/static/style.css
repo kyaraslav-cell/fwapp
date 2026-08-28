@@ -1,30 +1,103 @@
+/* ==========================================================================
+   Fishlog - "Waterline"
+   --------------------------------------------------------------------------
+   Deep navy ink on pale water, one reed-green accent. Documented in
+   docs/17-DESIGN-SYSTEM.md; the colours are asserted by tools/palette_check.py
+   and tests/test_palette.py, so a token that fails WCAG AA breaks the suite
+   rather than waiting for the nightly browser audit to find it.
+
+   Two layers on purpose:
+     1. the palette and scales below, which are the design;
+     2. the legacy role names (--bg, --primary, ...) mapped onto them, because
+        268 declarations already reference those. Re-pointing the aliases
+        re-skins the whole app without touching markup, which is what keeps
+        the JS bindings and tests/test_template_element_ids.py intact.
+   ========================================================================== */
 :root {
-  --bg: #f2f8fd;
+  /* ---- ground ---- */
+  --canvas: #eef4f4;
+  --canvas-deep: #e3edee;
   --surface: #ffffff;
-  --surface-alt: #eaf3fb;
-  --border: #dbe9f5;
-  --text: #22384d;
-  --muted: #6c8299;
-  /* #6c8299 on --surface-alt is 3.5:1 - fails WCAG AA (4.5:1) for the small
-     bold link text it was used on (language switcher, sign-in). This passes
-     at ~5.9:1 against --surface-alt and ~6.6:1 against white, while staying
-     in the same muted slate-blue family - not the high-contrast
-     --primary-text used for active/selected state. Caught by
-     tools/site_audit.py (docs/09-BACKLOG.md §20). */
-  --muted-strong: #4a5f75;
-  --primary: #6fb1e8;
-  --primary-strong: #4a93d6;
-  --primary-text: #0d3a63;
-  --accent-green: #7fcfae;
+  --surface-sunk: #f4f9f9;
+  --line: #d2e1e3;
+  --line-strong: #b9d0d3;
+
+  /* ---- ink. Tinted from the navy, never flat grey: #888 on a cool ground
+     reads as dirt. Every value clears 4.5:1 on all five grounds. ---- */
+  --ink: #0f2c40;
+  --ink-soft: #415f72;
+  --ink-faint: #526d7d;
+
+  /* ---- one accent, locked for the whole app ---- */
+  --accent: #2a765d;
+  --accent-soft: #8fcdb6;
+  --accent-wash: #dcefe7;
+  --accent-ink: #ffffff;
+
+  /* ---- the day bands. Traffic light, green good, red bad (CLAUDE.md
+     standing rule 3). Pastel enough to sit in this palette, dark enough that
+     --ink clears 6.4:1 on the worst of them. ---- */
+  --band-green: #7fc9a8;
+  --band-yellow: #e8d08a;
+  --band-orange: #eeb08a;
+  --band-red: #e59a8c;
+
+  /* ---- 4px spacing scale. A 4-base keeps the middle steps an 8-only scale
+     throws away, and rhythm comes from mixing tight against generous. ---- */
+  --s1: 4px;   --s2: 8px;   --s3: 12px;  --s4: 16px;
+  --s5: 24px;  --s6: 32px;  --s7: 48px;  --s8: 64px;
+
+  /* ---- type. Tracking tightens as size grows: a heading set at display size
+     with body tracking reads loose. ---- */
+  --t-xs: 0.75rem;   --t-sm: 0.8125rem; --t-base: 1rem;
+  --t-lg: 1.125rem;  --t-xl: 1.375rem;  --t-2xl: 1.75rem;  --t-3xl: 2.25rem;
+  --track-tight: -0.022em;
+  --track-normal: 0;
+  --track-wide: 0.06em;
+  --measure: 62ch;
+
+  /* ---- depth. Three steps and no more; if everything is raised, nothing is.
+     Tinted to the canvas hue - a pure black shadow on a cool ground is dirt.
+     Each carries a 1px edge light, because real lips catch light and that
+     sells a raised surface better than blur does. ---- */
+  --e1: 0 1px 2px rgba(15, 44, 64, 0.05), 0 0 0 1px rgba(15, 44, 64, 0.035);
+  --e2: 0 4px 14px -4px rgba(15, 44, 64, 0.13), 0 0 0 1px rgba(15, 44, 64, 0.04);
+  --e3: 0 16px 40px -12px rgba(15, 44, 64, 0.2), 0 0 0 1px rgba(15, 44, 64, 0.05);
+  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+
+  /* ---- motion. Never ease-in on UI: it delays the moment the eye is already
+     waiting on. The built-in easings are too weak to read as intentional. ---- */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-water: cubic-bezier(0.34, 1.32, 0.5, 1);
+  --dur-fast: 130ms;
+  --dur: 200ms;
+  --dur-slow: 320ms;
+
+  /* ---- one radius scale, held everywhere ---- */
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-pill: 999px;
+
+  /* ======================================================================
+     Legacy role names. Aliases only - never redefine a colour here.
+     ====================================================================== */
+  --bg: var(--canvas);
+  --surface-alt: var(--surface-sunk);
+  --border: var(--line);
+  --text: var(--ink);
+  --muted: var(--ink-faint);
+  --muted-strong: var(--ink-soft);
+  --primary: var(--accent-soft);
+  --primary-strong: var(--accent);
+  --primary-text: #123f31;
+  --accent-green: var(--band-green);
   --accent-green-text: #0e4d38;
-  --accent-coral: #f0a898;
+  --accent-coral: var(--band-orange);
   --accent-coral-text: #6b2a1c;
-  --danger: #e07a66;
-  --danger-strong: #cc6350;
-  --shadow-sm: 0 2px 8px rgba(30, 74, 120, 0.06);
-  --shadow-md: 0 6px 20px rgba(30, 74, 120, 0.10);
-  --radius: 16px;
-  --radius-sm: 10px;
+  --danger: #b24739;
+  --danger-strong: #963a2e;
+  --shadow-sm: var(--e1);
+  --shadow-md: var(--e2);
 }
 
 * { box-sizing: border-box; }
@@ -36,24 +109,52 @@ html, body {
   color: var(--text);
 }
 
+/* No webfont, deliberately. The app is read at the waterside on whatever signal
+   a lake has, and Inter cost two preconnects, a stylesheet and up to four woff2
+   files before a single pixel of text could paint. It also could not be
+   subsetted: this UI ships Polish and Russian, so a display face would have to
+   carry Latin Extended and Cyrillic and would land near 60KB.
+
+   The system stack is 0 bytes, covers all three alphabets, and renders in the
+   reading face the angler's own device already uses. The distinctiveness this
+   gives up is bought back in scale, weight, colour and the waterline - which
+   cost nothing to download. */
 body {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 1.55;
+  letter-spacing: var(--track-normal);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Anything that counts, measures or tabulates gets tabular figures, so a
+   column of weights or a ticking clock does not jitter as digits change. */
+.counter-number, .dash-value, .catch-meta, .heat-legend, .hour-chip,
+.day-chip-date, .weather-table td, .intel-value, .stat-value, time {
+  font-variant-numeric: tabular-nums;
 }
 
 h1, h2, h3 {
-  margin: 0 0 8px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  margin: 0 0 var(--s2);
+  font-weight: 650;
+  letter-spacing: var(--track-tight);
+  line-height: 1.15;
   color: var(--text);
+  text-wrap: balance;
 }
 
-h1 { font-size: 1.6rem; }
-h2 { font-size: 1.05rem; }
+h1 { font-size: var(--t-2xl); }
+h2 { font-size: var(--t-lg); letter-spacing: -0.014em; }
+h3 { font-size: var(--t-base); letter-spacing: -0.01em; }
 
-p { margin: 0 0 8px; color: var(--muted); }
+/* More space above a heading than below it: the gap belongs to the boundary
+   between sections, not to the heading-and-body pair. Backwards, and the page
+   reads as an undifferentiated list. */
+h2:not(:first-child), h3:not(:first-child) { margin-top: var(--s6); }
+
+p { margin: 0 0 var(--s2); color: var(--muted); max-width: var(--measure); text-wrap: pretty; }
 
 a { color: var(--primary-strong); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -78,11 +179,87 @@ a:hover { text-decoration: underline; }
   margin: 0 auto;
 }
 
+/* --------------------------------------------------------------------------
+   The waterline. The one bespoke element in this design.
+
+   A single hairline under the topbar that behaves like an actual water
+   surface, and does three jobs with one element:
+     - it is the brand mark, present on every page;
+     - it ripples outward from wherever you tap, so a press has a consequence
+       even when the page has not navigated yet;
+     - it swells while an HTMX request is in flight and settles when it lands,
+       which is the loading indicator.
+
+   Cost: one 1px-tall element and two CSS custom properties. No image, no
+   library, no layout work - it animates transform and opacity only, on its own
+   compositor layer, so it cannot stutter the page it sits on.
+   -------------------------------------------------------------------------- */
+.waterline {
+  position: relative;
+  height: 2px;
+  max-width: 960px;
+  margin: 0 auto var(--s2);
+  overflow: hidden;
+  background: linear-gradient(90deg, transparent, var(--line-strong) 12%,
+              var(--line-strong) 88%, transparent);
+  /* The ripple origin, written by app/web/static/waterline.js on pointerdown.
+     Defaults to the middle so a keyboard-only press still ripples sensibly. */
+  --ripple-x: 50%;
+}
+
+.waterline::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  left: var(--ripple-x);
+  width: 220px;
+  margin-left: -110px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transform: scaleX(0.15);
+  will-change: transform, opacity;
+}
+
+.waterline.is-rippling::after {
+  animation: waterline-ripple 620ms var(--ease-out);
+}
+
+/* The opacity holds, then falls late. The first cut faded linearly across the
+   whole 620ms while the gradient spread 20-fold, and the two together made the
+   ripple invisible by 150ms - it read as a flash, not as water. Filmed with
+   tools/waterline_filmstrip.py; not visible in the keyframes, which is the
+   whole reason that tool exists. */
+@keyframes waterline-ripple {
+  0%   { opacity: 0.9;  transform: scaleX(0.12); }
+  25%  { opacity: 0.85; }
+  60%  { opacity: 0.55; }
+  100% { opacity: 0;    transform: scaleX(2.4); }
+}
+
+/* In flight. A slow swell along the whole line, which reads as "working"
+   without the jitter of a spinner. */
+.waterline.is-loading {
+  background: linear-gradient(90deg, transparent, var(--accent-soft) 12%,
+              var(--accent-soft) 88%, transparent);
+}
+.waterline.is-loading::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: waterline-swell 1150ms var(--ease-out) infinite;
+}
+
+@keyframes waterline-swell {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 .brand {
   font-weight: 700;
   font-size: 1.1rem;
   color: var(--primary-text);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 /* Desktop nav only. The bottom bar takes over below 720px so the two are
@@ -229,7 +406,7 @@ a:hover { text-decoration: underline; }
 .place-action.is-on {
   color: var(--accent-coral-text);
   border-color: rgba(199, 87, 62, 0.35);
-  background: #fbeeeb;
+  background: #fbe9e5;
 }
 
 .place-action-remove:hover {
@@ -292,7 +469,7 @@ a:hover { text-decoration: underline; }
 }
 
 .session-fab:hover {
-  background: #e3f7ee;
+  background: var(--accent-wash);
   transform: translateY(-1px);
 }
 
@@ -366,20 +543,24 @@ body:has(.session-fab) .page { padding-bottom: 72px; }
 
 /* ---------- cards & panels ---------- */
 
+/* Borderless. A hairline plus a shadow plus a fill is three ways of saying the
+   same thing; the edge light and the tinted shadow carry the surface on their
+   own and the page stops looking like a stack of boxes. */
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
-  padding: 18px;
-  margin-bottom: 16px;
+  box-shadow: var(--e1), var(--edge);
+  padding: var(--s5);
+  margin-bottom: var(--s4);
 }
 
 .card-flat {
-  background: var(--surface-alt);
+  background: var(--surface-sunk);
   border-radius: var(--radius);
-  padding: 18px;
-  margin-bottom: 16px;
+  padding: var(--s5);
+  margin-bottom: var(--s4);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 .place-card {
@@ -387,23 +568,28 @@ body:has(.session-fab) .page { padding-bottom: 72px; }
   align-items: center;
   gap: 14px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
-  padding: 14px;
-  margin-bottom: 12px;
+  box-shadow: var(--e1), var(--edge);
+  padding: var(--s4);
+  margin-bottom: 10px;
   cursor: pointer;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  transition: box-shadow var(--dur) var(--ease-out),
+              transform var(--dur) var(--ease-out);
 }
 
-.place-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+@media (hover: hover) and (pointer: fine) {
+  .place-card:hover { box-shadow: var(--e2), var(--edge); transform: translateY(-2px); }
+}
+.place-card:active { transform: translateY(1px); box-shadow: var(--e1); }
 
 .place-thumb {
   width: 56px;
   height: 56px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--primary), var(--accent-green));
+  background: linear-gradient(155deg, var(--accent-soft), var(--accent) 130%);
   flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .place-info { flex: 1; min-width: 0; }
@@ -419,14 +605,18 @@ body:has(.session-fab) .page { padding-bottom: 72px; }
   letter-spacing: 0.02em;
 }
 
-.badge-go { background: #e3f7ee; color: var(--accent-green-text); }
-.badge-no-go { background: #fbeeeb; color: var(--accent-coral-text); }
-.badge-neutral { background: var(--surface-alt); color: var(--muted); }
+/* Every pair below is measured, not eyeballed - tools/palette_check.py.
+   `.badge-neutral` was one of the two the nightly audit failed on: the old
+   --muted (#6c8299) on --surface-alt was 3.5:1. It now inherits --ink-faint,
+   and the ground is the accent wash rather than the blue-grey. */
+.badge-go { background: var(--accent-wash); color: #14503d; }
+.badge-no-go { background: #fbe9e5; color: #7d2a1a; }
+.badge-neutral { background: var(--surface-sunk); color: var(--ink-soft); box-shadow: inset 0 0 0 1px var(--line); }
 
-.badge-red    { background: #fbe6e2; color: #8a3323; }
-.badge-orange { background: #fdecd6; color: #8a5a12; }
-.badge-yellow { background: #fbf3ce; color: #7a6a0f; }
-.badge-green  { background: #e3f7ee; color: var(--accent-green-text); }
+.badge-red    { background: #fae4df; color: #7d2a1a; }
+.badge-orange { background: #fbebd8; color: #74490c; }
+.badge-yellow { background: #f7f0d2; color: #5f530b; }
+.badge-green  { background: var(--accent-wash); color: #14503d; }
 
 /* ---------- score / dashboard ---------- */
 
@@ -441,10 +631,10 @@ body:has(.session-fab) .page { padding-bottom: 72px; }
   letter-spacing: 0.01em;
 }
 
-.verdict-pill.red    { background: #fbe6e2; color: #8a3323; }
-.verdict-pill.orange { background: #fdecd6; color: #8a5a12; }
-.verdict-pill.yellow { background: #fbf3ce; color: #7a6a0f; }
-.verdict-pill.green  { background: #e3f7ee; color: var(--accent-green-text); }
+.verdict-pill.red    { background: #fae4df; color: #7d2a1a; }
+.verdict-pill.orange { background: #fbebd8; color: #74490c; }
+.verdict-pill.yellow { background: #f7f0d2; color: #5f530b; }
+.verdict-pill.green  { background: var(--accent-wash); color: var(--accent-green-text); }
 
 .best-hours { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .hour-chip {
@@ -536,26 +726,63 @@ body:has(.session-fab) .page { padding-bottom: 72px; }
 
 .btn {
   display: inline-block;
+  position: relative;
   width: 100%;
   padding: 15px;
   border-radius: var(--radius-sm);
   border: none;
   font-size: 1rem;
   font-weight: 600;
+  letter-spacing: -0.006em;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
   min-height: 48px;
   font-family: inherit;
+  /* transform and opacity only. Never `transition: all` - it animates
+     properties you did not choose, including ones that force layout. */
+  transition: background var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out);
 }
 
 .btn:hover { text-decoration: none; }
 
-.btn-primary { background: var(--primary-strong); color: #ffffff; box-shadow: var(--shadow-sm); }
-.btn-primary:hover { background: #3d80bd; }
-.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
-.btn-ghost { background: transparent; color: var(--muted); border: 1px dashed var(--border); }
+/* The float dip. A button pressed sinks the way a float does when a fish takes
+   it: down fast, then back up. Every pressable thing in the app does this, so
+   the gesture reads as one idea rather than a decoration on one screen. */
+.btn:active { transform: translateY(2px) scale(0.995); }
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: var(--e1), var(--edge);
+}
+.btn-primary:hover { background: #226150; box-shadow: var(--e2); }
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  box-shadow: var(--e1);
+}
+.btn-secondary:hover { border-color: var(--line-strong); background: var(--surface-sunk); }
+.btn-ghost { background: transparent; color: var(--muted); border: 1px dashed var(--line-strong); }
+.btn-ghost:hover { color: var(--ink); border-color: var(--accent); }
 .btn-block-gap { margin-bottom: 10px; }
+
+/* Focus must be visible, themed, and offset. A control with only a resting
+   state is half-built, and a keyboard angler cannot use it at all. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Hover motion is gated to real pointers: a touch device fires a false hover
+   on tap, which leaves a card stuck in its lifted state after the finger goes. */
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover { transform: translateY(-1px); }
+}
 
 /* ---------- method/rods picker ---------- */
 
@@ -805,7 +1032,7 @@ table.weather tbody tr:last-child td { border-bottom: none; }
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  background: #e3f7ee;
+  background: var(--accent-wash);
   color: var(--accent-green-text);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
@@ -814,7 +1041,7 @@ table.weather tbody tr:last-child td { border-bottom: none; }
   text-decoration: none;
 }
 
-.session-banner:hover { text-decoration: none; background: #d6f2e5; }
+.session-banner:hover { text-decoration: none; background: #cfe9dd; }
 
 .inline-link-row {
   display: flex;
@@ -840,8 +1067,8 @@ table.weather tbody tr:last-child td { border-bottom: none; }
 .provenance-note {
   font-size: 0.75rem;
   color: var(--muted);
-  background: #fff8e6;
-  border: 1px solid #f2e2b8;
+  background: #fbf5e4;
+  border: 1px solid #e8d9b4;
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   margin-top: 10px;
@@ -1291,7 +1518,7 @@ details.card[open] summary::before { content: "－ "; }
   border: none;
 }
 
-.btn-danger-solid:hover { background: #cc5340; }
+.btn-danger-solid:hover { background: var(--danger-strong); }
 
 /* ---------- current conditions ---------- */
 
@@ -1503,7 +1730,7 @@ details.card[open] summary::before { content: "－ "; }
 .field.has-error input { border-color: var(--danger); }
 
 .form-error-banner {
-  background: #fbe6e2;
+  background: #fae4df;
   color: var(--accent-coral-text);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
@@ -1779,7 +2006,7 @@ details.card[open] summary::before { content: "－ "; }
 }
 
 .build-note-failed {
-  background: #fbe6e2;
+  background: #fae4df;
   color: var(--accent-coral-text);
 }
 
@@ -1872,3 +2099,144 @@ details.card[open] summary::before { content: "－ "; }
 
 .error-page h1 { margin-bottom: 6px; }
 .error-page .auth-lede { margin-bottom: 20px; }
+
+/* ==========================================================================
+   Waterline motion layer
+   --------------------------------------------------------------------------
+   Three behaviours, all built from transform and opacity so none of them can
+   force layout or paint on the main thread. Nothing here downloads anything.
+
+   The constraint that shaped all of it: this app is read on a riverbank on
+   whatever signal is going, on whatever phone the angler owns. Motion that
+   needs a fast device is motion that makes the app feel broken on a slow one.
+   ========================================================================== */
+
+/* ---- 1. The splash. A ring that expands from the point of contact. ----
+   Anchored to the pointer, not to the element, so it reads as the water
+   answering the touch rather than as a button lighting up. One node, reused
+   and repositioned; it never accumulates in the DOM. */
+.splash {
+  position: fixed;
+  z-index: 60;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.splash.is-live { animation: splash-ring 520ms var(--ease-out) forwards; }
+
+@keyframes splash-ring {
+  0%   { opacity: 0.5;  transform: scale(0.4); }
+  70%  { opacity: 0.16; }
+  100% { opacity: 0;    transform: scale(3.6); }
+}
+
+/* ---- 2. Surfacing. Content rises into place as it enters the viewport. ----
+   Two pixels of travel and a fade, staggered. Deliberately small: a card that
+   flies 40px reads as a website, and this is an instrument.
+
+   `.js-reveal` is added by waterline.js, never written into the templates, so
+   with JS off or broken every element keeps its resting style and the page is
+   fully readable. That is the whole reason the hidden state lives behind the
+   class rather than in the base rule. */
+.js-reveal { opacity: 0; transform: translateY(6px); }
+
+.js-reveal.is-surfaced {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--dur-slow) var(--ease-out),
+              transform var(--dur-slow) var(--ease-out);
+}
+
+/* ---- 3. The bite. For the one control that starts a session. ----
+   A float does not sink smoothly; it dips, checks, and goes under. The
+   overshoot easing is what makes this read as a take rather than a wobble. */
+.btn-primary.is-biting { animation: float-bite 480ms var(--ease-water); }
+
+@keyframes float-bite {
+  0%   { transform: translateY(0); }
+  22%  { transform: translateY(3px); }
+  40%  { transform: translateY(-1px); }
+  70%  { transform: translateY(4px); }
+  100% { transform: translateY(0); }
+}
+
+/* --------------------------------------------------------------------------
+   Reduced motion means fewer and gentler, not zero. The opacity that carries
+   comprehension stays; every position change goes. A page that removes all
+   feedback for a vestibular user has removed information, not decoration.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .js-reveal { transform: none; }
+  .js-reveal.is-surfaced { transition: opacity var(--dur) linear; }
+  .splash, .waterline::after, .waterline.is-loading::before { animation: none; opacity: 0; }
+  .btn-primary.is-biting { animation: none; }
+  .btn:active, .place-card:active { transform: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .btn-primary:hover, .place-card:hover { transform: none; }
+  }
+}
+
+/* ==========================================================================
+   The generated water assets. Both are decorative backdrops: they carry no
+   information, so they are marked aria-hidden in the markup and the page reads
+   identically with images off.
+   ========================================================================== */
+
+/* The home hero. The image is the ground, the type sits on the empty sky the
+   prompt deliberately left at the top of the frame - so there is no scrim
+   here, and none is needed. */
+.water-hero {
+  position: relative;
+  margin: 0 0 var(--s5);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--canvas-deep);
+  box-shadow: var(--edge);
+}
+
+.water-hero img {
+  display: block;
+  /* Both dimensions overridden, never one. Overriding only width leaves height
+     resolving to the attribute's raw pixel value, which renders a 1600px-wide
+     image 889px tall inside a narrow column and pushes the page off the fold. */
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  /* The shipped file is already cropped to the half of the frame that carries
+     the picture (tools/design_assets_pack.py), so this only has to centre it.
+     The first attempt cropped in CSS instead and rendered a featureless cream
+     rectangle - caught by looking at tools/design_shots, not by any test. */
+  object-position: 50% 50%;
+}
+
+.water-hero-copy {
+  position: absolute;
+  left: var(--s5);
+  bottom: var(--s4);
+  right: var(--s5);
+}
+
+.water-hero-copy h1 { margin: 0; color: var(--ink); }
+.water-hero-copy p { margin: 2px 0 0; color: var(--ink-soft); font-size: var(--t-sm); }
+
+@media (min-width: 720px) {
+  .water-hero img { height: 200px; }
+}
+
+/* The empty state, when there is nothing logged yet. A float on still water is
+   the right picture for "no sessions": it is waiting, not broken. */
+.empty-state-art {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  margin: 0 auto var(--s3);
+  border-radius: var(--radius);
+  opacity: 0.92;
+}
