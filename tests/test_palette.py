@@ -18,6 +18,7 @@ reasons and only one of them is about maths:
 from __future__ import annotations
 
 import pathlib
+import re
 
 import pytest
 
@@ -131,7 +132,12 @@ def test_the_reveal_cannot_permanently_hide_content() -> None:
     tools/design_sheet.py output, not by any test - so here is the test.
     """
     css = STYLESHEET.read_text(encoding="utf-8")
-    assert ".js-reveal { opacity: 0" in css, "the hidden state moved; re-check this test"
+    # Exact, not a substring: `".js-reveal { opacity: 0" in css` also matches
+    # `opacity: 0.99`, which is not hidden at all. Proven by mutating the value
+    # and watching the first version of this test still pass.
+    assert re.search(r"\.js-reveal\s*\{[^}]*opacity:\s*0\s*[;}]", css), (
+        "the hidden state moved or is no longer fully transparent; re-check this test"
+    )
     # The class that hides must not be reachable from markup alone.
     for template in pathlib.Path("app/web/templates").glob("*.html"):
         assert "js-reveal" not in template.read_text(encoding="utf-8"), (
@@ -139,6 +145,11 @@ def test_the_reveal_cannot_permanently_hide_content() -> None:
         )
 
     js = pathlib.Path("app/web/static/waterline.js").read_text(encoding="utf-8")
-    assert "classList.add(\"js-reveal\")" in js
+    assert 'classList.add("js-reveal")' in js
     # and something must always take it back off again
     assert "is-surfaced" in js
+    # The above-the-fold skip is the actual fix. Without it every card is
+    # hidden on load again, which is the bug this test exists for.
+    assert "getBoundingClientRect().top < fold" in js, (
+        "the above-the-fold skip is gone; content already on screen would be hidden"
+    )
