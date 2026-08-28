@@ -78,9 +78,17 @@ alias block.**
 
 The previous design loaded Inter from Google Fonts: two preconnects, a
 render-blocking stylesheet, and up to four woff2 files before any text could
-paint. It also could not be subsetted, because this UI ships Polish and
-Russian, so a display face has to carry Latin Extended **and** Cyrillic — near
+paint. It also carried three alphabets, because this UI ships Polish and
+Russian, so a display face has to cover Latin Extended **and** Cyrillic — near
 60KB for one weight.
+
+> **Corrected 2026-08-28.** This section originally said the face "could not be
+> subsetted". That is wrong: `unicode-range` splits a family into Latin,
+> Latin Extended and Cyrillic files and the browser fetches only the ranges the
+> page uses, so a Polish reader never downloads Cyrillic. With a variable font
+> the real cost is ~25-35KB for the script in use, not 60KB per weight. The
+> overstatement made the no-webfont decision look cheaper than it was. See
+> `docs/18b-DECISIONS.md` D3, which reverses this section.
 
 The system stack is 0 bytes, covers all three alphabets, and renders in the
 face the angler's own device already uses. The distinctiveness that gives up is
