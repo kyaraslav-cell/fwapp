@@ -103,8 +103,14 @@
     </div>
     <div class="catch-actions">
       <a class="icon-btn" href="/session/catch/{{ c.id }}/edit">{{ t('session.edit') }}</a>
-      <form method="post" action="/session/catch/{{ c.id }}/delete">
-        <button class="icon-btn danger" type="submit">✕</button>
+      {#- A catch really is deleted (app/notebook/sessions.py delete_catch), unlike
+          a water, which is only soft-removed. Standing rule 18's "nothing is ever
+          deleted" does not cover this control, so it asks. -#}
+      <form method="post" action="/session/catch/{{ c.id }}/delete"
+            onsubmit="return confirm('{{ t('session.delete_confirm') }}');">
+        <button class="icon-btn danger" type="submit"
+                title="{{ t('session.delete') }}"
+                aria-label="{{ t('session.delete') }}">✕</button>
       </form>
     </div>
   </div>

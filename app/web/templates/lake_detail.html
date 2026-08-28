@@ -55,6 +55,7 @@
             data-horizon="{{ day.horizon }}"
             data-wind="{{ day.wind_dir if day.wind_dir is not none else '' }}"
             data-label="{{ t('weekday.' ~ day.weekday | lower) }} {{ day.day_of_month }}"
+            data-band="{{ day.band_color if day.has_data else 'none' }}"
             aria-pressed="{{ 'true' if day.is_today else 'false' }}"
             title="{{ t('weekday.' ~ day.weekday | lower) }} {{ day.day_of_month }}{% if day.best_hours %} · {{ day.best_hours | join(', ') }}{% endif %}">
       <span class="day-chip-weekday">{{ t('weekday.' ~ day.weekday | lower) }}</span>
@@ -70,8 +71,18 @@
 {% endif %}
 
 {% if now_wx %}
-<div class="now-card" id="now-card">
-  <div class="now-temp" id="now-temp">{{ now_wx.temp_c | round(0) | int }}<span>°C</span></div>
+{#- Today's band, read from the stored prediction row the day strip already
+    carries. Never computed here: law 2 says the prediction is written before
+    the day, and a day with no row gets no ring rather than borrowing one. -#}
+{% set _today = (calendar_days or []) | selectattr('is_today') | selectattr('has_data') | list %}
+{% set today_band = _today[0].band_color if _today else none %}
+<div class="now-card{% if today_band %} ring-{{ today_band }}{% endif %}" id="now-card">
+  {#- The ring is a FULL ring in the band's colour, not an arc that fills
+      further on a better day. An arc is a progress bar and a progress bar is a
+      score out of ten wearing a hat, which standing rules 2 and 16 forbid. -#}
+  <div class="now-ring">
+    <div class="now-temp" id="now-temp">{{ now_wx.temp_c | round(0) | int }}<span>°C</span></div>
+  </div>
   <div class="now-meta">
     {# The "Right now · HH:MM" line is gone at the owner's request: the card is
        the current conditions, so labelling it as such said nothing, and the
@@ -709,6 +720,16 @@ function showDay(chip) {
   });
   chip.classList.add('is-selected');
   chip.setAttribute('aria-pressed', 'true');
+
+  // The ring follows the selected day. Leaving today's colour up while another
+  // day's numbers are shown would assert something about a day the card is no
+  // longer describing. `none` (a day with no stored row) clears it entirely
+  // rather than borrowing a neighbour's colour - law 4.
+  if (nowCard) {
+    nowCard.classList.remove('ring-green', 'ring-yellow', 'ring-orange', 'ring-red');
+    const band = chip.dataset.band;
+    if (band && band !== 'none') nowCard.classList.add('ring-' + band);
+  }
 
   if (isToday) {
     forecastDay = null;

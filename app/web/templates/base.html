@@ -52,6 +52,11 @@
      submitting, a link that was tapped). See docs/17-DESIGN-SYSTEM.md §3. #}
   <div class="waterline" aria-hidden="true"></div>
 
+  {# Ambient fish. Decorative, aria-hidden, pointer-events:none, paused when the
+     tab is hidden and removed entirely under prefers-reduced-motion. It is the
+     first thing in the body flow so it never sits above a control. #}
+  {% include "_ambient.html" %}
+
   <main class="page{% block page_class %}{% endblock %}">
     {% block content %}{% endblock %}
   </main>

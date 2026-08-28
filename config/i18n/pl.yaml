@@ -99,6 +99,8 @@ session:
   log_catch: Zapisz branie
   this_session: Ta sesja
   edit: Edytuj
+  delete: Usuń
+  delete_confirm: 'Usunąć tę rybę? W przeciwieństwie do łowiska, zapis połowu jest kasowany na stałe i nie da się go przywrócić.'
   end_session: ■ Zakończ sesję
 
 end:

@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&family=Nunito+Sans:wght@400;600;700&display=swap">
+  <style>
+    body { margin:0; font-family:'Nunito Sans',system-ui,sans-serif; }
+    a { color:#3F6B4C; } a:hover { color:#2C4E37; }
+    .scr { width:390px; height:844px; background:#F4F7EA; position:relative; overflow:hidden;
+           display:flex; flex-direction:column; color:#24352A; }
+    .disp { font-family:'Comfortaa',system-ui,sans-serif; }
+    .row { background:#FFFFFF; border-radius:26px; }
+    .ghost { border-radius:999px; background:#FFFFFF; color:#24352A;
+             font-weight:600; font-size:15px; height:48px;
+             display:flex; align-items:center; justify-content:center; flex-grow:1; }
+  </style>
+</helmet>
+
+<div class="scr">
+
+  <div style="padding:44px 26px 0; text-align:center">
+    <div style="display:inline-flex; align-items:center; gap:7px; background:#E4F0DA;
+                border-radius:999px; padding:7px 15px">
+      <div style="width:8px; height:8px; border-radius:999px; background:#2F7D4F"></div>
+      <div style="font-size:12px; font-weight:700; letter-spacing:.6px; color:#2C4E37">RUNNING</div>
+    </div>
+    <div class="disp" style="font-size:64px; font-weight:700; line-height:1.05; margin-top:14px;
+                font-variant-numeric:tabular-nums">3:12</div>
+    <div style="font-size:14px; color:#5E7365; font-weight:600; margin-top:2px">
+      north bay · swim 4 · feeder · 2 rods
+    </div>
+  </div>
+
+  <!-- a jumping carp arc, decorative: thick body, broad shallow-forked tail, barbels -->
+  <svg width="180" height="72" viewBox="0 0 180 72" aria-hidden="true"
+       style="position:absolute; left:-16px; top:250px; opacity:.3">
+    <path d="M6 66 C40 22 118 16 170 34" fill="none" stroke="#B9C4AE"
+          stroke-width="1.8" stroke-dasharray="2 6" stroke-linecap="round"/>
+    <g transform="translate(112 14) rotate(-10)">
+      <path d="M14 13 C18 3 34 3 44 12.5 C34 23 18 23 14 13 Z" fill="#9FB88C"/>
+      <path d="M14 13 L2 6.5 L7 13 L2 20 Z" fill="#9FB88C"/>
+      <path d="M22 3.8 C27 0.4 36 1 38 4.6" fill="none" stroke="#9FB88C" stroke-width="3" stroke-linecap="round"/>
+      <path d="M44 12.5 C46 11 47.5 9.6 48.5 8.4 M44 14 C46.4 14.6 48 15.4 49 16.4"
+            fill="none" stroke="#9FB88C" stroke-width="1.4" stroke-linecap="round"/>
+      <circle cx="39" cy="11" r="1.4" fill="#F4F7EA"/>
+    </g>
+  </svg>
+
+  <div style="padding:32px 26px 0; flex-grow:1; display:flex; flex-direction:column">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px">
+      <div style="font-size:12px; font-weight:700; color:#5E7365; letter-spacing:.7px">CATCHES</div>
+      <div style="font-size:13px; font-weight:700; color:#5E7365; font-variant-numeric:tabular-nums">
+        3 fish · 0.94 / h
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px">
+      <div class="row" style="padding:14px 18px; display:flex; align-items:center; gap:14px">
+        <svg width="44" height="24" viewBox="0 0 44 24" aria-hidden="true">
+          <path d="M11 12 C15 5 30 5 40 12 C30 19 15 19 11 12 Z" fill="#9FB88C"/>
+          <path d="M11 12 L2 6 L6 12 L2 18 Z" fill="#9FB88C"/>
+          <path d="M23 6.6 C25 3.4 29 3.6 30 6.4" fill="none" stroke="#9FB88C" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="36" cy="10.6" r="1.5" fill="#FFFFFF"/>
+        </svg>
+        <div style="flex-grow:1">
+          <div class="disp" style="font-size:16px; font-weight:600">Roach</div>
+          <div style="font-size:12px; color:#5E7365">14:20 · sweetcorn</div>
+        </div>
+        <div class="disp" style="font-size:16px; font-weight:600; font-variant-numeric:tabular-nums">220 g</div>
+      </div>
+
+      <div class="row" style="padding:14px 18px; display:flex; align-items:center; gap:14px">
+        <svg width="44" height="24" viewBox="0 0 44 24" aria-hidden="true">
+          <path d="M12 12 C16 2 32 2.5 41 12 C32 22 16 22 12 12 Z" fill="#9FB88C"/>
+          <path d="M12 12 L1 3 L6 12 L2 23 Z" fill="#9FB88C"/>
+          <path d="M25 3.4 C27 0 31 0.4 32 3.2" fill="none" stroke="#9FB88C" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="37" cy="10.4" r="1.4" fill="#FFFFFF"/>
+        </svg>
+        <div style="flex-grow:1">
+          <div class="disp" style="font-size:16px; font-weight:600">Bream</div>
+          <div style="font-size:12px; color:#5E7365">15:05 · worm</div>
+        </div>
+        <div class="disp" style="font-size:16px; font-weight:600; font-variant-numeric:tabular-nums">810 g</div>
+      </div>
+
+      <div class="row" style="padding:14px 18px; display:flex; align-items:center; gap:14px">
+        <svg width="44" height="24" viewBox="0 0 44 24" aria-hidden="true">
+          <path d="M14 12 C17 3 32 3 40 12 C32 21 17 21 14 12 Z" fill="#9FB88C"/>
+          <path d="M14 12 C7 5 3 12 5 15 C7 18 10 17 14 12 Z" fill="#9FB88C"/>
+          <path d="M24 4 C26 1.2 31 1.6 32 4.4" fill="none" stroke="#9FB88C" stroke-width="2.6" stroke-linecap="round"/>
+          <circle cx="36" cy="10.6" r="1.4" fill="#FFFFFF"/>
+        </svg>
+        <div style="flex-grow:1">
+          <div class="disp" style="font-size:16px; font-weight:600">Crucian carp</div>
+          <div style="font-size:12px; color:#5E7365">16:41 · sweetcorn</div>
+        </div>
+        <div class="disp" style="font-size:16px; font-weight:600; font-variant-numeric:tabular-nums">340 g</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:16px 26px 0; display:flex; gap:9px">
+    <div class="ghost">Conditions</div>
+    <div class="ghost">Map</div>
+  </div>
+
+  <div style="padding:12px 26px 12px">
+    <div class="disp" style="background:#3F6B4C; color:#F4F7EA; border-radius:999px; height:60px;
+                display:flex; align-items:center; justify-content:center; gap:10px;
+                font-size:18px; font-weight:600">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5 L12 19 M5 12 L19 12" stroke="#F4F7EA" stroke-width="2.6" stroke-linecap="round"/>
+      </svg>
+      Log a catch
+    </div>
+  </div>
+  <div style="padding:0 26px 30px; text-align:center">
+    <span style="font-size:15px; font-weight:600; color:#5E7365">End the session</span>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

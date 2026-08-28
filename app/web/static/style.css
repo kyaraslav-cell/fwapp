@@ -1,46 +1,124 @@
 /* ==========================================================================
-   Fishlog - "Waterline"
+   Fishlog - "Cosy tackle"
    --------------------------------------------------------------------------
-   Deep navy ink on pale water, one reed-green accent. Documented in
-   docs/17-DESIGN-SYSTEM.md; the colours are asserted by tools/palette_check.py
-   and tests/test_palette.py, so a token that fails WCAG AA breaks the suite
-   rather than waiting for the nightly browser audit to find it.
+   Kraft khaki ground, deep bark ink, one burnt-amber accent. Rounded
+   everything. Documented in docs/19-COSY-TACKLE-BRIEF.md; the colours are
+   asserted by tools/palette_check.py and tests/test_palette.py, so a token
+   that fails WCAG AA breaks the suite rather than waiting for the nightly
+   browser audit to find it.
 
    Two layers on purpose:
      1. the palette and scales below, which are the design;
      2. the legacy role names (--bg, --primary, ...) mapped onto them, because
-        268 declarations already reference those. Re-pointing the aliases
-        re-skins the whole app without touching markup, which is what keeps
-        the JS bindings and tests/test_template_element_ids.py intact.
+        hundreds of declarations already reference those. Re-pointing the
+        aliases re-skins the whole app without touching markup, which is what
+        keeps the JS bindings and tests/test_template_element_ids.py intact.
+
+   THE ALIAS BLOCK CONTAINS NO LITERAL COLOURS. It used to contain five, which
+   palette_check.py could not see and therefore never contrast-tested. Every
+   one now points at a real palette token. Do not reintroduce one.
    ========================================================================== */
+
+/* ---- Type. Self-hosted, variable, split by unicode-range so a reader
+   downloads only the alphabet they are actually reading: a Polish angler never
+   fetches Cyrillic. Nothing is served from a third-party origin -
+   tests/test_hardening.py::test_no_third_party_font_origin_is_admitted pins
+   the CSP against font CDNs and that stays true.
+
+   Baloo 2 has no Cyrillic. That is handled by the stack rather than by another
+   file: the display family lists Nunito immediately after it, so Russian
+   headings fall through to Nunito, which does carry Cyrillic. ---- */
+
+@font-face {
+  font-family: 'Nunito'; font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url('/static/fonts/nunito-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Nunito'; font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url('/static/fonts/nunito-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Nunito'; font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url('/static/fonts/nunito-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Baloo 2'; font-style: normal; font-weight: 500 700; font-display: swap;
+  src: url('/static/fonts/baloo2-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Baloo 2'; font-style: normal; font-weight: 500 700; font-display: swap;
+  src: url('/static/fonts/baloo2-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 :root {
-  /* ---- ground ---- */
-  --canvas: #eef4f4;
-  --canvas-deep: #e3edee;
-  --surface: #ffffff;
-  --surface-sunk: #f4f9f9;
-  --line: #d2e1e3;
-  --line-strong: #b9d0d3;
+  /* ---- type families ---- */
+  --font-body: 'Nunito', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: 'Baloo 2', 'Nunito', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  /* ---- ink. Tinted from the navy, never flat grey: #888 on a cool ground
-     reads as dirt. Every value clears 4.5:1 on all five grounds. ---- */
-  --ink: #0f2c40;
-  --ink-soft: #415f72;
-  --ink-faint: #526d7d;
+  /* ---- ground. Kraft, warm, matte. Light on purpose: sunlight collapses
+     perceived contrast and a light matte ground is what survives it. ---- */
+  --canvas: #efe7d6;
+  --canvas-deep: #eae1cd;
+  --surface: #fbf7ef;
+  --surface-sunk: #f4eee0;
+  --line: #ded2b8;
+  --line-strong: #c9bb9c;
 
-  /* ---- one accent, locked for the whole app ---- */
-  --accent: #2a765d;
-  --accent-soft: #8fcdb6;
-  --accent-wash: #dcefe7;
-  --accent-ink: #ffffff;
+  /* ---- ink. Deep bark, tinted warm from the ground, never flat grey.
+     Every value clears 4.5:1 on all five grounds. ---- */
+  --ink: #2e2a20;
+  --ink-soft: #5a5242;
+  --ink-faint: #6b6250;
+
+  /* ---- one accent, locked for the whole app. Burnt amber. ---- */
+  --accent: #a04a14;
+  --accent-soft: #e9c9a3;
+  --accent-wash: #f7eadb;
+  --accent-ink: #fff8ec;
+  --accent-deep: #7a3a10;
 
   /* ---- the day bands. Traffic light, green good, red bad (CLAUDE.md
-     standing rule 3). Pastel enough to sit in this palette, dark enough that
-     --ink clears 6.4:1 on the worst of them. ---- */
-  --band-green: #7fc9a8;
-  --band-yellow: #e8d08a;
-  --band-orange: #eeb08a;
-  --band-red: #e59a8c;
+     standing rule 3). The tint carries text; the mark carries the signal.
+
+     THE FOUR MARKS ARE RESERVED. The brief's palette is green, yellow, orange
+     and khaki, which is three of the four traffic-light positions - so nothing
+     decorative may use a mark hue at mark saturation, or an ornament beside a
+     warning stops the warning reading as one. Decoration uses the tints. ---- */
+  --band-green: #d6e9d2;
+  --band-yellow: #e6ebcb;
+  --band-orange: #f7e2c0;
+  --band-red: #f3d2cb;
+  --mark-green: #2f7d4f;
+  --mark-yellow: #6b7f2c;
+  --mark-orange: #9e6712;
+  --mark-red: #b03d24;
+
+  /* ---- water. A lake outline is a shape, not a verdict, so it takes
+     neither the accent (amber reads as land) nor a band hue (green would
+     read as a good day). A muted sage sits clear of both. ---- */
+  --water: #8fb3a4;
+  --water-deep: #5b8574;
+
+  /* ---- semantic inks, read on the washes and tints above ---- */
+  --positive-ink: #1f5c3a;
+  --warn-ink: #7a2f1a;
+  --danger: #9c3a22;
+  --danger-deep: #832e1a;
 
   /* ---- 4px spacing scale. A 4-base keeps the middle steps an 8-only scale
      throws away, and rhythm comes from mixing tight against generous. ---- */
@@ -57,13 +135,11 @@
   --measure: 62ch;
 
   /* ---- depth. Three steps and no more; if everything is raised, nothing is.
-     Tinted to the canvas hue - a pure black shadow on a cool ground is dirt.
-     Each carries a 1px edge light, because real lips catch light and that
-     sells a raised surface better than blur does. ---- */
-  --e1: 0 1px 2px rgba(15, 44, 64, 0.05), 0 0 0 1px rgba(15, 44, 64, 0.035);
-  --e2: 0 4px 14px -4px rgba(15, 44, 64, 0.13), 0 0 0 1px rgba(15, 44, 64, 0.04);
-  --e3: 0 16px 40px -12px rgba(15, 44, 64, 0.2), 0 0 0 1px rgba(15, 44, 64, 0.05);
-  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+     Tinted to the bark ink - a pure black shadow on a warm ground is dirt. ---- */
+  --e1: 0 1px 2px rgba(46, 42, 32, 0.06), 0 0 0 1px rgba(46, 42, 32, 0.05);
+  --e2: 0 4px 14px -4px rgba(46, 42, 32, 0.15), 0 0 0 1px rgba(46, 42, 32, 0.05);
+  --e3: 0 16px 40px -12px rgba(46, 42, 32, 0.22), 0 0 0 1px rgba(46, 42, 32, 0.06);
+  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 
   /* ---- motion. Never ease-in on UI: it delays the moment the eye is already
      waiting on. The built-in easings are too weak to read as intentional. ---- */
@@ -73,13 +149,16 @@
   --dur: 200ms;
   --dur-slow: 320ms;
 
-  /* ---- one radius scale, held everywhere ---- */
-  --radius: 14px;
-  --radius-sm: 9px;
+  /* ---- radius. The brief asks for round shapes, so the scale is generous and
+     held everywhere; nothing in this app has a sharp corner. ---- */
+  --radius: 20px;
+  --radius-sm: 13px;
   --radius-pill: 999px;
 
   /* ======================================================================
-     Legacy role names. Aliases only - never redefine a colour here.
+     Legacy role names. Aliases only - NEVER a literal colour here. Anything
+     written as a hex in this block is invisible to tools/palette_check.py and
+     therefore never contrast-tested. Five used to be.
      ====================================================================== */
   --bg: var(--canvas);
   --surface-alt: var(--surface-sunk);
@@ -89,13 +168,12 @@
   --muted-strong: var(--ink-soft);
   --primary: var(--accent-soft);
   --primary-strong: var(--accent);
-  --primary-text: #123f31;
+  --primary-text: var(--accent-deep);
   --accent-green: var(--band-green);
-  --accent-green-text: #0e4d38;
+  --accent-green-text: var(--positive-ink);
   --accent-coral: var(--band-orange);
-  --accent-coral-text: #6b2a1c;
-  --danger: #b24739;
-  --danger-strong: #963a2e;
+  --accent-coral-text: var(--warn-ink);
+  --danger-strong: var(--danger-deep);
   --shadow-sm: var(--e1);
   --shadow-md: var(--e2);
 }
@@ -109,19 +187,12 @@ html, body {
   color: var(--text);
 }
 
-/* No webfont, deliberately. The app is read at the waterside on whatever signal
-   a lake has, and Inter cost two preconnects, a stylesheet and up to four woff2
-   files before a single pixel of text could paint. It also could not be
-   subsetted: this UI ships Polish and Russian, so a display face would have to
-   carry Latin Extended and Cyrillic and would land near 60KB.
-
-   The system stack is 0 bytes, covers all three alphabets, and renders in the
-   reading face the angler's own device already uses. The distinctiveness this
-   gives up is bought back in scale, weight, colour and the waterline - which
-   cost nothing to download. */
+/* The face is Nunito, self-hosted and variable; headings take Baloo 2 with
+   Nunito behind it so Cyrillic falls through. font-display: swap means text
+   paints in the system stack immediately and reflows when the file lands -
+   invisible text on a riverbank is a worse failure than a swap. */
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.55;
   letter-spacing: var(--track-normal);
@@ -137,6 +208,7 @@ body {
 }
 
 h1, h2, h3 {
+  font-family: var(--font-display);
   margin: 0 0 var(--s2);
   font-weight: 650;
   letter-spacing: var(--track-tight);
@@ -455,16 +527,16 @@ a:hover { text-decoration: underline; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* 44px is the smallest comfortable one-thumb target with wet hands
-     (docs/07-UI-SPEC.md). */
-  width: 44px;
-  height: 44px;
+  /* 48px, not 44. 44 is Apple's floor and 48 is Google's; this is tapped
+     one-handed with cold wet hands, so it takes the larger. */
+  width: 48px;
+  height: 48px;
   border-radius: 999px;
   text-decoration: none;
   color: var(--accent-green-text);
   background: var(--surface);
-  border: 1px solid rgba(45, 138, 98, 0.35);
-  box-shadow: 0 4px 14px rgba(30, 74, 120, 0.16);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--e2);
   transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 
@@ -587,7 +659,7 @@ body:has(.session-fab) .page { padding-bottom: 72px; }
   width: 56px;
   height: 56px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(155deg, var(--accent-soft), var(--accent) 130%);
+  background: linear-gradient(155deg, var(--water), var(--water-deep) 130%);
   flex-shrink: 0;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
@@ -609,14 +681,17 @@ body:has(.session-fab) .page { padding-bottom: 72px; }
    `.badge-neutral` was one of the two the nightly audit failed on: the old
    --muted (#6c8299) on --surface-alt was 3.5:1. It now inherits --ink-faint,
    and the ground is the accent wash rather than the blue-grey. */
-.badge-go { background: var(--accent-wash); color: #14503d; }
-.badge-no-go { background: #fbe9e5; color: #7d2a1a; }
+.badge-go { background: var(--band-green); color: var(--positive-ink); }
+.badge-no-go { background: var(--band-red); color: var(--warn-ink); }
 .badge-neutral { background: var(--surface-sunk); color: var(--ink-soft); box-shadow: inset 0 0 0 1px var(--line); }
 
-.badge-red    { background: #fae4df; color: #7d2a1a; }
-.badge-orange { background: #fbebd8; color: #74490c; }
-.badge-yellow { background: #f7f0d2; color: #5f530b; }
-.badge-green  { background: var(--accent-wash); color: #14503d; }
+/* The day-quality badges are the bands, so they use the band tints - not
+   --accent-wash, which is amber in this palette and made "Great" read as a
+   warning. Green good, red bad (standing rule 3) has to survive a re-skin. */
+.badge-red    { background: var(--band-red); color: var(--warn-ink); }
+.badge-orange { background: var(--band-orange); color: var(--warn-ink); }
+.badge-yellow { background: var(--band-yellow); color: var(--ink); }
+.badge-green  { background: var(--band-green); color: var(--positive-ink); }
 
 /* ---------- score / dashboard ---------- */
 
@@ -631,9 +706,9 @@ body:has(.session-fab) .page { padding-bottom: 72px; }
   letter-spacing: 0.01em;
 }
 
-.verdict-pill.red    { background: #fae4df; color: #7d2a1a; }
-.verdict-pill.orange { background: #fbebd8; color: #74490c; }
-.verdict-pill.yellow { background: #f7f0d2; color: #5f530b; }
+.verdict-pill.red    { background: var(--band-red); color: var(--warn-ink); }
+.verdict-pill.orange { background: var(--band-orange); color: var(--warn-ink); }
+.verdict-pill.yellow { background: var(--band-yellow); color: var(--ink); }
 .verdict-pill.green  { background: var(--accent-wash); color: var(--accent-green-text); }
 
 .best-hours { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
@@ -758,7 +833,7 @@ body:has(.session-fab) .page { padding-bottom: 72px; }
   color: var(--accent-ink);
   box-shadow: var(--e1), var(--edge);
 }
-.btn-primary:hover { background: #226150; box-shadow: var(--e2); }
+.btn-primary:hover { background: var(--accent-deep); box-shadow: var(--e2); }
 .btn-secondary {
   background: var(--surface);
   color: var(--text);
@@ -1525,13 +1600,56 @@ details.card[open] summary::before { content: "－ "; }
 .now-card {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
   background: linear-gradient(135deg, var(--surface), var(--surface-alt));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   padding: 16px 18px;
   margin-bottom: 16px;
+}
+
+/* The ring. Direction B's circle in direction A's colours (owner's pick,
+   2026-08-28).
+
+   It is a FULL ring, deliberately, not an arc that fills further on a better
+   day. A partial arc is a progress bar, and a progress bar is a score out of
+   ten wearing a different hat - CLAUDE.md standing rules 2 and 16 forbid
+   exactly that. The hue is the whole message; the amount of ring is not a
+   quantity. */
+.now-ring {
+  position: relative;
+  flex: 0 0 auto;
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  /* The inside of the ring is always the design's own recessed ground, never
+     the band tint. Owner's call, 2026-08-28, and it makes the rule cleaner
+     than it was: the day's colour lives in the STROKE and nowhere else, so the
+     card reads as this app rather than as a green card on a kraft page. */
+  background: var(--canvas-deep);
+}
+
+.now-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 5px solid var(--line-strong);
+}
+
+.now-card.ring-green  .now-ring::after { border-color: var(--mark-green); }
+.now-card.ring-yellow .now-ring::after { border-color: var(--mark-yellow); }
+.now-card.ring-orange .now-ring::after { border-color: var(--mark-orange); }
+.now-card.ring-red    .now-ring::after { border-color: var(--mark-red); }
+
+/* Showing another day's forecast: the ring must stop asserting anything about
+   today, so it goes neutral and dashed rather than keeping a stale colour. */
+.now-card.is-forecast .now-ring::after {
+  border-style: dashed;
+  border-color: var(--line-strong);
 }
 
 .now-temp {
@@ -1877,10 +1995,12 @@ details.card[open] summary::before { content: "－ "; }
   margin: 3px 0 0;
 }
 
-.band-red    { background: #d9553f; }
-.band-orange { background: #e58a3c; }
-.band-yellow { background: #e5c645; }
-.band-green  { background: #4fae7c; }
+/* The four reserved marks. Nothing decorative may use these at this
+   saturation - see the palette block. */
+.band-red    { background: var(--mark-red); }
+.band-orange { background: var(--mark-orange); }
+.band-yellow { background: var(--mark-yellow); }
+.band-green  { background: var(--mark-green); }
 /* No prediction row for that day. Hollow, so it cannot be mistaken for a band
    at a glance, and never filled in from the day beside it (law 4). */
 .band-none {
@@ -2240,3 +2360,107 @@ details.card[open] summary::before { content: "－ "; }
   border-radius: var(--radius);
   opacity: 0.92;
 }
+
+
+/* ==========================================================================
+   Ambient fish and tackle
+   --------------------------------------------------------------------------
+   The owner asked for small fish of different species to jump and dive across
+   the page from time to time, and for tackle used as decoration.
+
+   Everything here is inline SVG and CSS keyframes: zero bytes on the wire, no
+   sprite sheet, no library, no requestAnimationFrame loop. Only `transform`
+   and `opacity` animate, so none of it can force layout.
+
+   Three things keep it honest on a phone at a riverbank:
+     - the layer is `aria-hidden` and `pointer-events: none`; it states nothing
+       and it can never eat a tap meant for a control underneath;
+     - it PAUSES when the tab is hidden (`html.is-hidden`, set from
+       visibilitychange in waterline.js) - an animation running in a pocket is
+       pure battery;
+     - `prefers-reduced-motion` removes the crossings entirely.
+
+   The species are drawn per species, per CLAUDE.md: a roach has an even fork,
+   a bream a long unequal one, a crucian a rounded convex fan. Recolouring one
+   silhouette four times would be worse than showing none.
+   ========================================================================== */
+
+.ambient {
+  position: fixed;
+  inset: 0;
+  /* ABOVE the page, not behind it. The first cut sat at z-index 0 under the
+     content, which meant the fish were invisible on every page with a hero or
+     a full-width card - which is most of them. Caught by filming it; the
+     stylesheet read perfectly well. Safe to sit on top because the layer is
+     aria-hidden and pointer-events:none, so it can never take a tap. */
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* The running-session button stays above the fish: it is a control, and a fish
+   crossing in front of it would read as a rendering fault. */
+.session-fab { z-index: 40; }
+
+.ambient-fish {
+  position: absolute;
+  left: -80px;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: fish-cross var(--cross, 26s) var(--ease-out) infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+.ambient-fish svg { display: block; }
+
+/* The arc is split across two elements so the horizontal travel stays linear
+   while the vertical rise and the pitch are eased - one element cannot do both
+   without the fish appearing to slow down mid-air. */
+.ambient-fish-arc {
+  animation: fish-arc var(--cross, 26s) var(--ease-out) infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+@keyframes fish-cross {
+  0%, 4%    { transform: translateX(0); opacity: 0; }
+  8%        { opacity: 0.5; }
+  16%       { opacity: 0.5; }
+  22%       { opacity: 0; }
+  100%      { transform: translateX(115vw); opacity: 0; }
+}
+
+/* Out of the water, over the top, and back down - nose up on the way up and
+   nose down on the way in, which is the whole reason the pin bug is famous
+   here. Verified with tools/animation_filmstrip.py, not by reading this. */
+@keyframes fish-arc {
+  0%   { transform: translateY(40px)  rotate(-26deg); }
+  8%   { transform: translateY(4px)   rotate(-18deg); }
+  13%  { transform: translateY(-14px) rotate(0deg); }
+  18%  { transform: translateY(4px)   rotate(18deg); }
+  24%  { transform: translateY(46px)  rotate(30deg); }
+  100% { transform: translateY(46px)  rotate(30deg); }
+}
+
+/* Hidden tab: stop. This is the difference between a charming detail and a
+   battery complaint. */
+html.is-hidden .ambient-fish,
+html.is-hidden .ambient-fish-arc {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Fewer and gentler, not zero - but a fish flying across the page is
+     position, and position is the part that goes. */
+  .ambient { display: none; }
+}
+
+/* ---- tackle used as decoration, never as a control ---- */
+.tackle-mark {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.34;
+  color: var(--line-strong);
+}
+
+.tackle-mark--float { top: -18px; right: -22px; transform: rotate(22deg); }
+.tackle-mark--reel  { bottom: 8%; left: -26px; transform: rotate(-12deg); }

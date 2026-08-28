@@ -33,12 +33,20 @@ PLAN = {
     "float-rings": (1100, 620, 78, (0.0, 1.0)),
 }
 
-# The generated stills came back warmer than this palette - a cream sky against
-# a #eef4f4 canvas reads as a different design. A small per-channel scale pulls
-# them onto the app's cool axis without touching composition or contrast.
+# The stills are pulled onto the palette's temperature axis. This is a real
+# per-channel scale, not a mood: an image a few percent off the ground's
+# temperature reads as belonging to a different design, and the eye catches it
+# long before it can name why.
+#
+# It was a COOLING scale under Waterline, whose ground was #eef4f4. The cosy
+# tackle ground is kraft (#efe7d6), so the same images now had to be WARMED
+# back - shipped once cooled, they sat on the new ground as a blue-green photo
+# on a warm page, which is exactly the failure the cooling existed to prevent.
+# Found by rendering the home page and looking, not by reading this file.
+#
 # Applied here rather than in CSS: a filter on a large image costs a repaint on
 # every scroll frame, and this costs nothing at runtime.
-COOL = (0.972, 0.992, 1.012)
+TEMPERATURE = (1.045, 1.004, 0.945)
 
 BUDGET_KB = 90
 
@@ -59,9 +67,9 @@ def main() -> int:
         im = Image.merge(
             "RGB",
             (
-                r.point(lambda v: min(255, round(v * COOL[0]))),
-                g.point(lambda v: min(255, round(v * COOL[1]))),
-                b.point(lambda v: min(255, round(v * COOL[2]))),
+                r.point(lambda v: min(255, round(v * TEMPERATURE[0]))),
+                g.point(lambda v: min(255, round(v * TEMPERATURE[1]))),
+                b.point(lambda v: min(255, round(v * TEMPERATURE[2]))),
             ),
         )
         for label, width in (("", wide), ("-m", narrow)):

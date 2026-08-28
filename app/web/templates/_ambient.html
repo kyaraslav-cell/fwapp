@@ -1,0 +1,129 @@
+{#- Ambient fish.
+
+    Six species crossing the page from time to time, per the owner's brief, and
+    made more frequent at their request (2026-08-28): shorter cycles and a
+    tighter stagger, so a crossing happens every few seconds rather than every
+    half minute.
+
+    Decorative only: the layer is aria-hidden and pointer-events:none, it states
+    nothing the page does not already say in words, and it can never swallow a
+    tap meant for a control underneath it.
+
+    Zero bytes on the wire - inline SVG and CSS keyframes, no sprite, no
+    library. Motion is transform/opacity only, pauses when the tab is hidden,
+    and is removed entirely under prefers-reduced-motion (style.css, "Ambient
+    fish and tackle").
+
+    Every species owns its geometry, per CLAUDE.md, and the TAIL ALONE has to
+    identify it:
+      roach   - even, moderate fork
+      bream   - long unequal fork, lower lobe dropped well past the upper
+      crucian - rounded convex fan, no fork at all
+      rudd    - even fork on a deeper body, snout turned up
+      carp    - broad SHALLOW fork, half the notch depth and twice the width
+      ide     - deep even fork on a long torpedo body
+    Recolouring one silhouette six times would teach the angler nothing and is
+    explicitly forbidden.
+
+    THE DORSAL IS PART OF THE BODY OUTLINE, not a stroke arc floating above it.
+    The first version drew it as a separate arc and it rendered as a detached
+    eyebrow on every fish - obvious the moment the six were put in a row at
+    size, invisible in the markup. The crucian's fan tail had the same fault and
+    read as a ball trailing the fish.
+
+    Colours are the softs and the water tones only - never a day-band MARK, and
+    no longer the band tints either: on kraft the pale tints were barely
+    visible, and keeping decoration off the band hues entirely is the safer
+    reading of the reserved rule (docs/20 §1).
+
+    The fill lives in `style="fill: ..."`, not in a fill="" attribute: var()
+    does not resolve in an SVG presentation attribute in Chrome. -#}
+<div class="ambient" aria-hidden="true">
+
+  {#- roach: slender, modest dorsal hump, even moderate fork -#}
+  <span class="ambient-fish" style="top: 19%; --cross: 22s; --delay: 1s;">
+    <span class="ambient-fish-arc" style="display:block; --cross: 22s; --delay: 1s;">
+      <svg width="46" height="25" viewBox="0 0 48 26" style="fill: var(--water-deep)">
+        <path d="M10 13 C13 8.5 17 6.6 21 6.1 C22.4 3.4 26 3.2 27.4 6.3
+                 C33 7.1 39 9.7 44 13 C39 16.3 33 18.9 27.4 19.7
+                 C26 22.8 22.4 22.6 21 19.9 C17 19.4 13 17.5 10 13 Z"/>
+        <path d="M12.5 13 L1 6.6 L5.4 13 L1 19.4 Z"/>
+      </svg>
+    </span>
+  </span>
+
+  {#- bream: deep slab body, small head, lower tail lobe dropped well past the
+      upper - the most distinctive tail of the six -#}
+  <span class="ambient-fish" style="top: 44%; --cross: 26s; --delay: 5s;">
+    <span class="ambient-fish-arc" style="display:block; --cross: 26s; --delay: 5s;">
+      <svg width="44" height="26" viewBox="0 0 48 26" style="fill: var(--accent-soft)">
+        <path d="M12 13 C14.5 5.6 18 3 22.6 2.4 C24.6 2.2 26.6 3 28 4.4
+                 C33.6 6 39.6 9.2 44.6 13 C39.6 16.8 33.6 20 28 21.6
+                 C26.6 23 24.6 23.8 22.6 23.6 C18 23 14.5 20.4 12 13 Z"/>
+        <path d="M14.5 13 L2 3.4 L6.8 13 L2.6 24.6 Z"/>
+      </svg>
+    </span>
+  </span>
+
+  {#- crucian: near-circular body, long low dorsal, and a rounded convex fan
+      tail attached to the body - no fork anywhere on this fish -#}
+  <span class="ambient-fish" style="top: 71%; --cross: 29s; --delay: 10s;">
+    <span class="ambient-fish-arc" style="display:block; --cross: 29s; --delay: 10s;">
+      <svg width="42" height="24" viewBox="0 0 48 26" style="fill: var(--water)">
+        <path d="M16 13 C17.6 5.6 21.4 3 26.4 3 C31.4 3 36.4 5 41 8.6
+                 C43.4 10.3 44.8 11.9 45.4 13 C44.8 14.1 43.4 15.7 41 17.4
+                 C36.4 21 31.4 23 26.4 23 C21.4 23 17.6 20.4 16 13 Z"/>
+        {#- The fan attaches along a TALL STRAIGHT EDGE at x=19, not at a point.
+            Pinched to a point it rendered as a ball trailing the fish - twice -
+            because the neck between fan and body went to zero width and
+            disappeared at 24 device pixels. -#}
+        <path d="M19 8.8 C11 7.2 4.6 9.9 4 13 C4.6 16.1 11 18.8 19 17.2 Z"/>
+      </svg>
+    </span>
+  </span>
+
+  {#- rudd: deeper than the roach, dorsal set well back, snout turned up,
+      even fork -#}
+  <span class="ambient-fish" style="top: 31%; --cross: 31s; --delay: 15s;">
+    <span class="ambient-fish-arc" style="display:block; --cross: 31s; --delay: 15s;">
+      <svg width="45" height="26" viewBox="0 0 48 26" style="fill: var(--accent-soft)">
+        <path d="M11.5 13 C14 6.4 18.6 3.6 23.6 3.2 C25.2 0.8 29.2 1.2 30.4 4.6
+                 C35.6 6 40.6 9 44.8 11.6 C45.2 12.1 45.2 13.9 44.8 14.4
+                 C40.6 17 35.6 20 30.4 21.4 C29.2 24.8 25.2 25.2 23.6 22.8
+                 C18.6 22.4 14 19.6 11.5 13 Z"/>
+        <path d="M13.5 13 L1.6 5 L6 13 L1.6 21 Z"/>
+      </svg>
+    </span>
+  </span>
+
+  {#- carp: thick body, a LONG low dorsal ridge rather than a hump, and
+      a broad shallow fork - the notch is half the depth of the roach's and
+      twice the width. No barbels: CLAUDE.md says outright that barbels are
+      garnish and the silhouette carries the recognition, and at this size they
+      crossed the body outline and read as a drawing error. -#}
+  <span class="ambient-fish" style="top: 57%; --cross: 34s; --delay: 20s;">
+    <span class="ambient-fish-arc" style="display:block; --cross: 34s; --delay: 20s;">
+      <svg width="48" height="26" viewBox="0 0 50 26" style="fill: var(--water-deep)">
+        <path d="M14 13 C15.6 8.4 17.6 6 20 5.2 C25 3.6 31.6 4 35.6 5.6
+                 C39.4 7.1 43.4 9.8 45.6 12.2 C46 12.6 46 13.4 45.6 13.8
+                 C43.4 16.2 39.4 18.9 35.6 20.4 C31.6 22 25 22.4 20 20.8
+                 C17.6 20 15.6 17.6 14 13 Z"/>
+        <path d="M17 13 L3 8.4 L8.6 13 L3 17.6 Z"/>
+      </svg>
+    </span>
+  </span>
+
+  {#- ide: long torpedo body, small dorsal, and the deepest even fork of the
+      six - the same family as the roach, cut twice as deep -#}
+  <span class="ambient-fish" style="top: 82%; --cross: 37s; --delay: 26s;">
+    <span class="ambient-fish-arc" style="display:block; --cross: 37s; --delay: 26s;">
+      <svg width="47" height="24" viewBox="0 0 48 26" style="fill: var(--water)">
+        <path d="M11 13 C15 8.8 21 7 27 6.8 C28.4 4.8 31.6 5.2 32.6 7.4
+                 C37.4 8.6 42 10.6 45.4 13 C42 15.4 37.4 17.4 32.6 18.6
+                 C31.6 20.8 28.4 21.2 27 19.2 C21 19 15 17.2 11 13 Z"/>
+        <path d="M13.5 13 L0.6 2.8 L6.2 13 L0.6 23.2 Z"/>
+      </svg>
+    </span>
+  </span>
+
+</div>

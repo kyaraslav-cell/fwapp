@@ -1,0 +1,42 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",    "title": "A · Home",            "x": 0,    "y": 0,    "w": 390, "h": 844 },
+    { "file": "AToday.dc.html",  "title": "A · Conditions",      "x": 490,  "y": 0,    "w": 390, "h": 844 },
+    { "file": "ASession.dc.html","title": "A · Session running", "x": 980,  "y": 0,    "w": 390, "h": 844 },
+    { "file": "ASpec.dc.html",   "title": "A · Tackle box — spec","x": 0,   "y": 964,  "w": 1240, "h": 250 },
+
+    { "file": "BHome.dc.html",   "title": "B · Home",            "x": 0,    "y": 1334, "w": 390, "h": 844 },
+    { "file": "BToday.dc.html",  "title": "B · Conditions",      "x": 490,  "y": 1334, "w": 390, "h": 844 },
+    { "file": "BSession.dc.html","title": "B · Session running", "x": 980,  "y": 1334, "w": 390, "h": 844 },
+    { "file": "BSpec.dc.html",   "title": "B · Pond light — spec","x": 0,   "y": 2298, "w": 1240, "h": 250 },
+
+    { "file": "CHome.dc.html",   "title": "C · Home",            "x": 0,    "y": 2668, "w": 390, "h": 844 },
+    { "file": "CToday.dc.html",  "title": "C · Conditions",      "x": 490,  "y": 2668, "w": 390, "h": 844 },
+    { "file": "CSession.dc.html","title": "C · Session running", "x": 980,  "y": 2668, "w": 390, "h": 844 },
+    { "file": "CSpec.dc.html",   "title": "C · Field notebook — spec","x": 0,"y": 3632, "w": 1240, "h": 250 }
+  ],
+  "annotations": [
+    {
+      "id": "how-to-read",
+      "x": 1420,
+      "y": 0,
+      "w": 300,
+      "text": "Three directions, same three screens.\n\nPick a ROW, not a screen. Each row is one palette, one type pairing, one density.\n\nThe spec strip under each row states what is reserved and what the language cost is.\n\nNothing here is built yet. No CSS has been touched."
+    },
+    {
+      "id": "band-tension",
+      "x": 1420,
+      "y": 300,
+      "w": 300,
+      "text": "The sharpest tension in the brief:\n\nYou asked for green / yellow / orange. Day quality is ALSO green → red.\n\nSo the four band hues are reserved. Decoration uses the same hues at pastel saturation; only the band gets them at full strength.\n\nEach direction solves this differently — A tints the panel, B leaves the band bare, C underlines it."
+    },
+    {
+      "id": "fish-note",
+      "x": 1420,
+      "y": 660,
+      "w": 300,
+      "text": "Fish are drawn per species, not one shape recoloured.\n\nRoach: slender, even fork.\nBream: deep body, long unequal fork, small head.\nCrucian: round body, convex fan tail.\nCarp: thick body, barbels, broad shallow tail.\nRudd: deeper than roach, upturned mouth.\n\nThe ambient jumping fish use the same set."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}
