@@ -14,6 +14,8 @@ Look at it, do not take my word for it:
 - [`design/cosy-tackle-desktop-before-after.png`](design/cosy-tackle-desktop-before-after.png)
 - [`design/cosy-tackle-home-detail.png`](design/cosy-tackle-home-detail.png)
 - [`design/cosy-tackle-ambient-filmstrip.png`](design/cosy-tackle-ambient-filmstrip.png)
+- [`design/cosy-tackle-ambient-species.png`](design/cosy-tackle-ambient-species.png)
+- [`design/cosy-tackle-ring.png`](design/cosy-tackle-ring.png)
 
 ---
 
@@ -48,7 +50,12 @@ warning.
 
 The resolution: **the band tint carries text, the band mark carries the signal,
 and the four marks are reserved.** Nothing decorative may use a mark hue at mark
-saturation. Decoration uses the tints.
+saturation.
+
+In practice decoration ended up avoiding the band hues altogether - the ambient
+fish were moved off the tints too (§5), and the conditions ring's interior was
+moved off them at the owner's request (§4). What is left is the cleaner rule:
+**a band hue appears only where a day is being reported.**
 
 | | Tint (text sits on this) | Mark (reserved) | mark-on-tint |
 |---|---|---|---|
@@ -122,8 +129,16 @@ corner.
 
 ## 4. The ring — direction B's circle in direction A's colours
 
-The conditions card is a ring: the day's band tint fills it, the reserved mark
-draws its edge, the temperature sits inside.
+The conditions card is a ring: the reserved mark draws its edge, the
+temperature sits inside, and **the inside is the design's own recessed ground
+(`--canvas-deep`), never the band tint** - the owner's call, and it makes the
+rule cleaner than the first cut. The day's colour now lives in the STROKE and
+nowhere else, so the card reads as this app rather than as a green card on a
+kraft page.
+
+That moved the contrast pair being tested: the mark is now drawn on
+`--canvas-deep` rather than on its own tint, so `tools/palette_check.py` checks
+that pair too (3.44-4.56:1, all clear of the 3.0 non-text minimum).
 
 **It is a full ring, not an arc that fills further on a better day.** The
 direction-B mockup drew a partial arc and that was wrong: a partial arc is a
@@ -136,17 +151,51 @@ colour (law 4).
 
 ## 5. Ambient fish
 
-Four species crossing the page from time to time, per the brief. Zero bytes:
-inline SVG and CSS keyframes, no sprite, no library, no `requestAnimationFrame`.
+**Six** species crossing the page, on 22-37s cycles staggered 1-26s, so a
+crossing happens every few seconds. (Four, on 34-53s cycles, was the first cut;
+the owner asked for more.) Zero bytes: inline SVG and CSS keyframes, no sprite,
+no library, no `requestAnimationFrame`.
 
 - `transform` and `opacity` only, so nothing can force layout
 - `aria-hidden` and `pointer-events: none` — it can never eat a tap
 - **paused when the tab is hidden**, from `visibilitychange` in `waterline.js`
 - removed entirely under `prefers-reduced-motion`
 
-Per species, per `CLAUDE.md`: roach an even fork, bream a long unequal fork with
-the lower lobe dropped, crucian a rounded convex fan, rudd an even fork on a
-deeper body with an upturned mouth.
+Per species, per `CLAUDE.md`, and the **tail alone** identifies each:
+
+| | Tail |
+|---|---|
+| roach | even, moderate fork, slender body |
+| bream | long fork, lower lobe dropped well past the upper, deep slab body |
+| crucian | rounded convex fan, no fork at all |
+| rudd | even fork on a deeper body, snout turned up |
+| carp | broad **shallow** fork - half the notch depth, twice the width |
+| ide | the deepest even fork, on a long torpedo body |
+
+Decoration uses only `--accent-soft`, `--water` and `--water-deep` - never a
+band mark, and no longer the band tints either: on kraft the pale tints were
+barely visible, and keeping decoration off the band hues entirely is the safer
+reading of the reserved rule.
+
+### Three drawing faults only a render caught
+
+Put six fish in a row at size and they are obvious; in the markup they are
+invisible. This is `CLAUDE.md`'s second verification rule doing its job.
+
+1. **Every dorsal fin was a detached eyebrow.** Drawn as a stroked arc above
+   the body outline, it never touched the body. The dorsal is now part of the
+   body path on all six.
+2. **The crucian's fan tail read as a ball trailing the fish - twice.** Both
+   fixes pinched the fan to a point where it met the body, so the neck went to
+   zero width and vanished at 24 device pixels. It attaches along a tall
+   straight edge now.
+3. **The carp's barbels crossed its own outline** and read as a drawing error.
+   Dropped. `CLAUDE.md` says outright that barbels are garnish and the
+   silhouette carries the recognition.
+
+A fourth, from the same render: the rudd and the roach were the same colour and
+nearly the same body, so they twinned. The rudd is deeper-bodied and a different
+tone now.
 
 ### Three things filming caught that reading could not
 

@@ -1625,8 +1625,11 @@ details.card[open] summary::before { content: "－ "; }
   display: grid;
   place-items: center;
   border-radius: 999px;
+  /* The inside of the ring is always the design's own recessed ground, never
+     the band tint. Owner's call, 2026-08-28, and it makes the rule cleaner
+     than it was: the day's colour lives in the STROKE and nowhere else, so the
+     card reads as this app rather than as a green card on a kraft page. */
   background: var(--canvas-deep);
-  box-shadow: inset 0 0 0 9px var(--band-none-tint, var(--canvas-deep));
 }
 
 .now-ring::after {
@@ -1634,13 +1637,8 @@ details.card[open] summary::before { content: "－ "; }
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  border: 4px solid var(--line-strong);
+  border: 5px solid var(--line-strong);
 }
-
-.now-card.ring-green  .now-ring { background: var(--band-green); }
-.now-card.ring-yellow .now-ring { background: var(--band-yellow); }
-.now-card.ring-orange .now-ring { background: var(--band-orange); }
-.now-card.ring-red    .now-ring { background: var(--band-red); }
 
 .now-card.ring-green  .now-ring::after { border-color: var(--mark-green); }
 .now-card.ring-yellow .now-ring::after { border-color: var(--mark-yellow); }
@@ -1649,7 +1647,6 @@ details.card[open] summary::before { content: "－ "; }
 
 /* Showing another day's forecast: the ring must stop asserting anything about
    today, so it goes neutral and dashed rather than keeping a stale colour. */
-.now-card.is-forecast .now-ring { background: var(--surface-sunk); }
 .now-card.is-forecast .now-ring::after {
   border-style: dashed;
   border-color: var(--line-strong);

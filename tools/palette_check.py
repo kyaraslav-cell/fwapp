@@ -100,6 +100,12 @@ MARK_ON_BAND = {
     "mark-red": "band-red",
 }
 
+# The conditions ring draws the mark as a stroke on --canvas-deep rather than on
+# its own tint (the owner asked for the inside of the ring to stay in the
+# design's palette). That is a different pair from the one above and it has to
+# clear the same 3.0, or the day's colour stops being findable.
+RING_GROUND = "canvas-deep"
+
 
 def main() -> int:
     failures: list[str] = []
@@ -121,6 +127,14 @@ def main() -> int:
         print(f"ink on {band:<12} {r:>6.2f}  {mark}")
         if r < 4.5:
             failures.append(f"ink on {band}: {r:.2f} < 4.5")
+
+    print()
+    for mk in MARK_ON_BAND:
+        r = ratio(TOKENS[mk], TOKENS[RING_GROUND])
+        ok = "ok" if r >= 3.0 else "FAIL"
+        print(f"{mk:<12} on {RING_GROUND:<12} {r:>6.2f}  {ok}   (conditions ring)")
+        if r < 3.0:
+            failures.append(f"{mk} on {RING_GROUND}: {r:.2f} < 3.0")
 
     print()
     for mk, band in MARK_ON_BAND.items():
