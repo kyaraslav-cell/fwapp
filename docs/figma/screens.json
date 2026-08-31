@@ -1,0 +1,332 @@
+{
+  "$description": "Screen and element spec for fwapp (Fishlog), extracted from the shipped Jinja2 templates in app/web/templates/. Children are listed IN PAINT ORDER, top to bottom. Token names refer to docs/figma/tokens.json. This describes what exists, not what somebody wishes existed - if a screen here disagrees with the template, the template wins.",
+  "meta": {
+    "product": "Fishlog",
+    "repoName": "fwapp",
+    "note": "The app brands itself 'Fishlog' in the topbar. The repository and the owner call it 'fwapp'. Both names are in use; this is unresolved, not a mistake to fix silently.",
+    "languages": ["pl", "ru", "en"],
+    "designSystem": "docs/20-COSY-TACKLE-DESIGN-SYSTEM.md",
+    "primaryTarget": "phone, one-handed, outdoors, bad signal"
+  },
+  "frames": {
+    "phone": { "width": 390, "height": 844, "description": "THE design target. Draw every screen here first." },
+    "desktop": { "width": 1280, "height": 900, "description": "The adaptation, not the target. Content column is max-width 960px, centred." }
+  },
+  "rules": [
+    "One primary action per screen, in the bottom third (thumb zone), minimum 48x48.",
+    "Destructive actions out of the thumb arc - top of screen or behind a confirm.",
+    "Never draw a numeric score, a percentage, a rating out of ten, or a progress arc for fishing quality. Day quality is a COLOUR BAND ONLY.",
+    "Any number that comes from data carries its sample size n beside it.",
+    "Green good, red bad, everywhere.",
+    "Light ground only. There is no dark mode and one is not wanted.",
+    "No sharp corners. radius 20 for cards, 13 for buttons, 999 for pills.",
+    "Do not draw a fake iOS status bar or a fake keyboard.",
+    "Blank sessions are first-class: a session with zero catches must be as easy to end as a good one, and must never look like an error."
+  ],
+  "shared": {
+    "topbar": {
+      "order": 1,
+      "layout": { "direction": "horizontal", "align": "center", "justify": "space-between", "padding": "16px 20px", "maxWidth": 960 },
+      "background": "color.ground.canvas",
+      "children": [
+        { "name": "brand", "type": "link", "text": "Fishlog", "font": "fontFamily.display", "size": "fontSize.t-xl", "color": "color.ink.ink" },
+        { "name": "topnav", "type": "row", "desktopOnly": true, "children": ["Places", "History"], "note": "Hidden on phone; the bottomnav carries it instead." },
+        { "name": "lang-switch", "type": "segmented", "children": ["EN", "PL", "RU"], "radius": "radius.radius-pill", "note": "Active option gets surface fill + shadow.e1 + accent-deep text." },
+        { "name": "account", "type": "link-or-form", "states": ["signed out: 'What is this?' + 'Sign in'", "signed in: name + 'Sign out'"] }
+      ]
+    },
+    "waterline": {
+      "order": 2,
+      "type": "rule",
+      "height": 2,
+      "color": "color.ground.line",
+      "description": "A 2px line under the topbar. It ripples outward from wherever you tap and swells while a request is in flight. Decorative, aria-hidden. Draw it as a plain 2px rule; the behaviour is CSS."
+    },
+    "ambient": {
+      "order": "overlay, above all content",
+      "type": "decorative-layer",
+      "description": "Six fish crossing the page on 22-37s cycles, staggered 1-26s. pointer-events none, aria-hidden. In a static Figma frame draw AT MOST ONE fish, small, at ~50% opacity, well clear of any text or control. Do not draw six at once - that is not what the screen ever looks like.",
+      "species": {
+        "roach": { "tail": "even, moderate fork", "body": "slender", "fill": "color.water.water-deep" },
+        "bream": { "tail": "long fork, lower lobe dropped well past the upper", "body": "deep slab, small head", "fill": "color.accent.accent-soft" },
+        "crucian": { "tail": "rounded convex fan, NO fork at all", "body": "near-circular", "fill": "color.water.water" },
+        "rudd": { "tail": "even fork", "body": "deeper than roach, snout turned up", "fill": "color.accent.accent-soft" },
+        "carp": { "tail": "broad SHALLOW fork - half the notch depth, twice the width", "body": "thick, long low dorsal ridge, no barbels", "fill": "color.water.water-deep" },
+        "ide": { "tail": "deepest even fork", "body": "long torpedo", "fill": "color.water.water" }
+      },
+      "speciesRule": "Every species owns its geometry. The TAIL ALONE must identify the fish with the body hidden. The dorsal fin is part of the body outline, never a separate arc floating above it. No polygon fins, no triangles standing in for a tail. Two species sharing a tail wedge means the set has failed."
+    },
+    "session-fab": {
+      "order": "floating, z above content",
+      "visibleWhen": "a session is running and you are not already on the session screen",
+      "shape": "circle",
+      "size": 48,
+      "position": "fixed, right 16px, bottom 64px + safe-area",
+      "background": "color.ground.surface",
+      "border": "1px color.ground.line-strong",
+      "shadow": "shadow.e2",
+      "content": "a float icon (elongated teardrop body, thin antenna with a coloured tip, thin stem below, small eye ring). NOT a circle on a stick.",
+      "motion": "the float rides, knocks twice, buries, and rides back up - a bite. 4.2s loop."
+    },
+    "bottomnav": {
+      "order": "last",
+      "phoneOnly": true,
+      "layout": { "direction": "horizontal", "padding": "8px 12px + safe-area" },
+      "children": ["Places", "History"],
+      "background": "color.ground.surface"
+    },
+    "page": {
+      "maxWidth": 960,
+      "narrowVariant": 480,
+      "padding": "8px 20px 96px",
+      "note": "96px bottom padding clears the bottomnav and the session float."
+    }
+  },
+  "screens": [
+    {
+      "id": "home",
+      "route": "/",
+      "title": "Places",
+      "flowStep": 1,
+      "primaryAction": { "label": "+ New place", "style": "btn-ghost", "position": "after the list" },
+      "children": [
+        { "order": 1, "name": "water-hero", "type": "image", "height": 150, "radius": "radius.radius", "asset": "water-hero.webp", "note": "A photographic water band, warm-toned to match the kraft ground. 20KB desktop / 4.1KB phone." },
+        { "order": 2, "name": "section-label", "type": "text", "text": "YOUR FISHING PLACES", "size": "fontSize.t-sm", "weight": 600, "tracking": "letterSpacing.wide", "transform": "uppercase", "color": "color.ink.ink-faint" },
+        { "order": 3, "name": "switch", "type": "segmented", "options": ["All", "PZW", "Commercial"], "radius": "radius.radius-pill", "background": "color.ground.surface-sunk", "note": "One track, one sliding thumb, exactly one option active. Thumb is surface + shadow.e1." },
+        { "order": 4, "name": "place-list", "type": "repeater", "gap": 10, "item": {
+            "name": "place-card",
+            "layout": { "direction": "horizontal", "gap": 14, "padding": "spacing.s4", "align": "center" },
+            "background": "color.ground.surface",
+            "border": "1px color.ground.line",
+            "radius": "radius.radius",
+            "children": [
+              { "name": "place-thumb", "type": "shape", "size": 56, "radius": "radius.radius-sm", "fill": "linear-gradient 155deg color.water.water -> color.water.water-deep", "note": "A traced outline of the real lake, or a river line, or a rounded rectangle for a commercial pond. Never the accent - amber reads as land." },
+              { "name": "place-info", "type": "column", "children": [
+                { "name": "place-name", "size": "fontSize.t-base", "weight": 600, "color": "color.ink.ink" },
+                { "name": "place-meta", "size": "fontSize.t-sm", "color": "color.ink.ink-faint", "example": "PZW water · 9 ha · 14 sessions · 0.71 / h" }
+              ] },
+              { "name": "badge", "type": "pill", "radius": "radius.radius-pill", "padding": "4px 10px", "size": "fontSize.t-xs", "weight": 600, "variants": {
+                  "green": "band.green-tint bg / semantic.positive-ink text",
+                  "yellow": "band.yellow-tint bg / ink text",
+                  "orange": "band.orange-tint bg / semantic.warn-ink text",
+                  "red": "band.red-tint bg / semantic.warn-ink text",
+                  "neutral": "ground.surface-sunk bg / ink.ink-soft text, 1px line inset"
+                }, "note": "This badge is the day band for that water. It is a colour and a word, never a number." },
+              { "name": "place-actions", "type": "row", "children": ["favourite (star toggle)", "remove (soft, asks first)"] }
+            ]
+          } },
+        { "order": 5, "name": "empty-state", "type": "conditional", "children": ["float-rings.webp illustration", "one sentence"], "note": "Never a crossed-out icon or an error tone. An empty list is not a fault." },
+        { "order": 6, "name": "new-place", "type": "button", "style": "btn-ghost", "text": "+ New place" },
+        { "order": 7, "name": "removed-places", "type": "disclosure", "collapsed": true, "note": "Soft-removed waters live here with a Restore button. Nothing is ever deleted." }
+      ]
+    },
+    {
+      "id": "lake",
+      "route": "/lake/{slug}",
+      "title": "Conditions and map",
+      "flowStep": 2,
+      "primaryAction": { "label": "pick a spot on the map", "note": "The map itself is the action - tap it, or drag the fish pin onto it." },
+      "children": [
+        { "order": 1, "name": "session-banner", "type": "conditional-link", "visibleWhen": "a session is running", "note": "This page deliberately does NOT redirect to the running session. Conditions and the map are exactly what an angler wants mid-session." },
+        { "order": 2, "name": "lake-heading", "type": "row", "children": [
+            { "name": "section-label", "example": "JEZIORO POMOCNIA · FRI 28 AUG, 17:26" },
+            { "name": "calendar-toggle", "type": "icon-button", "size": 44, "icon": "calendar" }
+          ] },
+        { "order": 3, "name": "day-strip", "type": "collapsed-rail", "hiddenByDefault": true, "item": {
+            "name": "day-chip", "layout": "column", "gap": 3, "padding": "9px 8px 10px",
+            "children": ["weekday", "day of month", { "name": "day-chip-band", "type": "bar", "width": 28, "height": 6, "radius": 999, "fill": "the day's band MARK" }]
+          }, "note": "Behind the calendar icon. Selecting a day re-scores the map. A day with no stored prediction shows as 'no data' and gets NO colour - it never borrows its neighbour's." },
+        { "order": 4, "name": "now-card", "type": "card", "layout": { "direction": "horizontal", "gap": 18, "padding": "16px 18px", "align": "center" }, "background": "linear-gradient 135deg ground.surface -> ground.surface-sunk", "border": "1px color.ground.line", "radius": "radius.radius", "children": [
+            { "name": "now-ring", "type": "circle", "size": 92, "fill": "color.ground.canvas-deep", "stroke": { "width": 5, "color": "the day's band MARK, or ground.line-strong when unknown" }, "children": [
+                { "name": "now-temp", "text": "23°C", "font": "fontFamily.display", "size": 42, "weight": 700, "color": "color.accent.accent-deep", "numerals": "tabular" }
+              ],
+              "note": "THE SIGNATURE ELEMENT. A FULL ring, never a partial arc - an arc that fills further on a better day is a progress bar, and a progress bar is a score out of ten wearing a hat. The interior is always canvas-deep; the day's colour lives in the stroke and nowhere else. Under a forecast day the stroke goes dashed and neutral." },
+            { "name": "now-meta", "type": "column", "children": ["wind arrow + compass + speed", "pressure hPa"] }
+          ] },
+        { "order": 5, "name": "registered-catch", "type": "paragraph", "size": "fontSize.t-sm", "color": "color.ink.ink-faint", "note": "The only MEASURED number on this page, and its n travels with it. kg per angler-day from the district register - never averaged with the notebook's own fish-per-hour." },
+        { "order": 6, "name": "weather-table", "type": "table", "columns": ["Day", "Wind", "High / Low", "Pressure"], "note": "Tapping a row also re-scores the map." },
+        { "order": 7, "name": "pin-dock", "type": "row", "children": [
+            { "name": "fish-pin", "type": "draggable", "note": "Drag onto the map to choose a swim. It DIVES NOSE FIRST - this shipped tail-first three times. Splash at 705ms, spot chosen at 900ms." },
+            { "name": "pin-hint", "type": "text", "maxLines": 1, "text": "Drag the fish onto the map - or just tap the water - to pick your spot." }
+          ] },
+        { "order": 8, "name": "map-wrap", "type": "map", "radius": "radius.radius", "children": ["Leaflet tiles", "lake outline", "heat overlay (red poor -> green best)", "map-day-badge when a forecast day is selected"] },
+        { "order": 9, "name": "heat-legend", "type": "row", "children": ["Poor", "gradient bar", "Best"], "note": "A gradient with two words. No numbers." },
+        { "order": 10, "name": "provenance-note", "type": "text", "note": "States plainly that the zone overlay is provisional and unvalidated." },
+        { "order": 11, "name": "intel-card", "type": "card", "optional": true, "note": "Local knowledge, translated into all three languages." }
+      ]
+    },
+    {
+      "id": "spot-start",
+      "route": "/lake/{slug}/spot",
+      "title": "Method and rods",
+      "flowStep": 3,
+      "primaryAction": { "label": "Start session", "style": "btn-primary", "position": "bottom" },
+      "children": [
+        { "order": 1, "name": "already-running", "type": "conditional-callout", "visibleWhen": "a session is already running elsewhere", "note": "This is an EXPECTED state, not an error. Do not draw it in the danger tone." },
+        { "order": 2, "name": "section-label", "text": "METHOD" },
+        { "order": 3, "name": "method-grid", "type": "grid", "item": { "name": "method-card", "type": "radio-card", "radius": "radius.radius-sm", "selectedStyle": "accent border + accent-wash fill" } },
+        { "order": 4, "name": "section-label", "text": "RODS" },
+        { "order": 5, "name": "stepper", "type": "row", "children": [
+            { "name": "rod-minus", "type": "icon-button", "size": 48 },
+            { "name": "rod-count-display", "type": "text", "size": "fontSize.t-2xl", "font": "fontFamily.display", "numerals": "tabular" },
+            { "name": "rod-plus", "type": "icon-button", "size": 48 }
+          ], "range": "1 to 6" },
+        { "order": 6, "name": "submit", "type": "button", "style": "btn-primary", "background": "color.accent.accent", "text": "color.accent.accent-ink", "minHeight": 48, "radius": "radius.radius-sm" },
+        { "order": 7, "name": "cancel", "type": "button", "style": "btn-ghost" }
+      ]
+    },
+    {
+      "id": "session-active",
+      "route": "/session/active",
+      "title": "Session running",
+      "flowStep": 4,
+      "primaryAction": { "label": "Log this catch", "style": "btn-primary" },
+      "children": [
+        { "order": 1, "name": "timer", "type": "text", "align": "center", "size": "fontSize.t-sm", "color": "color.ink.ink-faint" },
+        { "order": 2, "name": "counter", "type": "column", "align": "center", "children": [
+            { "name": "counter-number", "size": 42, "weight": 700, "color": "color.accent.accent-deep", "numerals": "tabular" },
+            { "name": "counter-label", "size": "fontSize.t-sm", "color": "color.ink.ink-faint" }
+          ], "note": "A raw catch count for THIS session's morale only. Fish-per-hour lives on History. Do not relabel this as CPUE." },
+        { "order": 3, "name": "inline-link-row", "type": "row", "children": ["Conditions", "Map", "History"], "note": "Conditions and the map must stay reachable during a running session. Do not remove these." },
+        { "order": 4, "name": "section-label", "text": "QUICK LOG" },
+        { "order": 5, "name": "fish-grid", "type": "grid", "item": {
+            "name": "fish-btn", "minHeight": 80, "layout": "column", "gap": 4, "padding": "12px 6px", "radius": "radius.radius-sm",
+            "children": ["species icon (~46px, per-species geometry)", "species name"],
+            "note": "One tap logs a fish. Six favourite species."
+          } },
+        { "order": 6, "name": "detail-panel", "type": "disclosure", "collapsed": true, "children": [
+            { "name": "search-row", "type": "row", "children": ["text input", "search button"] },
+            { "name": "species-select", "type": "select" },
+            { "name": "weight-slider", "type": "range", "note": "Bounds reset per species; the readout is tabular." },
+            { "name": "length-slider", "type": "range" },
+            { "name": "bait", "type": "text-input" },
+            { "name": "photo", "type": "file-input", "capture": "environment" },
+            { "name": "submit", "type": "button", "style": "btn-primary" }
+          ] },
+        { "order": 7, "name": "section-label", "text": "CATCHES" },
+        { "order": 8, "name": "catch-list", "type": "repeater", "item": {
+            "name": "catch-card", "layout": "horizontal", "align": "center",
+            "children": ["photo or fallback species icon (34px)", "species name", "time · bait · length", "edit", "delete"],
+            "note": "Delete is the ONLY hard delete in this app and it asks first."
+          } },
+        { "order": 9, "name": "bottom-fixed", "type": "sticky-footer", "children": [
+            { "name": "end-session", "type": "button", "style": "btn-danger-solid", "background": "color.semantic.danger" }
+          ] }
+      ]
+    },
+    {
+      "id": "session-end",
+      "route": "/session/end",
+      "title": "End session",
+      "flowStep": 5,
+      "primaryAction": { "label": "Save and end", "style": "btn-danger-solid" },
+      "children": [
+        { "order": 1, "name": "summary", "type": "card-flat", "note": "If zero catches, this says the session will be saved as a BLANK and that blanks count fully in every statistic. It is not an error state and must not look like one." },
+        { "order": 2, "name": "water-temp-measured", "type": "number-input", "optional": true },
+        { "order": 3, "name": "water-clarity", "type": "number-input", "optional": true },
+        { "order": 4, "name": "reflection", "type": "textarea", "optional": true },
+        { "order": 5, "name": "bottom-fixed", "children": ["Save (btn-danger-solid)", "Cancel (btn-ghost)"] }
+      ]
+    },
+    {
+      "id": "catch-edit",
+      "route": "/session/catch/{id}/edit",
+      "title": "Edit catch",
+      "children": [
+        { "order": 1, "name": "species-row-inline", "type": "row", "children": ["species icon", "species select"] },
+        { "order": 2, "name": "weight-slider", "type": "range" },
+        { "order": 3, "name": "length-slider", "type": "range" },
+        { "order": 4, "name": "bait", "type": "text-input" },
+        { "order": 5, "name": "existing-photo", "type": "image", "optional": true },
+        { "order": 6, "name": "photo", "type": "file-input" },
+        { "order": 7, "name": "actions", "children": ["Save (btn-primary)", "Cancel (btn-ghost)"] }
+      ]
+    },
+    {
+      "id": "history",
+      "route": "/history",
+      "title": "History",
+      "children": [
+        { "order": 1, "name": "stat-row", "type": "row", "item": { "name": "stat", "children": [
+              { "name": "stat-number", "size": 24, "weight": 700, "color": "color.accent.accent-deep", "numerals": "tabular" },
+              { "name": "stat-label", "size": "fontSize.t-sm", "color": "color.ink.ink-faint" }
+            ] }, "stats": ["sessions", "blanks"] },
+        { "order": 2, "name": "history-table", "type": "table", "columns": ["Date", "Water", "Hours", "Fish", "Fish / h"], "note": "A blank session shows the word 'blank' in the fish column, never a bare 0, and is counted in every total." }
+      ]
+    },
+    {
+      "id": "place-new",
+      "route": "/places/new",
+      "title": "Add a water",
+      "children": [
+        { "order": 1, "name": "auth-lede", "type": "paragraph" },
+        { "order": 2, "name": "form-error", "type": "banner", "conditional": true, "background": "color.band.red-tint", "text": "color.semantic.warn-ink" },
+        { "order": 3, "name": "search-form", "children": ["field label", "text input", "field hint", "Search (btn-primary)"] },
+        { "order": 4, "name": "did-you-mean", "type": "text", "conditional": true },
+        { "order": 5, "name": "candidate-list", "type": "repeater", "item": { "name": "candidate-card", "extends": "place-card", "note": "PZW districts are offered first, named and bounded by the register. Ambiguous water type gets two buttons rather than a guess." } }
+      ]
+    },
+    {
+      "id": "auth-login",
+      "route": "/auth/login",
+      "title": "Sign in",
+      "pageVariant": "narrow (480px)",
+      "children": [
+        { "order": 1, "name": "h1", "text": "Sign in", "font": "fontFamily.display", "size": "fontSize.t-2xl" },
+        { "order": 2, "name": "auth-lede", "type": "paragraph", "color": "color.ink.ink-soft" },
+        { "order": 3, "name": "form-error", "type": "banner", "conditional": true },
+        { "order": 4, "name": "fields", "type": "column", "item": { "name": "field", "children": ["field-label", "input", "field-error (conditional)"] }, "fields": ["Email", "Password"] },
+        { "order": 5, "name": "submit", "type": "button", "style": "btn-primary", "minHeight": 48 },
+        { "order": 6, "name": "auth-or", "type": "divider-with-label", "text": "OR" },
+        { "order": 7, "name": "btn-google", "type": "button", "style": "btn-google", "note": "Only rendered when Google sign-in is configured. A button that would fail is never drawn." },
+        { "order": 8, "name": "auth-switch", "type": "text-link" }
+      ]
+    },
+    {
+      "id": "auth-register",
+      "route": "/auth/register",
+      "title": "Create account",
+      "pageVariant": "narrow (480px)",
+      "extends": "auth-login",
+      "children": [
+        { "order": 4, "name": "fields", "fields": ["Email", "Name", "Password", "Repeat password"], "note": "Inline validation appears under a field on blur: the label gets the error tone and a one-line message in semantic.warn-ink." }
+      ]
+    },
+    {
+      "id": "error",
+      "route": "404 / 500",
+      "title": "Error",
+      "children": [
+        { "order": 1, "name": "error-code", "type": "text", "size": "fontSize.t-3xl", "font": "fontFamily.display", "color": "color.ink.ink-faint" },
+        { "order": 2, "name": "h1", "type": "text" },
+        { "order": 3, "name": "auth-lede", "type": "paragraph" },
+        { "order": 4, "name": "home-link", "type": "button", "style": "btn-primary" }
+      ]
+    },
+    {
+      "id": "landing",
+      "route": "/welcome",
+      "title": "Marketing page",
+      "audience": "signed-out visitors only",
+      "note": "A DIFFERENT register from the app screens - richer, scroll-driven, read once on wifi. It is not part of the five-screen flow and must not be designed to match the in-app density. Do not link it from '/' for a signed-in angler."
+    }
+  ],
+  "flow": {
+    "$description": "The order is fixed and is not a suggestion. Do not design a one-tap start.",
+    "primary": [
+      { "from": "home", "to": "lake", "trigger": "tap a water card" },
+      { "from": "lake", "to": "spot-start", "trigger": "tap the map, or drag the fish pin onto it" },
+      { "from": "spot-start", "to": "session-active", "trigger": "Start session" },
+      { "from": "session-active", "to": "session-end", "trigger": "End session" },
+      { "from": "session-end", "to": "history", "trigger": "Save" }
+    ],
+    "sideways": [
+      { "from": "session-active", "to": "lake", "trigger": "Conditions / Map", "note": "Required. Standing rule: conditions and map stay reachable mid-session." },
+      { "from": "lake", "to": "session-active", "trigger": "the running-session banner" },
+      { "from": "any", "to": "session-active", "trigger": "the floating session button" },
+      { "from": "session-active", "to": "catch-edit", "trigger": "edit a logged catch" },
+      { "from": "home", "to": "place-new", "trigger": "+ New place" },
+      { "from": "any", "to": "history", "trigger": "bottom nav" }
+    ]
+  }
+}
