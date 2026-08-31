@@ -1,0 +1,270 @@
+{
+  "$description": "Structural spec for fwapp (Fishlog). Screens, elements in order, and the flow between them. NO styling: no colours, type, sizes, spacing, radii or shadows - the design is the agent's to make. Extracted from the shipped templates in app/web/templates/, which are the source of truth.",
+  "meta": {
+    "product": "a fishing notebook: weather conditions per water, a map that ranks where to sit, and a logged session diary",
+    "primaryContext": "phone, one-handed, outdoors, weak signal",
+    "languages": ["pl", "ru", "en"],
+    "naming": "the app currently brands itself 'Fishlog'; the repo and owner call it 'fwapp'. Unresolved - choose deliberately."
+  },
+  "shared": {
+    "$description": "Chrome present on every screen. Order is paint order.",
+    "topbar": [
+      { "el": "brand", "type": "link", "to": "home" },
+      { "el": "nav", "type": "links", "items": ["Places", "History"], "shownOn": "desktop only" },
+      { "el": "language-switch", "type": "segmented", "options": ["EN", "PL", "RU"], "exclusive": true },
+      { "el": "account", "type": "conditional", "signedOut": ["What is this? (link)", "Sign in (link)"], "signedIn": ["display name", "Sign out (button)"] }
+    ],
+    "under-topbar": [
+      { "el": "activity-line", "type": "decorative rule", "role": "brand mark and loading indicator", "note": "reacts to taps and to requests in flight" }
+    ],
+    "content": { "el": "page", "type": "container", "variants": ["default", "narrow (auth and error screens)"] },
+    "floating": [
+      { "el": "session-button", "type": "floating circular button", "to": "session-active", "shownWhen": "a session is running AND not already on the session screen", "minTouchTarget": 48 }
+    ],
+    "bottom": [
+      { "el": "bottom-nav", "type": "links", "items": ["Places", "History"], "shownOn": "phone only" }
+    ],
+    "background-layer": {
+      "el": "ambient",
+      "type": "decorative overlay",
+      "interactive": false,
+      "content": "six fish silhouettes crossing the page occasionally",
+      "structuralNote": "non-interactive, hidden from assistive tech, must never overlap or block a control. In a static frame draw at most one, clear of text."
+    }
+  },
+  "screens": [
+    {
+      "id": "home",
+      "route": "/",
+      "purpose": "the angler's list of waters",
+      "flowStep": 1,
+      "elements": [
+        { "order": 1, "el": "hero", "type": "image band" },
+        { "order": 2, "el": "section-label", "type": "label", "text": "YOUR FISHING PLACES" },
+        { "order": 3, "el": "filter", "type": "segmented control", "options": ["All", "PZW", "Commercial"], "exclusive": true },
+        { "order": 4, "el": "water-list", "type": "list", "item": {
+          "el": "water-card",
+          "type": "card",
+          "layout": "horizontal",
+          "children": [
+            { "el": "thumbnail", "type": "shape", "content": "traced outline of the real lake, a river line, or a pond rectangle" },
+            { "el": "info", "type": "stack", "children": [
+              { "el": "name", "type": "text" },
+              { "el": "meta", "type": "text", "example": "PZW water · 9 ha · 14 sessions · 0.71 / h" }
+            ] },
+            { "el": "day-badge", "type": "pill", "content": "a word for today's fishing quality", "neverANumber": true },
+            { "el": "actions", "type": "row", "children": ["favourite toggle", "remove (asks first, reversible)"] }
+          ] } },
+        { "order": 5, "el": "empty-state", "type": "conditional block", "children": ["illustration", "one sentence"], "note": "an empty list is not a fault; no error tone" },
+        { "order": 6, "el": "add-water", "type": "button", "to": "place-new" },
+        { "order": 7, "el": "removed-waters", "type": "disclosure", "collapsed": true, "item": ["name", "Restore button"] }
+      ]
+    },
+    {
+      "id": "lake",
+      "route": "/lake/{slug}",
+      "purpose": "conditions for one water, and the map you pick a swim on",
+      "flowStep": 2,
+      "elements": [
+        { "order": 1, "el": "running-session-banner", "type": "conditional link", "to": "session-active", "shownWhen": "a session is running" },
+        { "order": 2, "el": "heading-row", "type": "row", "children": [
+          { "el": "title", "type": "label", "example": "JEZIORO POMOCNIA · FRI 28 AUG, 17:26" },
+          { "el": "calendar-toggle", "type": "icon button", "controls": "day-strip" }
+        ] },
+        { "order": 3, "el": "day-strip", "type": "horizontal rail", "hiddenUntil": "calendar-toggle pressed", "item": {
+          "el": "day-chip", "type": "button", "children": ["weekday", "day number", "quality indicator (a mark, not a number)"] },
+          "note": "selecting a day re-ranks the map; a day with no data shows as no-data and gets no indicator" },
+        { "order": 4, "el": "conditions-card", "type": "card", "layout": "horizontal", "children": [
+          { "el": "quality-ring", "type": "circle with a stroke", "children": [{ "el": "temperature", "type": "text" }],
+            "structuralNote": "the STROKE carries today's fishing quality as a colour. It is a complete ring - never a partial arc, because a partial arc reads as a score." },
+          { "el": "readouts", "type": "stack", "children": ["wind direction arrow + compass + speed", "pressure"] }
+        ] },
+        { "order": 5, "el": "registered-catch", "type": "paragraph", "note": "the only measured statistic on this screen; its sample size is shown with it" },
+        { "order": 6, "el": "forecast-table", "type": "table", "columns": ["Day", "Wind", "High / Low", "Pressure"], "rowsAreInteractive": true },
+        { "order": 7, "el": "pin-dock", "type": "row", "children": [
+          { "el": "fish-pin", "type": "draggable object", "target": "the map", "note": "dragging it onto the map picks a swim; it dives nose-first" },
+          { "el": "hint", "type": "text", "maxLines": 1 }
+        ] },
+        { "order": 8, "el": "map", "type": "interactive map", "layers": ["tiles", "water outline", "quality overlay", "selected-day badge"] },
+        { "order": 9, "el": "map-legend", "type": "row", "children": ["Poor", "gradient bar", "Best"] },
+        { "order": 10, "el": "provenance-note", "type": "text", "note": "states that the overlay is provisional" },
+        { "order": 11, "el": "local-knowledge", "type": "card", "optional": true }
+      ]
+    },
+    {
+      "id": "spot-start",
+      "route": "/lake/{slug}/spot",
+      "purpose": "choose method and rod count, then start",
+      "flowStep": 3,
+      "elements": [
+        { "order": 1, "el": "already-running-notice", "type": "conditional block", "note": "an expected state, not an error" },
+        { "order": 2, "el": "section-label", "type": "label", "text": "METHOD" },
+        { "order": 3, "el": "method-grid", "type": "grid of selectable cards", "exclusive": true },
+        { "order": 4, "el": "section-label", "type": "label", "text": "RODS" },
+        { "order": 5, "el": "rod-stepper", "type": "stepper", "children": ["minus button", "count", "plus button"], "range": [1, 6] },
+        { "order": 6, "el": "start", "type": "primary button", "to": "session-active" },
+        { "order": 7, "el": "cancel", "type": "secondary button", "to": "lake" }
+      ]
+    },
+    {
+      "id": "session-active",
+      "route": "/session/active",
+      "purpose": "the running session: log fish, keep conditions reachable",
+      "flowStep": 4,
+      "elements": [
+        { "order": 1, "el": "elapsed", "type": "text" },
+        { "order": 2, "el": "counter", "type": "stack", "children": ["number", "label"], "note": "fish this session, for morale; the rate statistic lives on History" },
+        { "order": 3, "el": "quick-links", "type": "row", "items": ["Conditions", "Map", "History"], "required": true, "note": "conditions and map must stay reachable while a session runs" },
+        { "order": 4, "el": "section-label", "type": "label", "text": "QUICK LOG" },
+        { "order": 5, "el": "species-grid", "type": "grid of buttons", "count": 6, "item": ["species icon", "species name"], "note": "one tap logs a fish" },
+        { "order": 6, "el": "detailed-log", "type": "disclosure", "collapsed": true, "children": [
+          { "el": "species-search", "type": "row", "children": ["text input", "search button"] },
+          { "el": "species-select", "type": "select" },
+          { "el": "weight", "type": "slider with readout" },
+          { "el": "length", "type": "slider with readout" },
+          { "el": "bait", "type": "text input" },
+          { "el": "photo", "type": "camera / file input" },
+          { "el": "submit", "type": "primary button" }
+        ] },
+        { "order": 7, "el": "section-label", "type": "label", "text": "CATCHES" },
+        { "order": 8, "el": "catch-list", "type": "list", "item": {
+          "el": "catch-row", "layout": "horizontal",
+          "children": ["photo or species icon", "species name", "time · bait · length", "edit button", "delete button"],
+          "note": "delete is the only irreversible action in the app and asks first" } },
+        { "order": 9, "el": "end-session", "type": "destructive button", "position": "pinned to the bottom", "to": "session-end" }
+      ]
+    },
+    {
+      "id": "session-end",
+      "route": "/session/end",
+      "purpose": "close the session, including one with no fish",
+      "flowStep": 5,
+      "elements": [
+        { "order": 1, "el": "summary", "type": "block", "note": "with zero catches this says the session is saved as a BLANK and that blanks count fully. Not an error state." },
+        { "order": 2, "el": "water-temperature", "type": "number input", "optional": true },
+        { "order": 3, "el": "water-clarity", "type": "number input", "optional": true },
+        { "order": 4, "el": "reflection", "type": "textarea", "optional": true },
+        { "order": 5, "el": "save", "type": "primary button", "to": "history" },
+        { "order": 6, "el": "cancel", "type": "secondary button", "to": "session-active" }
+      ]
+    },
+    {
+      "id": "catch-edit",
+      "route": "/session/catch/{id}/edit",
+      "purpose": "correct a logged fish",
+      "elements": [
+        { "order": 1, "el": "species-row", "type": "row", "children": ["species icon", "species select"] },
+        { "order": 2, "el": "weight", "type": "slider with readout" },
+        { "order": 3, "el": "length", "type": "slider with readout" },
+        { "order": 4, "el": "bait", "type": "text input" },
+        { "order": 5, "el": "existing-photo", "type": "image", "optional": true },
+        { "order": 6, "el": "photo", "type": "camera / file input" },
+        { "order": 7, "el": "save", "type": "primary button" },
+        { "order": 8, "el": "cancel", "type": "secondary button" }
+      ]
+    },
+    {
+      "id": "history",
+      "route": "/history",
+      "purpose": "every session, blanks included",
+      "elements": [
+        { "order": 1, "el": "stat-row", "type": "row", "item": { "el": "stat", "children": ["number", "label"] }, "stats": ["sessions", "blanks"] },
+        { "order": 2, "el": "history-table", "type": "table", "columns": ["Date", "Water", "Hours", "Fish", "Fish / h"], "note": "a blank session shows the word 'blank' in the fish column, never a bare zero" }
+      ]
+    },
+    {
+      "id": "place-new",
+      "route": "/places/new",
+      "purpose": "search for and add a water",
+      "elements": [
+        { "order": 1, "el": "lede", "type": "paragraph" },
+        { "order": 2, "el": "error-banner", "type": "conditional block" },
+        { "order": 3, "el": "search-form", "type": "form", "children": ["field label", "text input", "field hint", "search button"] },
+        { "order": 4, "el": "did-you-mean", "type": "text", "optional": true },
+        { "order": 5, "el": "results", "type": "list", "item": { "el": "candidate-card", "children": ["name", "meta", "type tag", "add button"] },
+          "note": "when the water type is ambiguous the row offers two buttons rather than guessing" }
+      ]
+    },
+    {
+      "id": "auth-login",
+      "route": "/auth/login",
+      "purpose": "sign in",
+      "pageVariant": "narrow",
+      "elements": [
+        { "order": 1, "el": "heading", "type": "h1" },
+        { "order": 2, "el": "lede", "type": "paragraph" },
+        { "order": 3, "el": "error-banner", "type": "conditional block" },
+        { "order": 4, "el": "fields", "type": "stack", "item": { "el": "field", "children": ["label", "input", "inline error (conditional)"] }, "fields": ["Email", "Password"] },
+        { "order": 5, "el": "submit", "type": "primary button" },
+        { "order": 6, "el": "divider", "type": "divider with label", "text": "OR" },
+        { "order": 7, "el": "google", "type": "button", "optional": true, "note": "only drawn when configured" },
+        { "order": 8, "el": "switch", "type": "text link", "to": "auth-register" }
+      ]
+    },
+    {
+      "id": "auth-register",
+      "route": "/auth/register",
+      "purpose": "create an account",
+      "pageVariant": "narrow",
+      "sameStructureAs": "auth-login",
+      "differences": [
+        { "el": "fields", "fields": ["Email", "Name", "Password", "Repeat password"], "note": "inline validation appears under a field as you leave it" }
+      ]
+    },
+    {
+      "id": "error",
+      "route": "404 / 500",
+      "purpose": "not found, or something broke",
+      "pageVariant": "narrow",
+      "elements": [
+        { "order": 1, "el": "code", "type": "text" },
+        { "order": 2, "el": "heading", "type": "h1" },
+        { "order": 3, "el": "lede", "type": "paragraph" },
+        { "order": 4, "el": "home", "type": "primary button", "to": "home" }
+      ]
+    },
+    {
+      "id": "landing",
+      "route": "/welcome",
+      "purpose": "marketing page for signed-out visitors",
+      "note": "a different register from the app screens - richer, scroll-driven, read once. Not part of the five-screen flow."
+    }
+  ],
+  "flow": {
+    "fixedOrder": [
+      { "from": "home", "to": "lake", "trigger": "tap a water" },
+      { "from": "lake", "to": "spot-start", "trigger": "tap the map, or drag the fish pin onto it" },
+      { "from": "spot-start", "to": "session-active", "trigger": "Start" },
+      { "from": "session-active", "to": "session-end", "trigger": "End session" },
+      { "from": "session-end", "to": "history", "trigger": "Save" }
+    ],
+    "sideways": [
+      { "from": "session-active", "to": "lake", "trigger": "Conditions / Map", "required": true },
+      { "from": "lake", "to": "session-active", "trigger": "running-session banner" },
+      { "from": "any", "to": "session-active", "trigger": "floating session button" },
+      { "from": "session-active", "to": "catch-edit", "trigger": "edit a catch" },
+      { "from": "home", "to": "place-new", "trigger": "add a water" },
+      { "from": "any", "to": "history", "trigger": "bottom nav" },
+      { "from": "landing", "to": "auth-login", "trigger": "sign in" }
+    ]
+  },
+  "structuralConstraints": {
+    "$description": "These change WHICH elements exist, not how they look, so they belong here rather than in a design brief.",
+    "rules": [
+      "One primary action per screen, in the lower third, minimum 48x48 touch target.",
+      "Destructive actions are kept out of the natural thumb arc.",
+      "Fishing quality is a colour and a word. Never a number, percentage, rating, gauge or progress arc.",
+      "Any figure derived from data is accompanied by its sample size.",
+      "A session with no fish is ordinary data: as easy to record as a good one, never styled as a failure, never omitted from a total.",
+      "Conditions and the map remain reachable while a session is running.",
+      "The five-screen order is fixed. Do not design a one-tap start.",
+      "Each of the six fish silhouettes has its own outline; the tail alone should tell them apart.",
+      "No dark variant.",
+      "No fake device status bar and no fake keyboard inside a frame."
+    ]
+  },
+  "frames": {
+    "phone": { "width": 390, "height": 844, "note": "the design target - draw every screen here first" },
+    "desktop": { "width": 1280, "height": 900, "note": "an adaptation; content sits in a centred column" }
+  }
+}
