@@ -78,11 +78,33 @@ irm https://raw.githubusercontent.com/kyaraslav-cell/fwapp/claude/repository-edi
 Installing WSL2 forces a reboot, and a reboot is only safe on a machine that
 quietly hosts other things if those things come back by themselves. Check first:
 
+With the repo cloned:
+
 ```powershell
-powershell -ExecutionPolicy Bypass -File scriptseboot-readiness.ps1
-# then, to repair what can be repaired automatically:
-powershell -ExecutionPolicy Bypass -File scriptseboot-readiness.ps1 -Fix
+powershell -ExecutionPolicy Bypass -File scripts\reboot-readiness.ps1
+powershell -ExecutionPolicy Bypass -File scripts\reboot-readiness.ps1 -Fix
 ```
+
+On a machine that has nothing yet - check, then repair:
+
+```powershell
+irm https://raw.githubusercontent.com/kyaraslav-cell/fwapp/claude/repository-edit-push-ggr229/scripts/reboot-readiness.ps1 | iex
+```
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/kyaraslav-cell/fwapp/claude/repository-edit-push-ggr229/scripts/reboot-readiness.ps1))) -Fix
+```
+
+**Do not download it to a file and run that.** Windows blocks running a
+downloaded `.ps1` under the default execution policy, so
+`-OutFile r.ps1; .\r.ps1` fails with *"running scripts is disabled on this
+system"*. Piping to `iex` never creates a file, so the policy does not apply -
+which is why the bootstrap one-liner works and that did not. The
+`[scriptblock]::Create(...)` form is the same trick with a way to pass an
+argument like `-Fix`.
+
+(A file downloaded from an Administrator window lands in `C:\\WINDOWS\\system32`,
+because that is where an elevated prompt starts. Worth deleting if it happened.)
 
 It reports on **every** container on the box, not just Fishlog's, plus whatever
 is registered to start at login.
