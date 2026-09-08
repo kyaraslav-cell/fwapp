@@ -32,8 +32,24 @@ That is the whole install. It installs Docker if missing, fetches the app,
 **finds the bundle on the USB stick by itself**, restores the notebook, starts
 it, puts it on a public URL, and runs the health check.
 
-If Docker was missing it will install it and ask you to restart Windows. Paste
-the same line again afterwards — it skips everything already done.
+If something is missing it installs it and asks you to restart Windows. Paste
+the same line again afterwards — it skips everything already done. Expect up to
+two restarts on a clean machine: one for WSL2, one for Docker.
+
+**One step may need an Administrator window.** Docker Desktop runs its engine
+inside WSL2, and on a clean Windows install WSL is absent — Docker then installs
+happily and refuses to start with *"WSL is not installed"*, which is a dead end
+unless you know to go and fix a prerequisite it never mentioned beforehand. The
+bootstrap checks first and, if it cannot fix it itself, prints exactly this:
+
+```powershell
+# in an Administrator PowerShell, then restart Windows
+wsl --install --no-distribution
+```
+
+`--no-distribution` keeps it to the engine Docker actually needs, with no Ubuntu
+image nobody asked for. Everything else in the bootstrap runs in a normal
+window.
 
 ### Two rules the bootstrap is built around
 

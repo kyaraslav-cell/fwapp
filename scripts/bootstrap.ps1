@@ -43,6 +43,58 @@ Say ''
 Say '  Fishlog' 'Cyan'
 Say ''
 
+# --------------------------------------------------------------------- 0. wsl
+# Docker Desktop on Windows runs its engine inside WSL2. On a clean machine WSL
+# is absent, and Docker installs happily and then refuses to start with
+# "WSL is not installed" - which is a dead end unless you know to go and fix a
+# prerequisite Docker never mentioned before you installed it. So check first.
+#
+# `wsl --install` needs Administrator and a reboot. Nothing else here does,
+# which is why this is the only part that can stop and ask.
+function Test-Admin {
+    $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+    (New-Object Security.Principal.WindowsPrincipal $id).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+$wslOk = $false
+if (Get-Command wsl -ErrorAction SilentlyContinue) {
+    # The wsl.exe stub ships with Windows even when the feature is off, so its
+    # mere presence proves nothing - it has to be asked whether it works.
+    $null = Native { wsl --status }
+    if ($LASTEXITCODE -eq 0) { $wslOk = $true }
+}
+
+if (-not $wslOk) {
+    Say '  Docker needs WSL2, and it is not installed here.' 'Yellow'
+    if (Test-Admin) {
+        Say '  Installing WSL2...' 'Yellow'
+        # --no-distribution keeps it to the engine Docker actually needs, with
+        # no Ubuntu image nobody asked for. Older Windows builds reject the
+        # flag, so fall back to the plain form.
+        $null = Native { wsl --install --no-distribution }
+        if ($LASTEXITCODE -ne 0) { $null = Native { wsl --install } }
+        Say ''
+        Say '  WSL2 installed. RESTART WINDOWS now.' 'Cyan'
+        Say '  After the restart, paste the same line again - it carries on' 'Cyan'
+        Say '  from here and skips what is already done.' 'Cyan'
+        Say ''
+        exit 0
+    } else {
+        Say ''
+        Say '  This one step needs Administrator. Do this:' 'Cyan'
+        Say ''
+        Say '    1. Close this window.' 'Cyan'
+        Say '    2. Right-click Start -> Terminal (Admin), or PowerShell (Admin).' 'Cyan'
+        Say '    3. Run:  wsl --install --no-distribution' 'Cyan'
+        Say '    4. Restart Windows.' 'Cyan'
+        Say '    5. Paste the same one-line command again - a normal window is' 'Cyan'
+        Say '       fine from then on.' 'Cyan'
+        Say ''
+        exit 1
+    }
+}
+
 # ------------------------------------------------------------------ 1. docker
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     Say '  Installing Docker Desktop (a few minutes)...' 'Yellow'
@@ -68,7 +120,13 @@ while ((Get-Date) -lt $deadline) {
     }
     Start-Sleep -Seconds 6
 }
-if (-not $engine) { Say '  Docker did not start. Open Docker Desktop, then paste the line again.' 'Red'; exit 1 }
+if (-not $engine) {
+    Say '  Docker did not start.' 'Red'
+    Say '  Open Docker Desktop and read its error. If it says WSL is missing,' 'Yellow'
+    Say '  run this in an ADMIN PowerShell, restart, and paste the line again:' 'Yellow'
+    Say '    wsl --install --no-distribution' 'Yellow'
+    exit 1
+}
 Say "  Docker ready ($engine)" 'Green'
 
 # -------------------------------------------------------------------- 2. app
