@@ -36,3 +36,6 @@ scrollcraft/builds/*/gf.css
 # Seeded design canvas output - re-seeded from the .dc.html working files
 docs/design/canvas/*.html
 !docs/design/canvas/*.dc.html
+
+# Export bundles - live API keys and a second user's notebook. Never commit one.
+fishlog-bundle-*
