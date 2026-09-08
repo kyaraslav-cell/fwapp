@@ -5,6 +5,7 @@ trio and cut down hard, because Fishlog is a much smaller thing to move.
 
 | | |
 |---|---|
+| `scripts/bootstrap.ps1` | **the one-liner** — everything below, in order |
 | `scripts/pack.ps1` | snapshot this installation into one zip |
 | `scripts/install.ps1` | restore it on another PC and start it |
 | `scripts/check.ps1` | is the whole chain alive, and is the container running *this* code |
@@ -13,25 +14,57 @@ trio and cut down hard, because Fishlog is a much smaller thing to move.
 
 ## The short version
 
-**On this PC**
+**On this PC — once.** Makes a ~3 MB zip in your home folder:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\pack.ps1
 ```
 
-Writes `fishlog-bundle-<date>.zip` to your home folder. About **3 MB**.
+Copy it to a USB stick.
 
-**On the other PC**
+**On the other PC — one line.** Plug the stick in, open PowerShell, paste:
 
 ```powershell
-git clone https://github.com/kyaraslav-cell/fwapp.git fwapp
-cd fwapp
-powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -Bundle C:\path\fishlog-bundle-....zip
-powershell -ExecutionPolicy Bypass -File scripts\check.ps1
+irm https://raw.githubusercontent.com/kyaraslav-cell/fwapp/claude/repository-edit-push-ggr229/scripts/bootstrap.ps1 | iex
 ```
 
-That is the whole process. No test suite on the target machine — see
-"Why there is no long test" below.
+That is the whole install. It installs Docker if missing, fetches the app,
+**finds the bundle on the USB stick by itself**, restores the notebook, starts
+it, puts it on a public URL, and runs the health check.
+
+If Docker was missing it will install it and ask you to restart Windows. Paste
+the same line again afterwards — it skips everything already done.
+
+### Two rules the bootstrap is built around
+
+**It never makes a bundle and never needs a fresh one.** It searches every
+drive root, Downloads and your home folder for `fishlog-bundle-*.zip` and
+reuses the newest. Re-packing for every attempt is how LeadFind lost an
+afternoon: each try began with a slow rebuild, and when the result looked wrong
+nobody could tell whether the fix was bad or the deploy had simply not replaced
+anything. One bundle, reused, deletes that question.
+
+**It is safe and fast to re-run.** Docker present, app already fetched,
+notebook already restored — each is detected and skipped. Re-running is the
+normal way to continue after the Docker restart, so it must never be the thing
+that destroys a notebook: it refuses to overwrite an existing one unless you
+pass `-Force`.
+
+Only if the bundle is somewhere unusual:
+
+```powershell
+irm https://raw.githubusercontent.com/kyaraslav-cell/fwapp/claude/repository-edit-push-ggr229/scripts/bootstrap.ps1 -OutFile b.ps1
+..ps1 -Bundle D:\whereverishlog-bundle-....zip
+```
+
+### Afterwards
+
+- **Stop the old machine** — `docker compose stop fishlog`. Two copies running
+  means two notebooks drifting apart, and there is no sync.
+- **Google sign-in only:** the new PC has a different address. The installer
+  prints it and rewrites `.env`; you must add that exact address in the Google
+  console under *Credentials → Authorised redirect URIs*. Email and password
+  sign-in works without this.
 
 ---
 
