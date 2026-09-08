@@ -70,7 +70,7 @@ Only if the bundle is somewhere unusual:
 
 ```powershell
 irm https://raw.githubusercontent.com/kyaraslav-cell/fwapp/claude/repository-edit-push-ggr229/scripts/bootstrap.ps1 -OutFile b.ps1
-..ps1 -Bundle D:\whereverishlog-bundle-....zip
+.\b.ps1 -Bundle D:\whereverishlog-bundle-....zip
 ```
 
 ### Before you restart anything

@@ -143,8 +143,8 @@ def _tidy_name(raw: str) -> str:
     # below it - "rz. Bug Nr 5 obwodu rybackiego", or the next water glued on
     # as "rzeki Rakutowka Nr 2 j.Toczylowo". Cut at the first thing that is
     # plainly no longer part of the name.
-    name = re.split(r"\s+obwodu", name)[0]
-    name = re.split(r"\s+Uwaga", name)[0]
+    name = re.split(r"\s+obwodu\b", name)[0]
+    name = re.split(r"\s+Uwaga\b", name)[0]
     name = re.split(r"\s+(?=j\.\s*\w)", name)[0] if not name.startswith("j.") else name
     name = re.sub(r"\s*Nr\s*\d+.*$", "", name)
     name = re.sub(r"^[\s\-–—]+", "", name)
