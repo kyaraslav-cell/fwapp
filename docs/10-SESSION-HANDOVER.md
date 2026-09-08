@@ -63,6 +63,9 @@ Every finished change is merged there and pushed (rule 13).
 | Offline / service worker | **not built** — `docs/15 §A5`, the biggest gap |
 | Gemini local-knowledge pass (`intel` job, `water_fact`) | **run for real**, 2026-08-24 — translated into all 3 site languages, trimmed to essentials (`docs/handoff/2026-08-24-2152-...md`) |
 | Design workflow: `design-kit` skill + 3 subagents | works - `.claude/skills/design-kit/`, `.claude/agents/`; see `docs/18` and `docs/18b` |
+| **Deployment: moved off the laptop to a stationary PC (2026-09-08)** | live at `https://annapc.tailf99616.ts.net`. The laptop is stopped; its funnel still answers 502 until switched off. `docs/21` |
+| Move / install / health-check scripts (`scripts/`) | works - `pack`, `bootstrap` (one pasted line), `install`, `check`, `reboot-readiness`. Migration run for real, row counts verified. `docs/21` |
+| Unattended health monitoring | **Linux only** - `tools/heartbeat.sh` + systemd timer. annapc is Windows and has no equivalent yet. |
 | Sign in with Google | wired and verified end-to-end (real client id, correct redirect, correct consent-screen URL) — the human consent click-through is the owner's to complete |
 
 **Run it:**
@@ -150,6 +153,12 @@ These came from the owner directly and are not negotiable without asking.
     ```bash
     docker compose up -d --build
     ```
+
+    **Since 2026-09-08 the live deployment is `annapc`, not this laptop.** A
+    rebuild here changes nothing the public URL serves; it has to be run on
+    annapc after a `git pull` there. `scripts/check.ps1` compares the code
+    inside the running container against the working tree and is the thing
+    that proves a deploy landed.
 
     Run it once, at the end, after the work is merged — not per commit, which
     would put half-finished work on the public URL. **At the end means before
