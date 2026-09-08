@@ -168,7 +168,95 @@ except Exception: print(0)
 
 if ($restore) { Remove-Item $restore -Recurse -Force -ErrorAction SilentlyContinue }
 
-# ---------------------------------------------------------------- 6. verify
+# ------------------------------------------------------------ 6. publish it
+# Running is not publishing. Everything above gets the app to localhost:8000;
+# this section is what puts it on a URL, and it is the part that does NOT
+# survive a move on its own.
+#
+# The public hostname is the Tailscale NODE NAME, which is per-machine. Moving
+# to another PC changes it, and two things silently break when it does:
+# the Google sign-in redirect (which is written into .env), and any bookmark.
+Say ''
+Say '  Publishing' 'Cyan'
+
+$ts = $null
+foreach ($c in @('tailscale', "$env:ProgramFiles\Tailscale	ailscale.exe")) {
+    if (Get-Command $c -ErrorAction SilentlyContinue) { $ts = $c; break }
+}
+
+if (-not $ts) {
+    Say '  Tailscale is not installed - the app is reachable on localhost only.' 'Yellow'
+    Say '  To publish it:  winget install tailscale.tailscale' 'Yellow'
+    Say '  then re-run this script.' 'Yellow'
+} else {
+    $status = Native { & $ts status }
+    $self = ($status | Select-Object -First 1)
+    $node = $null
+    if ($self -match '^\S+\s+(\S+)\s') { $node = $matches[1] }
+
+    if (-not $node) {
+        Say '  Tailscale is installed but not logged in.' 'Yellow'
+        Say "  Run:  $ts up" 'Yellow'
+    } else {
+        # The tailnet domain comes from `status`, not from a guess - it differs
+        # per account and hardcoding this machine's is exactly the bug being
+        # fixed here.
+        $fqdn = $null
+        $dnsLine = Native { & $ts status --json }
+        try { $fqdn = ($dnsLine | ConvertFrom-Json).Self.DNSName.TrimEnd('.') } catch { }
+        if (-not $fqdn) { $fqdn = $node }
+        $publicUrl = "https://$fqdn"
+
+        Say "  this machine is '$node' -> $publicUrl"
+
+        $already = Native { & $ts funnel status }
+        if ($already -match 'Funnel on') {
+            Say '  funnel already on' 'Green'
+        } else {
+            Say '  turning the funnel on for port 8000...'
+            $null = Native { & $ts funnel --bg 8000 }
+            Start-Sleep -Seconds 3
+            $now = Native { & $ts funnel status }
+            if ($now -match 'Funnel on') { Say '  funnel on' 'Green' }
+            else {
+                Say '  could not enable the funnel automatically. Run by hand:' 'Yellow'
+                Say "    $ts funnel --bg 8000" 'Yellow'
+            }
+        }
+
+        # Rewrite the OAuth redirect to THIS machine. The bundle carries the
+        # source machine's URL, and Google rejects a redirect that does not
+        # match exactly - which presents as sign-in silently failing rather
+        # than as an error anyone can read.
+        $envPath = Join-Path $root '.env'
+        if (Test-Path $envPath) {
+            $lines = Get-Content $envPath
+            $old = ($lines | Where-Object { $_ -match '^\s*FISHLOG_GOOGLE_REDIRECT_URI\s*=' } | Select-Object -First 1)
+            if ($old) {
+                $oldVal = ($old -split '=', 2)[1].Trim()
+                $path = ''
+                if ($oldVal -match '^https?://[^/]+(/.*)$') { $path = $matches[1] }
+                $newVal = "$publicUrl$path"
+                if ($oldVal -ne $newVal) {
+                    $lines = $lines -replace '^\s*FISHLOG_GOOGLE_REDIRECT_URI\s*=.*$', "FISHLOG_GOOGLE_REDIRECT_URI=$newVal"
+                    Set-Content $envPath $lines -Encoding utf8
+                    Say '  rewrote FISHLOG_GOOGLE_REDIRECT_URI for this machine' 'Green'
+                    Say "    was:  $oldVal" 'DarkGray'
+                    Say "    now:  $newVal" 'DarkGray'
+                    Say ''
+                    Say '  You must ALSO add that exact URI in the Google Cloud console' 'Yellow'
+                    Say '  (APIs and Services -> Credentials -> your OAuth client ->' 'Yellow'
+                    Say '  Authorised redirect URIs). Google matches it exactly, and until' 'Yellow'
+                    Say '  it is added, Google sign-in fails with no useful message.' 'Yellow'
+                    Say '  Email and password sign-in works regardless.' 'DarkGray'
+                    $null = Native { docker compose up -d }
+                }
+            }
+        }
+    }
+}
+
+# ---------------------------------------------------------------- 7. verify
 # Do not declare success from having run the commands. Ask the app.
 Say ''
 Say '  verifying...'

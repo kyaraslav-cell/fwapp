@@ -170,7 +170,96 @@ local network — not email, not cloud storage. Delete it from both machines onc
 ## Known gaps
 
 - The installer's fresh-Windows path is untested (above).
-- Nothing here sets up the Tailscale funnel on the new machine; `check.ps1`
-  reports its absence but does not fix it. See `docs/16-DEPLOY-ORACLE.md`.
+- `install.ps1` turns the funnel on and rewrites `FISHLOG_GOOGLE_REDIRECT_URI`
+  for the new host, but the matching URI still has to be added by hand in the
+  Google console — Google matches it exactly and there is no API for it.
 - `-Force` on the installer overwrites an existing notebook. There is no undo,
   and no second copy is taken first. Pack the target machine before forcing.
+
+---
+
+## Off the laptop entirely — the autonomous path
+
+Everything above moves Fishlog to *another PC*. If the point is that no laptop
+has to stay on, the target is a free cloud VM, and the runbook for that already
+exists: [`docs/16-DEPLOY-ORACLE.md`](16-DEPLOY-ORACLE.md). Oracle's Always Free
+tier is the only free host with a real persistent block volume, which is the
+constraint that rules out the others.
+
+Three things were missing from that runbook for a genuinely unattended box, and
+are now in `tools/oracle_vm_setup.sh`:
+
+**1. It can restore your notebook, instead of starting empty.**
+
+```bash
+# on the laptop
+powershell -ExecutionPolicy Bypass -File scripts\pack.ps1
+# copy the ~3 MB zip to the VM, then on the VM
+./oracle_vm_setup.sh --bundle ~/fishlog-bundle-....zip
+```
+
+**2. The public hostname changes, and that breaks Google sign-in silently.**
+The URL is the Tailscale *node name*, which is per-machine, and the bundle
+carries the laptop's `FISHLOG_GOOGLE_REDIRECT_URI`. Google matches the redirect
+exactly, so a stale one fails with nothing readable. The script says so; the new
+URI still has to be added in the Google console by hand. Email and password
+sign-in is unaffected.
+
+**3. Nothing was watching it.** Which matters far more once the box is one you
+never look at.
+
+### The heartbeat
+
+`tools/heartbeat.sh`, run by a systemd timer every 10 minutes. It reads the
+app's own `/health` and pings an external dead-man's switch **only while the app
+is genuinely healthy**.
+
+Outbound rather than an uptime service polling the URL, because one mechanism
+then covers three different failures:
+
+| Failure | What the monitor sees |
+|---|---|
+| VM dead, or no network | no ping at all — it alerts on the silence |
+| container down or erroring | an immediate failure ping, with the reason |
+| **up, but the weather feed is stale** | a failure ping — the quiet one |
+
+That third row is why this is not just `curl -f /health`. A stale feed means
+the app serves perfectly while every score it shows is old, and law 4 forbids
+inventing the missing hours — so it stays visibly stale forever and nothing
+else would ever complain.
+
+Unresolved ingest gaps are **reported but do not fail** the check. A gap is a
+record that an hour was missed; it stays on the books until somebody backfills
+it, so failing on one would mean alerting forever about a past incident, which
+just teaches you to ignore the alert.
+
+Setup, once the VM is up:
+
+```bash
+# create a free check at healthchecks.io - period 10 min, grace 20 min
+echo 'FISHLOG_HEARTBEAT_URL=https://hc-ping.com/<uuid>' >> ~/fwapp/.env
+~/fwapp/tools/heartbeat.sh        # should print: ok age=0.4h gaps=0
+systemctl list-timers fishlog-heartbeat.timer
+```
+
+With `FISHLOG_HEARTBEAT_URL` unset the script exits quietly and changes
+nothing, so it is safe to install first and configure later.
+
+### Tested
+
+All four paths, against the live app:
+
+| | Result |
+|---|---|
+| no monitor configured | exits quietly, rc 0 |
+| healthy | `ok age=0.1h gaps=9`, rc 0 |
+| app unreachable | `UNHEALTHY: no response from ...`, rc 1 |
+| feed stale (limit forced to 0h) | `UNHEALTHY: weather feed 0.1h behind`, rc 1 |
+
+A monitor that is itself unreachable warns and still exits 0 — a monitoring
+outage is not an application outage, and reporting it as one is how a check
+gets muted.
+
+**Not tested:** the VM path end to end, because that needs an Oracle account and
+a console session. The scripts parse and the heartbeat is proven against the
+real app; provisioning the box is still `docs/16` and a browser.
