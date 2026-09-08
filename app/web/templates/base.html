@@ -13,7 +13,11 @@
      subsetted because this UI ships Polish and Russian. The system stack is 0
      bytes and covers all three alphabets. See docs/17-DESIGN-SYSTEM.md. #}
   <link rel="stylesheet" href="/static/style.css">
-  <meta name="theme-color" content="#eef4f4">
+  {# The colour the phone paints its own chrome with. It must track
+     --canvas, or the browser frames a kraft page in pale blue. It does
+     not accept var(), so it is the one place the ground is written twice;
+     tests/test_palette.py checks the two agree. #}
+  <meta name="theme-color" content="#efe7d6">
   {% block extra_head %}{% endblock %}
 </head>
 <body>

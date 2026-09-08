@@ -97,14 +97,26 @@ def test_the_old_palette_is_gone() -> None:
         "#0d3a63": "pastel --primary-text",
         "#e07a66": "pastel --danger",
     }
+    # Templates as well as the stylesheet. This test read style.css alone,
+    # and three retired colours survived a whole redesign inside
+    # app/web/templates/: the phone theme-color meta and the draggable fish
+    # pin gradient - so the map's signature control stayed reed-green on a
+    # kraft page and the browser framed it in pale blue. Nothing failed and
+    # it shipped.
+    sources = {STYLESHEET: css}
+    for tpl in pathlib.Path("app/web/templates").glob("*.html"):
+        sources[tpl] = tpl.read_text(encoding="utf-8")
+
     for value, what in retired.items():
         # Comments may still name a retired colour to explain why it went.
-        live = [
-            line
-            for line in css.splitlines()
-            if value in line and not line.strip().startswith(("/*", "*", "//"))
-        ]
-        assert not live, f"{value} ({what}) is still live in {STYLESHEET}: {live}"
+        for where, text in sources.items():
+            live = [
+                line
+                for line in text.splitlines()
+                if value in line
+                and not line.strip().startswith(("/*", "*", "//", "{#", "#}"))
+            ]
+            assert not live, f"{value} ({what}) is still live in {where}: {live}"
 
 
 def test_the_alias_block_holds_no_literal_colour() -> None:
@@ -280,3 +292,23 @@ def test_the_landing_page_ships_its_engine_and_plates() -> None:
     present = {p.name for p in pathlib.Path("app/web/static/landing").iterdir()}
     missing = referenced - present
     assert not missing, f"landing.html references files that are not committed: {missing}"
+
+
+def test_the_phone_chrome_colour_matches_the_ground() -> None:
+    """`theme-color` paints the browser's own chrome around the page and cannot
+    take a var(), so the ground is written twice - once in the stylesheet and
+    once in base.html. Two copies of one value drift, and this one drifted
+    through an entire redesign: the meta stayed on the retired palette's canvas
+    while the page moved to kraft, so a phone framed a warm page in pale blue."""
+    css = STYLESHEET.read_text(encoding="utf-8")
+    m = re.search(r"--canvas:\s*(#[0-9a-fA-F]{6})", css)
+    assert m, "--canvas is not defined in the stylesheet"
+    canvas = m.group(1).lower()
+
+    base = pathlib.Path("app/web/templates/base.html").read_text(encoding="utf-8")
+    t = re.search(r'name="theme-color"\s+content="(#[0-9a-fA-F]{6})"', base)
+    assert t, "base.html has no theme-color meta"
+    assert t.group(1).lower() == canvas, (
+        f"theme-color is {t.group(1)} but --canvas is {canvas}; a phone would "
+        f"frame the page in a colour the page does not use"
+    )
