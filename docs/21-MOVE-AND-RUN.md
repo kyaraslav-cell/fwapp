@@ -312,9 +312,11 @@ never look at.
 
 ### The heartbeat
 
-`tools/heartbeat.sh`, run by a systemd timer every 10 minutes. It reads the
-app's own `/health` and pings an external dead-man's switch **only while the app
-is genuinely healthy**.
+Two scripts, one contract. **`scripts/heartbeat.ps1` is the one that runs on
+annapc** — a Scheduled Task every 10 minutes. `tools/heartbeat.sh` is the same
+check for the Linux/VM fallback in `docs/16`, run by a systemd timer. Both read
+the app's own `/health` and ping an external dead-man's switch **only while the
+app is genuinely healthy**, and both exit with the same codes.
 
 Outbound rather than an uptime service polling the URL, because one mechanism
 then covers three different failures:
@@ -335,7 +337,54 @@ record that an hour was missed; it stays on the books until somebody backfills
 it, so failing on one would mean alerting forever about a past incident, which
 just teaches you to ignore the alert.
 
-Setup, once the VM is up:
+#### Setup on annapc — two lines
+
+Create a free check at [healthchecks.io](https://healthchecks.io) first —
+**period 10 minutes, grace 20 minutes** — and copy its ping URL. Then, in
+PowerShell on annapc:
+
+```powershell
+git -C C:\Users\admin\fwapp pull
+```
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\admin\fwapp\scripts\heartbeat.ps1 -Install -PingUrl https://hc-ping.com/<uuid>
+```
+
+The second line writes the URL into `.env`, asks for administrator (a
+**UAC prompt will appear — approve it**), registers the task, runs one check
+immediately to prove it, and prints the result back into the original window.
+
+Registering a Scheduled Task is an administrator action on a default Windows
+install — denied even for a task in your own folder, and the refusal arrives as
+`HRESULT 0x80070005`, which reads like a broken script rather than a missing
+privilege. Rather than make that a third pasted line, the installer re-launches
+itself through UAC and waits. Elevated, it registers with **S4U** logon: no
+stored password, no console window flashing every ten minutes, and the check
+keeps running when nobody is signed in. If a machine's policy refuses S4U it
+falls back to an Interactive task, which still covers this box — Docker Desktop
+is a session app, so the app only serves while somebody is logged in anyway.
+
+Two triggers are registered on purpose: the repeating one is the check, and an
+at-logon one fires immediately after a reboot, which is exactly when the answer
+is least certain and the next repetition may still be minutes away.
+
+Afterwards:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\admin\fwapp\scripts\heartbeat.ps1 -Status
+```
+
+which prints the task state, its last result, the next run, and the last ten
+checks from `logs\heartbeat.log`. The ping URL is printed **masked** — the uuid
+in it is the credential, and anyone holding it can post a fake "all is well".
+`-Uninstall` removes the task and leaves `.env` alone.
+
+With `FISHLOG_HEARTBEAT_URL` unset the script exits quietly and changes
+nothing, so it is safe to install first and configure later. `-EveryMinutes`
+changes the interval; keep the healthchecks.io period in step with it.
+
+#### Setup on the Linux/VM fallback
 
 ```bash
 # create a free check at healthchecks.io - period 10 min, grace 20 min
@@ -344,12 +393,9 @@ echo 'FISHLOG_HEARTBEAT_URL=https://hc-ping.com/<uuid>' >> ~/fwapp/.env
 systemctl list-timers fishlog-heartbeat.timer
 ```
 
-With `FISHLOG_HEARTBEAT_URL` unset the script exits quietly and changes
-nothing, so it is safe to install first and configure later.
-
 ### Tested
 
-All four paths, against the live app:
+`tools/heartbeat.sh`, all four paths against the live app:
 
 | | Result |
 |---|---|
@@ -362,6 +408,25 @@ A monitor that is itself unreachable warns and still exits 0 — a monitoring
 outage is not an application outage, and reporting it as one is how a check
 gets muted.
 
-**Not tested:** the VM path end to end, because that needs an Oracle account and
-a console session. The scripts parse and the heartbeat is proven against the
-real app; provisioning the box is still `docs/16` and a browser.
+`scripts/heartbeat.ps1`, all five paths against the **live annapc app** over the
+funnel, with a local sink standing in for healthchecks.io so that what the
+monitor actually received could be read rather than assumed:
+
+| | Result | What the monitor received |
+|---|---|---|
+| no monitor configured | exits quietly, rc 0 | nothing |
+| healthy | `ok age=0.6h gaps=9`, rc 0 | `POST /ping-test :: ok age=0.6h gaps=9` |
+| feed stale (limit forced to 0h) | rc 1 | `POST /ping-test/fail :: weather feed 0.6h behind (limit 0h) …` |
+| app unreachable | rc 1 | `POST /ping-test/fail :: no response from … (Unable to connect …)` |
+| monitor itself unreachable | `ok`, then a warning, rc 0 | — (sink stopped) |
+
+The task **definition** was validated by building it with `New-ScheduledTask`
+for both S4U and Interactive principals: two triggers, repetition `PT10M`, and
+an empty repetition duration, which is how PowerShell 5.1 spells *indefinitely*
+(passing `[TimeSpan]::MaxValue` there throws instead).
+
+**Not tested:** the registration itself, which needs administrator — this
+laptop refused it, which is how the elevation path came to exist in the first
+place. It is proven on annapc by the `-Status` output after the install, not
+before. The VM path end to end is also untested, because that needs an Oracle
+account and a console session.

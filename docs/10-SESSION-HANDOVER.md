@@ -65,7 +65,7 @@ Every finished change is merged there and pushed (rule 13).
 | Design workflow: `design-kit` skill + 3 subagents | works - `.claude/skills/design-kit/`, `.claude/agents/`; see `docs/18` and `docs/18b` |
 | **Deployment: moved off the laptop to a stationary PC (2026-09-08)** | live at `https://annapc.tailf99616.ts.net`. The laptop is stopped; its funnel still answers 502 until switched off. `docs/21` |
 | Move / install / health-check scripts (`scripts/`) | works - `pack`, `bootstrap` (one pasted line), `install`, `check`, `reboot-readiness`. Migration run for real, row counts verified. `docs/21` |
-| Unattended health monitoring | **Linux only** - `tools/heartbeat.sh` + systemd timer. annapc is Windows and has no equivalent yet. |
+| Unattended health monitoring | built for both - `scripts/heartbeat.ps1` (Windows Scheduled Task, annapc) and `tools/heartbeat.sh` (systemd, the VM fallback). Five paths verified against the live app; **the task registration itself is only proven by `-Status` on annapc after installing**. `docs/21` |
 | Sign in with Google | wired and verified end-to-end (real client id, correct redirect, correct consent-screen URL) — the human consent click-through is the owner's to complete |
 
 **Run it:**
@@ -318,6 +318,9 @@ docs/adr/0005                 adding waters: the queue, named waters, no fake sh
 docs/13-ADD-A-WATER.md        the pipeline, its costs and its failure table
 docs/16-DEPLOY-ORACLE.md      Oracle Cloud Always Free runbook, §9's fallback
 tools/oracle_vm_setup.sh      bootstraps that VM: docker, repo, compose, tailscale
+scripts/heartbeat.ps1         the Windows dead-man's switch: -Install registers
+                              a Scheduled Task, -Status reports, -Uninstall removes
+tools/heartbeat.sh            the same check for the Linux/VM fallback
 app/discover/                 nominatim search, dedupe, quota, add
 app/jobs/                     queue state machine, handlers, runner
 app/auth/                     passwords, validation, tokens, google, service
@@ -418,6 +421,8 @@ exits non-zero when a section fails.
 | `FISHLOG_GOOGLE_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | Sign in with Google | the button is not rendered at all |
 | `FISHLOG_TRUST_PROXY=1` | reading `X-Forwarded-For` | the socket peer is the address |
 | `FISHLOG_FRAME_ANCESTORS` | a dev container preview pane framing the app | `frame-ancestors 'none'`, and the pane shows "refused to connect" |
+| `FISHLOG_HEARTBEAT_URL` | the dead-man's switch pinging healthchecks.io | the heartbeat exits quietly, rc 0, and nothing watches the box |
+| `FISHLOG_HEALTH_URL` / `FISHLOG_MAX_AGE_HOURS` | pointing the heartbeat elsewhere, or changing what counts as a stale feed | `http://127.0.0.1:8000/health`, 3 h |
 
 A Gemini key comes from https://aistudio.google.com/apikey. The free tier
 covers this comfortably: one call per water added, plus one per monthly

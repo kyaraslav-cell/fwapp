@@ -14,6 +14,9 @@ venv/
 .ruff_cache/
 .mypy_cache/
 .env
+# scripts/heartbeat.ps1's run log. Local evidence of an unattended check, which
+# is per-machine and only interesting on the box that wrote it.
+logs/
 dist/
 spike-verdict.png
 
