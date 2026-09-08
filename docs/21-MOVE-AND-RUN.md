@@ -73,6 +73,37 @@ irm https://raw.githubusercontent.com/kyaraslav-cell/fwapp/claude/repository-edi
 ..ps1 -Bundle D:\whereverishlog-bundle-....zip
 ```
 
+### Before you restart anything
+
+Installing WSL2 forces a reboot, and a reboot is only safe on a machine that
+quietly hosts other things if those things come back by themselves. Check first:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scriptseboot-readiness.ps1
+# then, to repair what can be repaired automatically:
+powershell -ExecutionPolicy Bypass -File scriptseboot-readiness.ps1 -Fix
+```
+
+It reports on **every** container on the box, not just Fishlog's, plus whatever
+is registered to start at login.
+
+**The trap it exists for:** a container with `restart=unless-stopped` still does
+not come back if **Docker Desktop itself is not set to start at login**. The
+policy reads as correct and nothing starts, because the thing that would honour
+the policy is not running. That was the state of this laptop until it was
+checked — `AutoStart: false`, so a reboot would have taken Fishlog down and left
+it down.
+
+Two things it will not fix for you:
+
+- A container that is **stopped right now** stays stopped through a reboot.
+  `unless-stopped` honours a deliberate stop, which is correct and still worth
+  saying, because "it has a restart policy" reads as "it will come back".
+- Anything running **outside Docker** — a native n8n, a watcher script — has no
+  restart policy at all. If it is not in a Startup folder or a scheduled task, a
+  reboot simply ends it. The script lists what is registered so the gap is
+  visible.
+
 ### Afterwards
 
 - **Stop the old machine** — `docker compose stop fishlog`. Two copies running
