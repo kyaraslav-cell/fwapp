@@ -183,9 +183,30 @@ for t in want:
     $counts = Native { $probe | docker exec -i $cid python - }
 
     if ($counts) {
+        $rowCount = @{}
         foreach ($line in $counts) {
             $t, $v = $line -split '\|', 2
+            $rowCount[$t] = [int]$v
             Ok ("{0,-18} {1}" -f $t, $v)
+        }
+
+        # A fresh install seeds one lake and starts fetching weather, so "the
+        # app works" and "your notebook is here" look identical from every
+        # other check in this script. That is exactly how a migration gets
+        # declared finished on an empty database - it happened, and this said
+        # PASS. An empty notebook is not a failure on a first install, so it
+        # warns rather than failing; the number is what matters, and now it is
+        # impossible to miss.
+        $users  = [int]$rowCount['user']
+        $sess   = [int]$rowCount['session']
+        $catch  = [int]$rowCount['catch']
+        if ($users -eq 0 -and $sess -eq 0 -and $catch -eq 0) {
+            Write-Host ""
+            Warn "this notebook is EMPTY - no users, no sessions, no catches."
+            Write-Host "         Fine for a brand-new install. NOT fine if you meant to" -ForegroundColor DarkGray
+            Write-Host "         restore a bundle - the restore did not happen. Run:" -ForegroundColor DarkGray
+            Write-Host "           scripts\install.ps1 -Force" -ForegroundColor Yellow
+            Write-Host "         (-Force because a notebook already exists here now)" -ForegroundColor DarkGray
         }
     } else {
         Bad "could not read the notebook database"
@@ -244,6 +265,8 @@ if (-not $tsExe) {
 Write-Host ""
 if ($script:fails -eq 0) {
     Write-Host "  PASS - nothing failed." -ForegroundColor Green
+    Write-Host "  Read the warnings above before calling a migration done: PASS means" -ForegroundColor DarkGray
+    Write-Host "  the deployment is healthy, not that the right DATA is in it." -ForegroundColor DarkGray
 } else {
     Write-Host "  FAIL - $($script:fails) check(s) failed." -ForegroundColor Red
 }
