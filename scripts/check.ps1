@@ -241,10 +241,32 @@ if (-not (Test-Path $envFile)) {
 
 # --------------------------------------------------------------- public URL
 Section "Public URL"
-$tsExe = @(
-    'tailscale',
-    "$env:ProgramFiles\Tailscale\tailscale.exe"
-) | Where-Object { Get-Command $_ -ErrorAction SilentlyContinue } | Select-Object -First 1
+# Tailscale is not reliably on PATH in the window that installed it, and the
+# install location has moved between versions ("Tailscale" now, "Tailscale IPN"
+# on older ones, and either Program Files tree). Looking in one place and
+# concluding "not installed" sends the reader off to install something they
+# already have.
+function Find-Tailscale {
+    $cmd = Get-Command tailscale -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+    $candidates = @(
+        "$env:ProgramFiles\Tailscale\tailscale.exe",
+        "${env:ProgramFiles(x86)}\Tailscale\tailscale.exe",
+        "$env:ProgramFiles\Tailscale IPN\tailscale.exe",
+        "${env:ProgramFiles(x86)}\Tailscale IPN\tailscale.exe",
+        "$env:LOCALAPPDATA\Tailscale\tailscale.exe"
+    )
+    foreach ($c in $candidates) { if ($c -and (Test-Path $c)) { return $c } }
+    foreach ($root in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+        if (-not $root) { continue }
+        $hit = Get-ChildItem -Path $root -Filter 'tailscale.exe' -Recurse -ErrorAction SilentlyContinue |
+               Select-Object -First 1
+        if ($hit) { return $hit.FullName }
+    }
+    return $null
+}
+
+$tsExe = Find-Tailscale
 
 if (-not $tsExe) {
     Note "tailscale not found - local only"
