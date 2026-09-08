@@ -1,7 +1,8 @@
 # 21 — Moving Fishlog to another PC, and checking it afterwards
 
-Three scripts, borrowed in shape from LeadFind's `pack` / `install` / `check`
-trio and cut down hard, because Fishlog is a much smaller thing to move.
+Borrowed in shape from LeadFind's `pack` / `install` / `check` trio and cut down
+hard, because Fishlog is a much smaller thing to move. `update.ps1` and
+`heartbeat.ps1` came later, for the machine that already has it.
 
 | | |
 |---|---|
@@ -9,6 +10,7 @@ trio and cut down hard, because Fishlog is a much smaller thing to move.
 | `scripts/pack.ps1` | snapshot this installation into one zip |
 | `scripts/install.ps1` | restore it on another PC and start it |
 | `scripts/check.ps1` | is the whole chain alive, and is the container running *this* code |
+| `scripts/update.ps1` | **after a change** — pull, rebuild, gaps, heartbeat, check, in one line |
 
 ---
 
@@ -518,3 +520,74 @@ matching hour belongs to another lake, or during a dry run.
 **Not run on annapc yet** — the nine gaps there are still open. The expectation
 is that all nine close, because the app has ingested hourly since, but that is
 a prediction and `--dry-run` is what turns it into an observation.
+
+---
+
+## After a change — one line
+
+`bootstrap.ps1` moves the app to a machine. `update.ps1` is the other half:
+bring the machine that already has it up to date, and re-run everything that
+should follow a pull.
+
+On annapc, from anywhere, even when the checkout is behind — it fetches itself:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/kyaraslav-cell/fwapp/claude/repository-edit-push-ggr229/scripts/update.ps1))) -PingUrl https://hc-ping.com/<uuid>
+```
+
+`-PingUrl` is only needed the first time; after that it is in `.env` and the
+line is the same without it. Run it from an **Administrator** window to avoid a
+UAC prompt at the heartbeat step — without one it still works, because that
+installer elevates itself and waits.
+
+Six steps, stopping at the first real failure:
+
+| | Step | Why here |
+|---|---|---|
+| 1 | `git pull --ff-only` | nothing below means anything against stale code |
+| 2 | `docker compose up -d --build` | standing rule 20 — the image holds a frozen copy of `app/`, so a pull alone changes nothing the URL serves |
+| 3 | `reboot-readiness.ps1 -Fix` | a box that does not come back is not always-on, and this is the cheapest moment to find out |
+| 4 | `resolve_gaps.py` | close gaps whose hours arrived, so step 5 is not born relaying a warning that can never clear |
+| 5 | `heartbeat.ps1 -Install` | skipped quietly when no ping URL exists anywhere |
+| 6 | `check.ps1` | last, because it is the only step that proves the container runs *this* code |
+
+Every step is safe to re-run, and nothing deletes anything: the notebook is on
+the named volume `fishlog-data`, outside the image, and step 4 can only close a
+gap on evidence, never fill one. `-SkipRebootFix` and `-SkipGaps` drop steps 3
+and 4; `-RepoDir` points it at a checkout somewhere unusual.
+
+### Two failures it was built to not have
+
+**A refused pull looked exactly like an up-to-date one.** `git pull` leaves HEAD
+where it was when it refuses — local edits, a diverged branch — so comparing the
+commit before and after reports "already at abc1234" and every step below then
+runs against stale code, rebuilding and blessing it with a green `check.ps1`.
+The exit code is read instead, and a refusal stops the run. `git` is called
+plainly rather than through the stderr-swallowing wrapper for exactly this
+reason: redirecting a native command's stderr in PowerShell 5.1 both
+manufactures errors out of ordinary progress output and hides the code that
+matters.
+
+**`$?` after an assignment reports on the assignment.** The Docker guard was
+written as `$null = Native { docker info }; if (-not $?)`, which can never fire,
+because assigning always succeeds. It tests the returned value now. A guard that
+cannot fail is worse than no guard: it reads as a check.
+
+### Tested
+
+Not end to end — running it on the laptop would rebuild and **restart** the
+container that was deliberately stopped there, resurrecting a second app writing
+to a second notebook. The pieces were exercised individually instead:
+
+| | Result |
+|---|---|
+| bogus `-RepoDir` | `[FAIL] no checkout found`, "Nothing after this step ran", rc 1 |
+| child launching (`-ExecutionPolicy Bypass`, arguments) | ran `heartbeat.ps1 -Status`, rc 0 |
+| the docker mount string | `C:\...\fwapp\tools:/srv/fishlog/tools`, target exists |
+| the Docker guard | engine `29.7.2` read back, so it passes rather than never firing |
+| parse + control-character sweep | clean — `\t`, `\r`, `\b`, `\f` intact in every Windows path |
+
+That last row is not ceremony. Four separate escapes were eaten writing Windows
+paths during the migration session, including `\t` in `\tailscale.exe`, which
+made `install.ps1` report Tailscale missing on the one machine where it
+mattered. They are invisible in every representation that displays them.
