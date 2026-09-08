@@ -31,6 +31,19 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+# `irm ... | iex` runs piped TEXT, which the execution policy does not govern -
+# which is why the one-liner works on a default machine. The moment this script
+# invokes a .ps1 FILE, the policy applies again and blocks it. That is exactly
+# where the first real run failed, at the last step, after WSL and Docker had
+# both already succeeded.
+#
+# Process scope: nothing permanent, no admin needed, gone when the window
+# closes. The child scripts below are ALSO launched with -ExecutionPolicy
+# Bypass, because a machine-wide group policy can override the process scope
+# and the failure mode is identical and just as confusing.
+try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction Stop } catch { }
+
 function Say($t, $c = 'Gray') { Write-Host $t -ForegroundColor $c }
 function Native {
     param([scriptblock]$B)
@@ -203,15 +216,16 @@ if (-not $Bundle) {
 # ---------------------------------------------------------------- 4. install
 # NOT $args - that is a PowerShell automatic variable and splatting it does
 # not do what it looks like it does.
-$installArgs = @{}
-if ($Bundle) { $installArgs['Bundle'] = $Bundle }
-if ($Force)  { $installArgs['Force']  = $true }
-& (Join-Path $Dest 'scripts\install.ps1') @installArgs
+$installPs1 = Join-Path $Dest 'scripts\install.ps1'
+$argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $installPs1)
+if ($Bundle) { $argList += @('-Bundle', $Bundle) }
+if ($Force)  { $argList += '-Force' }
+& powershell $argList
 
 # ------------------------------------------------------------------ 5. check
 Say ''
 Say '  checking...' 'Cyan'
-& (Join-Path $Dest 'scripts\check.ps1')
+& powershell @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $Dest 'scripts\check.ps1'))
 
 Say ''
 Say '  ------------------------------------------------------------' 'DarkGray'
