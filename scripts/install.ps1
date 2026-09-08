@@ -64,6 +64,34 @@ if (-not $engine) {
 }
 Say "  engine up ($engine)" 'Green'
 
+# ------------------------------------------------------- 1b. find the bundle
+# Discovery lives here as well as in bootstrap.ps1, because this script is run
+# directly often enough - by anyone who already has the repo, or who is
+# recovering from a bootstrap that stopped part-way - and "no bundle given,
+# starting empty" is a quiet, wrong answer when the bundle is sitting in
+# Downloads. Found, never made: see the note at the top of bootstrap.ps1 about
+# why re-packing per attempt is the thing to avoid.
+if (-not $Bundle) {
+    $places = @()
+    Get-PSDrive -PSProvider FileSystem -ErrorAction SilentlyContinue |
+        Where-Object { $_.Root -match '^[A-Z]:\\$' } |
+        ForEach-Object { $places += $_.Root }
+    $places += (Join-Path $env:USERPROFILE 'Downloads')
+    $places += $env:USERPROFILE
+
+    $found = @()
+    foreach ($pl in ($places | Select-Object -Unique)) {
+        if (-not (Test-Path $pl)) { continue }
+        $found += Get-ChildItem -Path $pl -Filter 'fishlog-bundle-*.zip' -File -ErrorAction SilentlyContinue
+    }
+    $pick = $found | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if ($pick) {
+        $Bundle = $pick.FullName
+        Say "  found a bundle: $Bundle" 'Green'
+        if ($found.Count -gt 1) { Say "  ($($found.Count) present - using the newest)" 'DarkGray' }
+    }
+}
+
 # --------------------------------------------------------------- 2. unpack
 $restore = $null
 if ($Bundle) {
