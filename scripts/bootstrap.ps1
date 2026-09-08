@@ -39,8 +39,20 @@ function Native {
     return $o
 }
 
+
+$Self = 'https://raw.githubusercontent.com/kyaraslav-cell/fwapp/claude/repository-edit-push-ggr229/scripts/bootstrap.ps1'
+function Again {
+    Say ''
+    Say '  When it comes back, paste this again (same line, every time):' 'Cyan'
+    Say ''
+    Say "    irm $Self | iex" 'White'
+    Say ''
+}
+
 Say ''
 Say '  Fishlog' 'Cyan'
+Say '  A clean Windows machine needs up to two restarts: one for WSL2,' 'DarkGray'
+Say '  one for Docker. Paste the same line after each - it resumes.' 'DarkGray'
 Say ''
 
 # --------------------------------------------------------------------- 0. wsl
@@ -75,21 +87,22 @@ if (-not $wslOk) {
         $null = Native { wsl --install --no-distribution }
         if ($LASTEXITCODE -ne 0) { $null = Native { wsl --install } }
         Say ''
-        Say '  WSL2 installed. RESTART WINDOWS now.' 'Cyan'
-        Say '  After the restart, paste the same line again - it carries on' 'Cyan'
-        Say '  from here and skips what is already done.' 'Cyan'
-        Say ''
+        Say '  WSL2 installed.  ->  RESTART WINDOWS NOW.' 'Cyan'
+        Again
         exit 0
     } else {
         Say ''
-        Say '  This one step needs Administrator. Do this:' 'Cyan'
+        Say '  This one step needs Administrator.' 'Cyan'
         Say ''
-        Say '    1. Close this window.' 'Cyan'
-        Say '    2. Right-click Start -> Terminal (Admin), or PowerShell (Admin).' 'Cyan'
-        Say '    3. Run:  wsl --install --no-distribution' 'Cyan'
-        Say '    4. Restart Windows.' 'Cyan'
-        Say '    5. Paste the same one-line command again - a normal window is' 'Cyan'
-        Say '       fine from then on.' 'Cyan'
+        Say '    1. Right-click Start  ->  Terminal (Admin)' 'Cyan'
+        Say '    2. Paste:   wsl --install --no-distribution' 'White'
+        Say '    3. Restart Windows.' 'Cyan'
+        Say '    4. Then, in that same Admin window, paste:' 'Cyan'
+        Say ''
+        Say "       irm $Self | iex" 'White'
+        Say ''
+        Say '  Running the whole thing from an Admin window is simplest -' 'DarkGray'
+        Say '  then it can install WSL itself and you never see this message.' 'DarkGray'
         Say ''
         exit 1
     }
@@ -100,10 +113,8 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     Say '  Installing Docker Desktop (a few minutes)...' 'Yellow'
     $null = Native { winget install --id Docker.DockerDesktop -e --accept-source-agreements --accept-package-agreements --silent }
     Say ''
-    Say '  Docker needs a restart before it can run.' 'Yellow'
-    Say '  Restart Windows, then paste the same line again - it carries on' 'Yellow'
-    Say '  from here and skips everything already done.' 'Yellow'
-    Say ''
+    Say '  Docker Desktop installed.  ->  RESTART WINDOWS NOW.' 'Cyan'
+    Again
     exit 0
 }
 
@@ -201,3 +212,15 @@ if ($Force)  { $installArgs['Force']  = $true }
 Say ''
 Say '  checking...' 'Cyan'
 & (Join-Path $Dest 'scripts\check.ps1')
+
+Say ''
+Say '  ------------------------------------------------------------' 'DarkGray'
+Say '  Done. If the check above says PASS, the app is live.' 'Green'
+Say ''
+Say '  Two things left, both on the OLD machine / in a browser:' 'Cyan'
+Say '    - stop the old copy:   docker compose stop fishlog' 'Cyan'
+Say '      (two copies running = two notebooks drifting apart, no sync)' 'DarkGray'
+Say '    - Google sign-in only: add the URL printed above in the Google' 'Cyan'
+Say '      console under Credentials -> Authorised redirect URIs.' 'Cyan'
+Say '      Email and password sign-in already works without this.' 'DarkGray'
+Say ''
