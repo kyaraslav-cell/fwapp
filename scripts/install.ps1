@@ -109,14 +109,25 @@ if ($Bundle) {
         Say "  commit $($meta.commit) ($($meta.branch))"
         $here = (Native { git rev-parse HEAD }) | Select-Object -First 1
         if ($here -and $meta.commit -and $here -ne $meta.commit) {
-            Say ''
-            Say '  This checkout is at a different commit from the bundle.' 'Yellow'
-            Say "    bundle: $($meta.commit)" 'Yellow'
-            Say "    here:   $here" 'Yellow'
-            Say '  Migrations are forward-only, so an OLDER checkout than the' 'Yellow'
-            Say '  notebook cannot open it. If the app fails to start, run:' 'Yellow'
-            Say "    git checkout $($meta.branch); git pull" 'Yellow'
-            Say ''
+            # Direction is what matters, not difference. Migrations are
+            # forward-only, so a checkout AHEAD of the bundle opens the notebook
+            # fine - that is the normal case after any pull, and warning about
+            # it teaches the reader to ignore the warning. Only behind is a
+            # problem.
+            $null = Native { git merge-base --is-ancestor $here $meta.commit }
+            $behind = ($LASTEXITCODE -eq 0)
+            if ($behind) {
+                Say ''
+                Say '  This checkout is BEHIND the bundle.' 'Yellow'
+                Say "    bundle: $($meta.commit)" 'Yellow'
+                Say "    here:   $here" 'Yellow'
+                Say '  Migrations are forward-only, so older code cannot open a' 'Yellow'
+                Say '  newer notebook. Fix it before restoring:' 'Yellow'
+                Say "    git checkout $($meta.branch); git pull" 'Yellow'
+                Say ''
+            } else {
+                Say '  (this checkout is newer than the bundle - fine)' 'DarkGray'
+            }
         }
     }
 } else {
@@ -252,7 +263,13 @@ if (-not $ts) {
 
     if (-not $node) {
         Say '  Tailscale is installed but not logged in.' 'Yellow'
-        Say "  Run:  $ts up" 'Yellow'
+        Say ''
+        # & and quotes, because the path contains spaces - printed bare it is
+        # not a runnable command, and pasting it fails with "not recognized".
+        Say "    & `"$ts`" up" 'White'
+        Say ''
+        Say '  That opens a browser - approve the device, then run this' 'DarkGray'
+        Say '  script again to switch the funnel on.' 'DarkGray'
     } else {
         # The tailnet domain comes from `status`, not from a guess - it differs
         # per account and hardcoding this machine's is exactly the bug being
