@@ -63,7 +63,8 @@ Every finished change is merged there and pushed (rule 13).
 | Offline / service worker | **not built** — `docs/15 §A5`, the biggest gap |
 | Gemini local-knowledge pass (`intel` job, `water_fact`) | **run for real**, 2026-08-24 — translated into all 3 site languages, trimmed to essentials (`docs/handoff/2026-08-24-2152-...md`) |
 | Design workflow: `design-kit` skill + 3 subagents | works - `.claude/skills/design-kit/`, `.claude/agents/`; see `docs/18` and `docs/18b` |
-| **Deployment: moved off the laptop to a stationary PC (2026-09-08)** | live at `https://annapc.tailf99616.ts.net`. The laptop is stopped; its funnel still answers 502 until switched off. `docs/21` |
+| **Deployment: moved off the laptop to a stationary PC (2026-09-08)** | live at `https://annapc.tailf99616.ts.net`. The laptop's container is stopped and **its funnel is now off** — `https://dell.tailf99616.ts.net` no longer answers at all, instead of answering 502. `docs/21` |
+| Closing an `ingest_gap` once its hours arrive | works — `app/ingest/gaps.py`, `tools/resolve_gaps.py`. Evidence only: a gap whose hours are still absent stays open. **Not yet run on annapc**, where 9 are open. |
 | Move / install / health-check scripts (`scripts/`) | works - `pack`, `bootstrap` (one pasted line), `install`, `check`, `reboot-readiness`. Migration run for real, row counts verified. `docs/21` |
 | Unattended health monitoring | built for both - `scripts/heartbeat.ps1` (Windows Scheduled Task, annapc) and `tools/heartbeat.sh` (systemd, the VM fallback). Five paths verified against the live app; **the task registration itself is only proven by `-Status` on annapc after installing**. `docs/21` |
 | Sign in with Google | wired and verified end-to-end (real client id, correct redirect, correct consent-screen URL) — the human consent click-through is the owner's to complete |
@@ -321,6 +322,8 @@ tools/oracle_vm_setup.sh      bootstraps that VM: docker, repo, compose, tailsca
 scripts/heartbeat.ps1         the Windows dead-man's switch: -Install registers
                               a Scheduled Task, -Status reports, -Uninstall removes
 tools/heartbeat.sh            the same check for the Linux/VM fallback
+app/ingest/gaps.py            decide whether an ingest_gap's hours are on record
+tools/resolve_gaps.py         close the ones that are; list the ones that are not
 app/discover/                 nominatim search, dedupe, quota, add
 app/jobs/                     queue state machine, handlers, runner
 app/auth/                     passwords, validation, tokens, google, service

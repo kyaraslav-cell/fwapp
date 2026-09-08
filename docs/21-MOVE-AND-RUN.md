@@ -430,3 +430,91 @@ laptop refused it, which is how the elevation path came to exist in the first
 place. It is proven on annapc by the `-Status` output after the install, not
 before. The VM path end to end is also untested, because that needs an Oracle
 account and a console session.
+
+---
+
+## The old URL is switched off
+
+`https://dell.tailf99616.ts.net` served **502** from the moment the app moved:
+the laptop's container was stopped but its Tailscale funnel was still on,
+proxying a public HTTPS name at a dead port 8000. A 502 is worse than nothing —
+it looks like an app that is broken rather than an address that has moved.
+
+Turned off on 2026-09-08, on the laptop, after confirming the container was
+stopped and nothing answered on 8000:
+
+```powershell
+& "C:\Program Files\Tailscale\tailscale.exe" funnel --bg off
+```
+
+`tailscale funnel status` now reports `No serve config`, and the old hostname no
+longer answers at all. Nothing on annapc was touched; its funnel and `/health`
+were re-checked afterwards.
+
+Reversible with `tailscale funnel --bg 8000` if that machine ever serves again.
+
+---
+
+## Ingest gaps that never closed
+
+`/health` reported `unresolved_gaps: 9` for days, and would have reported it
+forever. All nine came from a single DNS failure at **2026-09-06 20:05**, one
+per water, when the laptop dropped off the network mid-move.
+
+The cause was not the DNS failure. It was that **nothing in this project ever
+set `ingest_gap.resolved`** — gaps were written and never closed, by any code
+path. So the count only ever grows, and a monitor whose warning never clears is
+a monitor that gets ignored, which defeats the heartbeat installed above.
+
+`tools/resolve_gaps.py` closes a gap **only on evidence**: `weather_hourly`
+contains every hour the gap covers, normally because the next scheduled fetch an
+hour later wrote them. A gap whose hours are genuinely still absent stays open,
+however old and however irritating, because law 4 makes a hole in the record
+honest and its concealment a bug.
+
+The asymmetry is the design: this tool can close a gap, and it can never fill
+one. It does not call Open-Meteo at all.
+
+A forecast gap stores the *moment* a fetch failed, so it covers the single hour
+containing it; an archive gap stores a chunk of days. Both reduce to the same
+question once the ends are floored to the hour. Coverage is counted across
+**any** source — an hour the archive later supplied for a failed forecast fetch
+is on record just as truly, and refusing to see it would keep a gap open over a
+bookkeeping detail.
+
+On annapc, where `tools/` is not in the image and the database lives in a docker
+volume, mount the repo's tools for the run:
+
+```powershell
+docker compose run --rm -v C:\Users\admin\fwapp\tools:/srv/fishlog/tools fishlog python tools/resolve_gaps.py --dry-run
+```
+
+then the same without `--dry-run` to apply. Run it from `C:\Users\admin\fwapp`,
+so compose finds `docker-compose.yml`. The path is spelled out rather than
+`${PWD}` because that expands to a Windows path with backslashes in the middle
+of a colon-separated mount argument, which is exactly the kind of string that
+fails in a way nobody reads twice.
+
+`docker compose run` starts a second, short-lived container against the **same**
+`fishlog-data` volume and overrides the command, so the app keeps serving
+throughout. SQLite in WAL mode handles the concurrent write.
+
+### Tested
+
+Against a throwaway database shaped like annapc's — nine waters, one DNS
+failure across all of them, the hour recovered for eight and genuinely lost for
+the ninth:
+
+| | Result |
+|---|---|
+| `--dry-run` | reports `would close 8 of 9`, writes nothing |
+| apply | closes 8, prints the ninth's missing hour |
+| re-run | only the ninth remains; idempotent |
+
+`tests/test_resolve_gaps.py` pins the direction that matters: a gap is **not**
+closed when its hour is missing, when only part of a range is present, when the
+matching hour belongs to another lake, or during a dry run.
+
+**Not run on annapc yet** — the nine gaps there are still open. The expectation
+is that all nine close, because the app has ingested hourly since, but that is
+a prediction and `--dry-run` is what turns it into an observation.
