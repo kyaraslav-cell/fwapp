@@ -201,10 +201,69 @@ function Invoke-Elevated {
     }
 }
 
+# A ping URL that is still the example is the one failure this whole mechanism
+# cannot survive, because it looks installed: the task registers, fires on time,
+# reads health correctly, and reports result 0 forever while every ping goes
+# nowhere. That is exactly what happened - the placeholder <uuid> was installed
+# verbatim and the log filled with "could not reach the monitor" for a day.
+#
+# So the URL is checked before it is written, and then actually USED once. An
+# install that cannot prove a ping landed has not finished.
+function Test-PingUrl {
+    param([string]$Url)
+
+    if ($Url -notmatch '^https?://') {
+        return 'not a URL - it must start with https://'
+    }
+    # healthchecks.io ping URLs end in a uuid. Anything with angle brackets or
+    # the word UUID in it is the example, pasted unedited.
+    if ($Url -match '[<>]' -or $Url -match '(?i)your[-_]?uuid' -or $Url -match '(?i)/<?uuid>?/?$') {
+        return 'that is the placeholder from the example, not a real check URL'
+    }
+    if ($Url -match '(?i)hc-ping\.com' -and
+        $Url -notmatch '(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}') {
+        return 'an hc-ping.com URL must end with the check uuid'
+    }
+    return $null
+}
+
 function Install-Task {
     if ($PingUrl) {
+        $bad = Test-PingUrl $PingUrl
+        if ($bad) {
+            Write-Host ''
+            Write-Host "  Refusing that ping URL: $bad" -ForegroundColor Red
+            Write-Host "    given: $PingUrl" -ForegroundColor DarkGray
+            Write-Host ''
+            Write-Host '  Create a check at https://healthchecks.io (period 10 min, grace 20 min)' -ForegroundColor Cyan
+            Write-Host '  and copy ITS url, which looks like:' -ForegroundColor Cyan
+            Write-Host '    https://hc-ping.com/a1b2c3d4-5566-7788-99aa-bbccddeeff00' -ForegroundColor White
+            Write-Host ''
+            Write-Host '  Nothing was changed.' -ForegroundColor DarkGray
+            Write-Host ''
+            return 2
+        }
         Set-EnvSetting 'FISHLOG_HEARTBEAT_URL' $PingUrl
         Write-Log 'wrote FISHLOG_HEARTBEAT_URL to .env' 'Green'
+
+        # Use it once, now, and say whether it landed. A monitor that has never
+        # received a ping cannot tell silence from an outage.
+        try {
+            $r = Invoke-WebRequest -Uri $PingUrl -Method Post -Body 'install' -TimeoutSec 20 -UseBasicParsing
+            if ($r.StatusCode -eq 200) {
+                Write-Log 'test ping accepted - the check should now show "up"' 'Green'
+            } else {
+                Write-Log ("test ping returned HTTP {0} - the check may not exist" -f $r.StatusCode) 'Yellow'
+            }
+        } catch {
+            Write-Host ''
+            Write-Host '  The test ping did NOT reach the monitor.' -ForegroundColor Red
+            Write-Host ("    $($_.Exception.Message)") -ForegroundColor DarkGray
+            Write-Host '  The task is still being installed, but nothing will arrive until' -ForegroundColor Yellow
+            Write-Host '  this is fixed. Check the uuid, and that this machine can reach' -ForegroundColor Yellow
+            Write-Host '  hc-ping.com.' -ForegroundColor Yellow
+            Write-Host ''
+        }
     }
     if (-not (Get-Setting 'FISHLOG_HEARTBEAT_URL')) {
         Write-Host ''
