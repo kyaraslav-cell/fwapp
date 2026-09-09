@@ -132,9 +132,35 @@ def run_hires_grid_job() -> None:
         logger.info("hi-res grid queued for %s water(s)", queued)
 
 
+def run_heartbeat_job() -> None:
+    """Tell the outside monitor whether the app is still doing its job.
+
+    Deliberately not wrapped in a try/except here: `heartbeat.beat` swallows
+    everything itself, because a monitor that can break the monitored app is
+    worse than no monitor.
+    """
+    from app.core.heartbeat import beat
+
+    beat()
+
+
 def build_scheduler() -> BackgroundScheduler:
     scheduler = BackgroundScheduler(timezone="UTC")
     scheduler.add_job(run_ingest_job, CronTrigger(minute=5), id="fetch_openmeteo_forecast")
+    # Every five minutes, against a check configured for 10 minutes period and
+    # 20 minutes grace: two pings may be lost before anybody is woken, which is
+    # the difference between a monitor and a nuisance.
+    scheduler.add_job(
+        run_heartbeat_job,
+        IntervalTrigger(minutes=5),
+        id="heartbeat",
+        # A heartbeat that queues up is worse than one that skips: after an
+        # hour asleep the monitor would receive twelve backdated pings at once
+        # and conclude everything was fine the whole time.
+        coalesce=True,
+        max_instances=1,
+        misfire_grace_time=60,
+    )
     scheduler.add_job(run_predict_job, CronTrigger(hour=4, minute=0), id="generate_prediction")
     scheduler.add_job(run_jobs_tick, IntervalTrigger(seconds=30), id="drain_job_queue")
     scheduler.add_job(
