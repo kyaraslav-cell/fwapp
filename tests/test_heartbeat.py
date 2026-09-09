@@ -18,7 +18,8 @@ URL = "https://hc-ping.com/00000000-0000-0000-0000-000000000000"
 
 @pytest.fixture(autouse=True)
 def _reset_state(monkeypatch):
-    monkeypatch.setattr(heartbeat, "_state", {"misses": 0, "last_status": None})
+    monkeypatch.setattr(heartbeat, "_misses", 0)
+    monkeypatch.setattr(heartbeat, "_last_status", None)
     monkeypatch.setenv("FISHLOG_HEALTHCHECK_URL", URL)
 
 

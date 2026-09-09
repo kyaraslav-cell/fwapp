@@ -23,6 +23,15 @@ services:
       # (Caddy, a Tailscale funnel). Wrong either way breaks rate limiting -
       # see the addendum to docs/adr/0004.
       FISHLOG_TRUST_PROXY: "${FISHLOG_TRUST_PROXY:-}"
+      # The dead man's switch. Missing from this list until 2026-09-09, which
+      # is the whole reason it never pinged: `.env` is NOT copied into the
+      # image (the Dockerfile takes only app/ and config/), so this block is
+      # the single path a variable has into the container. Set in .env and
+      # absent here, the app reads an empty string, treats monitoring as
+      # switched off, and says nothing - while the same URL pinged by hand
+      # from the host works perfectly, because the host is where the value
+      # actually exists.
+      FISHLOG_HEALTHCHECK_URL: "${FISHLOG_HEALTHCHECK_URL:-}"
 
 volumes:
   fishlog-data:

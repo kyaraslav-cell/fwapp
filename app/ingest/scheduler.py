@@ -161,6 +161,20 @@ def build_scheduler() -> BackgroundScheduler:
         max_instances=1,
         misfire_grace_time=60,
     )
+    # Said once, at startup, because an unconfigured monitor and a working one
+    # looked identical from the logs - the job ran every five minutes and
+    # returned instantly, writing nothing. That silence is what let the app go
+    # unwatched with the URL sitting in `.env` the whole time.
+    from app.core.heartbeat import is_configured
+
+    if is_configured():
+        logger.info("heartbeat: reporting to an outside monitor every 5 minutes")
+    else:
+        logger.warning(
+            "heartbeat: FISHLOG_HEALTHCHECK_URL is not set IN THIS PROCESS - "
+            "nothing is watching this app. If it is in .env, docker-compose.yml "
+            "must pass it through as well; .env is not copied into the image."
+        )
     scheduler.add_job(run_predict_job, CronTrigger(hour=4, minute=0), id="generate_prediction")
     scheduler.add_job(run_jobs_tick, IntervalTrigger(seconds=30), id="drain_job_queue")
     scheduler.add_job(

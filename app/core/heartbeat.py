@@ -52,12 +52,29 @@ TIMEOUT_SECONDS = 10.0
 # minutes. A day of network trouble should not bury the ingest log.
 _QUIET_AFTER = 3
 
-_state = {"misses": 0, "last_status": None}
+# Two plainly typed module globals rather than one dict. A dict of mixed value
+# types infers as `int | None`, which makes every read of it a mypy error under
+# --strict - the counter cannot be incremented and the status cannot hold a
+# string. Separate names cost nothing and type themselves.
+_misses: int = 0
+_last_status: str | None = None
 
 
 def _url() -> str | None:
     value = os.environ.get("FISHLOG_HEALTHCHECK_URL", "").strip()
     return value or None
+
+
+def is_configured() -> bool:
+    """Whether anything outside this machine will hear from us.
+
+    Exists so startup can say so out loud. "Switched off" and "configured and
+    working" were indistinguishable from outside this module, and that is the
+    shape the 2026-09-09 fault took: the URL sat in `.env`, `docker-compose.yml`
+    did not pass it through, the container read an empty string, and the app
+    reported nothing about a monitor that was never running.
+    """
+    return _url() is not None
 
 
 def _summary(h: health_mod.Health) -> str:
@@ -102,19 +119,21 @@ def beat() -> None:
 
     sent = _post(url if healthy else url.rstrip("/") + "/fail", body)
 
+    global _misses, _last_status
+
     if sent:
-        if _state["misses"] >= _QUIET_AFTER:
+        if _misses >= _QUIET_AFTER:
             logger.info("heartbeat: monitoring reachable again")
-        _state["misses"] = 0
+        _misses = 0
         # Only on change: a healthy app says nothing, a newly stale one says so
         # once, and recovery is visible in the log rather than inferred.
         status = "ok" if healthy else "fail"
-        if _state["last_status"] != status:
+        if _last_status != status:
             logger.info("heartbeat: reported %s - %s", status, body)
-            _state["last_status"] = status
+            _last_status = status
     else:
-        _state["misses"] += 1
-        if _state["misses"] == _QUIET_AFTER:
+        _misses += 1
+        if _misses == _QUIET_AFTER:
             logger.warning("heartbeat: cannot reach the monitor (%d attempts)", _QUIET_AFTER)
 
 
