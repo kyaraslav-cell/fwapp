@@ -67,6 +67,7 @@ Every finished change is merged there and pushed (rule 13).
 | Closing an `ingest_gap` once its hours arrive | works — `app/ingest/gaps.py`, `tools/resolve_gaps.py`. Evidence only: a gap whose hours are still absent stays open. **Not yet run on annapc**, where 9 are open. |
 | Move / install / health-check scripts (`scripts/`) | works - `pack`, `bootstrap` (one pasted line), `install`, `check`, `reboot-readiness`. Migration run for real, row counts verified. `docs/21` |
 | `scripts/update.ps1` — after a change, one pasted line | pull, rebuild (rule 20), reboot-readiness, close gaps, install the heartbeat, check. Pieces verified individually; **never run end to end**, because doing so on the laptop would restart the container that was deliberately stopped. `docs/21` |
+| `scripts/doctor.ps1` — why did it fall | nine sections, tests paths rather than reading state, reads the environment **inside** the container, and writes `logs/doctor-*.txt` + a history line so a pattern across falls is readable. Verified against a live container. `docs/21` |
 | Unattended health monitoring | built for both - `scripts/heartbeat.ps1` (Windows Scheduled Task, annapc) and `tools/heartbeat.sh` (systemd, the VM fallback). Five paths verified against the live app; **the task registration itself is only proven by `-Status` on annapc after installing**. `docs/21` |
 | Sign in with Google | wired and verified end-to-end (real client id, correct redirect, correct consent-screen URL) — the human consent click-through is the owner's to complete |
 

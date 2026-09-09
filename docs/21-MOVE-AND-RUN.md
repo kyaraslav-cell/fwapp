@@ -11,6 +11,7 @@ hard, because Fishlog is a much smaller thing to move. `update.ps1` and
 | `scripts/install.ps1` | restore it on another PC and start it |
 | `scripts/check.ps1` | is the whole chain alive, and is the container running *this* code |
 | `scripts/update.ps1` | **after a change** — pull, rebuild, gaps, heartbeat, check, in one line |
+| `scripts/doctor.ps1` | **when it falls over** — tests every link and leaves evidence behind |
 
 ---
 
@@ -591,3 +592,102 @@ That last row is not ceremony. Four separate escapes were eaten writing Windows
 paths during the migration session, including `\t` in `\tailscale.exe`, which
 made `install.ps1` report Tailscale missing on the one machine where it
 mattered. They are invisible in every representation that displays them.
+
+---
+
+## When it falls over — `scripts/doctor.ps1`
+
+`check.ps1` answers *did the deploy land*. `doctor.ps1` answers *why did it fall,
+and which link is about to*. Run it on annapc when something looks wrong, or
+straight after a fall:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\admin\fwapp\scripts\doctor.ps1
+```
+
+`-Ping` additionally sends one real ping to the monitor. `-Quiet` prints nothing
+and only writes the report, for a scheduled run. Exit code is the number of
+failures, so a scheduler can act on it.
+
+Nine sections, in dependency order — machine, docker, the environment inside the
+container, the app, monitoring, background jobs, code drift, public URL, verdict.
+Read the **first** `[FAIL]`, not the last: they cascade, and a missing container
+makes everything below it fail too. Sections that cannot run say `skipped - no
+container` rather than inventing a failure.
+
+### The three things it does that nothing else here does
+
+**1. It reads the environment INSIDE the container.** `check.ps1` reads `.env`
+on the host, and those are different things — `.env` is not copied into the
+image. Believing the host copy is exactly how the dead man's switch sat unset
+for a day while every check reported it configured. `doctor.ps1` lists what is
+in `.env`, then asserts each one actually arrived, with a short exemption list
+for the settings that legitimately never travel (`KIE_AI_API_KEY` is build-time
+only, `FISHLOG_HEARTBEAT_URL` is read by a host script).
+
+**2. It tests paths instead of reading state.** Egress to the monitor is tried
+*from inside the container* — the only place it matters — by fetching the ping
+host's root rather than the check's own URL, so connectivity is proven without
+marking the check "up" and masking a real outage. `-Ping` sends a genuine ping,
+also from inside the container, through the same `httpx` the app uses.
+
+**3. It collects post-mortem evidence.** Container start time, restart count,
+OOM kills, the previous exit code, tracebacks in the log, Windows boot time and
+unexpected-shutdown events. An app that fell and recovered leaves nothing behind
+otherwise, which is why "it fell again" was unanswerable every previous time.
+Every run writes `logs\doctor-<timestamp>.txt` and appends one line to
+`logs\doctor-history.txt`, so a pattern across falls becomes readable instead of
+remembered. The last 30 reports are kept.
+
+The single most useful line is the container's age. A container that *is
+running* but started eleven minutes ago fell over eleven minutes ago, and
+nothing else on the box will tell you that.
+
+### Four bugs found by running it, not by reading it
+
+Every one of these looked correct in the source and was wrong in practice.
+
+**`docker logs` was returning nothing.** Python's logging writes to **stderr**,
+and the `Native` wrapper that guards every docker call discards stderr. So the
+script reported "no heartbeat line in the log" and "no ingest activity" against
+a container that was logging both — the precise false alarm it exists to
+prevent. `docker logs` now goes through `cmd /c "... 2>&1"`, letting cmd do the
+redirection, because `2>&1` on a native command in PowerShell 5.1 wraps each
+stderr line in an ErrorRecord.
+
+**The drift check would have cried wolf forever.** The first version hashed one
+stream per side, walking the container with `os.walk` — which sorts only within
+a directory — against a globally sorted host list. Those orderings disagree on
+*identical* code. Replaced with `check.ps1`'s proven per-file recipe, then
+verified by building a fresh image and confirming both sides agree: 140 files,
+same hash.
+
+**The test ping travelled the wrong path.** It was sent from the host while
+every real ping comes from inside the container. The host can reach a monitor
+the container cannot, and the reverse; a test that does not travel the real path
+proves nothing. It now runs inside the container.
+
+**`$ping` silently became a switch.** `[switch]$Ping` in the param block is a
+*type-constrained* variable and PowerShell is case-insensitive, so assigning a
+here-string to `$ping` coerced it to a `SwitchParameter` and piped nothing into
+python. The probe reported failure with an empty error message while working
+perfectly by hand.
+
+### Tested
+
+Against a real container on the laptop, started deliberately for the purpose
+against a local sink (never the real check) and stopped again afterwards:
+
+| | Result |
+|---|---|
+| no container | 5 sections say `skipped`, 1 FAIL, no cascade |
+| live container | environment inside verified, drift matched, logs parsed |
+| egress probe | `REACHABLE ... 200` from inside the container, sink saw `GET /` only |
+| `-Ping` | `SENT 200`, sink saw `POST /<check> :: doctor test ping` |
+| `-Quiet` | 0 lines printed, report still written |
+| drift, identical code | 140 files both sides, same hash — no false alarm |
+| exit code | equals the failure count |
+
+**Not tested:** an actual OOM kill, a crash loop, and the unexpected-shutdown
+event reader, which needs administrator on this machine and reported so rather
+than failing.
