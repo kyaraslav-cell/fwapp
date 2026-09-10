@@ -81,11 +81,16 @@ function DockerLogs {
 }
 
 if (-not $RepoDir) {
-    $RepoDir = @(
-        (Split-Path $PSScriptRoot -Parent),
-        'C:\Users\admin\fwapp',
-        (Join-Path $env:USERPROFILE 'fwapp')
-    ) | Where-Object { $_ -and (Test-Path (Join-Path $_ 'docker-compose.yml')) } | Select-Object -First 1
+    # $PSScriptRoot is EMPTY when this arrives through `irm | iex`, and
+    # `Split-Path ''` does not return empty - it THROWS, which aborted the
+    # whole candidate list and reported "no checkout found" on a machine that
+    # had one. Build the list defensively, then filter.
+    $candidates = New-Object System.Collections.ArrayList
+    if ($PSScriptRoot) { $null = $candidates.Add((Split-Path $PSScriptRoot -Parent)) }
+    $null = $candidates.Add('C:\Users\admin\fwapp')
+    if ($env:USERPROFILE) { $null = $candidates.Add((Join-Path $env:USERPROFILE 'fwapp')) }
+    $null = $candidates.Add((Get-Location).Path)
+    $RepoDir = $candidates | Where-Object { $_ -and (Test-Path (Join-Path $_ 'docker-compose.yml')) } | Select-Object -First 1
 }
 if (-not $RepoDir) {
     Write-Host "  no checkout found - pass -RepoDir C:\path\to\fwapp" -ForegroundColor Red
